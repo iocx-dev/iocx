@@ -9,9 +9,10 @@ __pycache__/
 # ----------------------------------------
 # Virtual environments (your venv)
 # ----------------------------------------
+.venv*
 venv/
 .env/
-.venv/
+
 
 # Kate editor swap/backup files
 # ----------------------------------------

@@ -1,0 +1,6 @@
+User reported suspicious activity:
+- URL: http://malicious.example.com
+- IP: 91.210.45.12
+- File: /tmp/runme.sh
+- Email: evil@phish.example
+- Hash: 44d88612fea8a8f36de82e1278abb02f
