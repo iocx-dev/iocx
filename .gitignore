@@ -1,0 +1,82 @@
+# ----------------------------------------
+# Python bytecode + cache
+# ----------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ----------------------------------------
+# Virtual environments (your venv)
+# ----------------------------------------
+venv/
+.env/
+.venv/
+
+# Kate editor swap/backup files
+# ----------------------------------------
+*.kate-swp
+*.swp
+*.swo
+*.backup
+*.bak
+
+# Kate session files (optional)
+*.katesession
+
+# ----------------------------------------
+# Build artifacts (Python)
+# ----------------------------------------
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+*.spec
+
+# PyInstaller output (for integration tests)
+# ----------------------------------------
+/dist/
+/build/
+/*.spec
+
+# ----------------------------------------
+# Go build artifacts (integration tests)
+# ----------------------------------------
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+go_test_bin
+py_test_bin
+
+# Go module cache (optional)
+bin/
+pkg/
+
+# ----------------------------------------
+# Test artifacts
+# ----------------------------------------
+htmlcov/
+coverage.xml
+.coverage
+.pytest_cache/
+tests/tmp/
+tests/integration/tmp/
+
+# ----------------------------------------
+# Logs
+# ----------------------------------------
+*.log
+
+# ----------------------------------------
+# OS noise
+# ----------------------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------------------
+# Local development files
+# ----------------------------------------
+.env.local
+*.tmp
