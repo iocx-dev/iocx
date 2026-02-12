@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-malx-ioc-extract = "malx_ioc_extractor.cli.main:main"
+malx-ioc-extractor = "malx_ioc_extractor.cli.main:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

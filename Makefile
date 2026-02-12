@@ -11,6 +11,10 @@ STAMP_VENV := .venv.created
 STAMP_INSTALL := .venv.installed
 STAMP_DEV := .venv.devtools
 
+# Tests
+PYTEST := pytest
+INTEGRATION_DIR := tests/integration
+
 .PHONY: activate
 activate:
 	@echo "Run: source .venv/bin/activate"
@@ -75,6 +79,13 @@ dev: $(STAMP_DEV)
 test: dev
 	$(PYTHON) -m pytest -q
 
+# ----------------------------------------
+# Integration tests only
+# ----------------------------------------
+.PHONY: test-integration
+test-integration: dev
+	@echo "Running integration tests..."
+	$(PYTEST) -m integration $(INTEGRATION_DIR)
 
 # ===========================
 # Linting & Formatting
