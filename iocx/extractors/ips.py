@@ -1,4 +1,5 @@
 import re
+from ..detectors import register_detector
 
 # IPv4: 1.2.3.4
 IPV4 = r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"
@@ -11,3 +12,6 @@ IP_REGEX = re.compile(f"({IPV4}|{IPV6})")
 def extract(text: str):
     """Extract IPv4 and IPv6 addresses from text."""
     return IP_REGEX.findall(text)
+
+# register on import
+register_detector("ips", extract)

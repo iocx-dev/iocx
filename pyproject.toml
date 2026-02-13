@@ -12,6 +12,7 @@ license = { text = "MIT" }
 dependencies = [
     "pefile",
     "rich",
+    "python-magic",
 ]
 
 [project.scripts]
