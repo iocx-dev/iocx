@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-iocx = iocx.cli.main:main"
+iocx = "iocx.cli.main:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
