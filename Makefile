@@ -77,7 +77,7 @@ dev: $(STAMP_DEV)
 # ===========================
 .PHONY: test
 test: dev
-	$(PYTHON) -m pytest -q
+	$(PYTHON) -m pytest -q -m "not integration"
 
 # ----------------------------------------
 # Integration tests only
