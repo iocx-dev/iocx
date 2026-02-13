@@ -4,7 +4,7 @@
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
-PACKAGE := malx_ioc_extractor
+PACKAGE := iocx
 
 # Stamp files to avoid repeated work
 STAMP_VENV := .venv.created
