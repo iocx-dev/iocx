@@ -47,7 +47,7 @@ def test_cli_with_real_python_binary(tmp_path):
     assert py_bin.exists(), "Python binary must exist for this test"
 
     result = subprocess.run(
-        ["malx-ioc-extractor", str(py_bin)],
+        ["iocx", str(py_bin)],
         capture_output=True,
         text=True,
     )
