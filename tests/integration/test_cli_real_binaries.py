@@ -18,7 +18,7 @@ def test_cli_with_real_go_binary(tmp_path):
     assert go_bin.exists(), "Go binary must exist for this test"
 
     result = subprocess.run(
-        ["malx-ioc-extractor", str(go_bin)],
+        ["iocx", str(go_bin)],
         capture_output=True,
         text=True,
     )

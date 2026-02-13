@@ -8,7 +8,7 @@ def test_cli_with_text_input():
     text = "Visit http://example.com and example.org"
 
     result = subprocess.run(
-        ["malx-ioc-extractor", text],
+        ["iocx", text],
         capture_output=True,
         text=True,
     )

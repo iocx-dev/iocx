@@ -8,7 +8,7 @@ def test_cli_with_text_file(tmp_path):
     file.write_text("Check https://malx.io and test.net")
 
     result = subprocess.run(
-        ["malx-ioc-extractor", str(file)],
+        ["iocx", str(file)],
         capture_output=True,
         text=True,
     )
