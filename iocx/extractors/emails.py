@@ -1,4 +1,5 @@
 import re
+from ..detectors import register_detector
 
 # Basic but effective email regex
 EMAIL_REGEX = re.compile(
@@ -8,3 +9,6 @@ EMAIL_REGEX = re.compile(
 def extract(text: str):
     """Extract email addresses from text."""
     return EMAIL_REGEX.findall(text)
+
+# register on import
+register_detector("emails", extract)

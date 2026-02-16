@@ -10,11 +10,7 @@ URL_REGEX = re.compile(
         |
         \d{1,3}(?:\.\d{1,3}){3}                # IPv4
         |
-
-
-\[[0-9a-fA-F:]+\]
-
-                      # IPv6
+        \[[0-9a-fA-F:]+\]                      # IPv6
     )
     (?::\d{2,5})?                              # optional port
     (?:/[^\s<>"']*)?                           # optional path/query/fragment
@@ -22,7 +18,6 @@ URL_REGEX = re.compile(
     """,
     re.VERBOSE,
 )
-
 
 def extract_strict_urls(text: str) -> list[str]:
     return URL_REGEX.findall(text)

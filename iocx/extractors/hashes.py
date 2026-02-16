@@ -1,4 +1,5 @@
 import re
+from ..detectors import register_detector
 
 HASH_REGEX = re.compile(
     r"\b("
@@ -12,3 +13,6 @@ HASH_REGEX = re.compile(
 def extract(text: str):
     """Extract cryptographic hashes from text."""
     return HASH_REGEX.findall(text)
+
+# register on import
+register_detector("hashes", extract)

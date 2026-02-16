@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.integration
 def test_cli_with_text_file(tmp_path):
     file = tmp_path / "ioc_test.txt"
-    file.write_text("Check https://malx.io and test.net")
+    file.write_text(r"Check https://malx.io and test.net c:\users\bob\file.txt test@test.com")
 
     result = subprocess.run(
         ["iocx", str(file)],
@@ -23,3 +23,4 @@ def test_cli_with_text_file(tmp_path):
 
     assert "https://malx.io" in data["iocs"]["urls"]
     assert "test.net" in data["iocs"]["domains"]
+    assert r"c:\users\bob\file.txt" in data["iocs"]["filepaths"]

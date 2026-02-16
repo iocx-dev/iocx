@@ -11,9 +11,7 @@ FILEPATH_REGEX = re.compile(
         (?:\\\\|//)[A-Za-z0-9._-]+(?:\\|/)[^\s"']+
         |
         # Windows drive paths: C:\folder\file  (NO forward slashes)
-        [A-Za-z]:\
-
-\[^\s"']+
+        [A-Za-z]:\\[^\s"']+
         |
         # Unix paths, but NOT domain-like paths or URLs
         /(?![A-Za-z0-9.-]+\.[A-Za-z]{2,})(?!/)[^\s"']+
