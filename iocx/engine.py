@@ -140,23 +140,48 @@ class Engine:
             "metadata": {},
         }
 
-    def _run_detectors(self, key: str, text: str) -> Dict[str, List[str]]:
+    def _run_detectors(self, key: str, text: str) -> Dict[str, Any]:
         if self.config.enable_cache and key in self.cache.detections:
             return self.cache.detections[key]
 
-        detections: Dict[str, List[str]] = {}
+        detections: Dict[str, Any] = {}
+
         for name, detector in all_detectors().items():
-            detections[name] = detector(text)
+            result = detector(text)
+
+            # Allow detectors to return either:
+            # - list[str]
+            # - dict[str, list[str]]
+            detections[name] = result
 
         if self.config.enable_cache:
             self.cache.detections[key] = detections
 
         return detections
 
-    def _post_process(self, raw_iocs: Dict[str, List[str]]) -> Dict[str, List[str]]:
-        iocs = normalise_iocs(raw_iocs)
-        iocs = dedupe(iocs)
-        return iocs
+    def _post_process(self, raw_iocs: Dict[str, Any]) -> Dict[str, List[str]]:
+        merged: Dict[str, List[str]] = {}
+
+        for detector_name, result in raw_iocs.items():
+
+            # Case 1: detector returned a list of strings
+            if isinstance(result, list):
+                if detector_name not in merged:
+                    merged[detector_name] = []
+                merged[detector_name].extend(result)
+
+            # Case 2: detector returned a dict of lists
+            elif isinstance(result, dict):
+                for key, values in result.items():
+                    if key not in merged:
+                        merged[key] = []
+                    merged[key].extend(values)
+
+        # Normalise + dedupe
+        merged = normalise_iocs(merged)
+        merged = dedupe(merged)
+
+        return merged
 
     # ---------- Helpers ----------
 

@@ -1,4 +1,4 @@
-from malx_ioc_extractor.parsers.string_extractor import extract_strings
+from iocx.parsers.string_extractor import extract_strings
 
 def test_extract_strings(tmp_path):
     f = tmp_path / "bin.bin"

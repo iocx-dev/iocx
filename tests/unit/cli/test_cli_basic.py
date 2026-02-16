@@ -7,7 +7,7 @@ def test_cli_runs(tmp_path):
     sample.write_text("http://example.com")
 
     result = subprocess.run(
-        [sys.executable, "-m", "malx_ioc_extractor.cli.main", str(sample)],
+        [sys.executable, "-m", "iocx.cli.main", str(sample)],
         capture_output=True,
         text=True
     )
