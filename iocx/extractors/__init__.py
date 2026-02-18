@@ -5,3 +5,4 @@ from . import ips
 from . import hashes
 from . import emails
 from . import filepaths
+from . import base64
