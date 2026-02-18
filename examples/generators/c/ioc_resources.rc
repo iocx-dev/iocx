@@ -1,0 +1,8 @@
+STRINGTABLE
+BEGIN
+    100 "http://malx-rsrc.example"
+    101 "rsrc-attacker@example.com"
+    102 "C:\\Windows\\System32\\rsrc.dll"
+    103 "66.77.88.99"
+    104 "YmFzZTY0LXJzcmMtc3RyaW5n"
+END
