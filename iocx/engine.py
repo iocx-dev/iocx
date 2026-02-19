@@ -89,6 +89,10 @@ class Engine:
     def _pipeline_pe(self, path: str) -> Dict[str, Any]:
         metadata = self._get_pe_metadata(path)
         strings = self._get_strings(path)
+
+        # Adds strings extracted from the PE resource section into the main string list before running detectors.
+        strings.extend(metadata.get("resource_strings", []))
+
         text = "\n".join(strings)
 
         raw_iocs = self._run_detectors(path, text)

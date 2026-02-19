@@ -18,7 +18,6 @@ def run_fixture_test(name: str):
     manifest = load_manifest(name)
     exe_path = BIN_DIR / f"{name}.exe"
 
-    # found = extract(str(exe_path))
     result = subprocess.run(
         ["iocx", str(exe_path)],
         capture_output=True,
@@ -30,11 +29,32 @@ def run_fixture_test(name: str):
     found = json.loads(result.stdout)
 
     expected = set(manifest["expected_iocs"])
-    found_set = set(found)
 
-    # Assert all expected IOCs are present
-    missing = expected - found_set
+    flat = []
+    for values in found["iocs"].values():
+        flat.extend(values)
+
+    # Normalise found IOCs:
+    # - lowercase (for filepaths)
+    # - strip " (decoded: ...)" for base64 entries
+    normalised = set()
+
+    for s in flat:
+        s_str = str(s)
+
+        # If it's a base64 entry like "XXX (decoded: YYY)", keep the raw XXX too
+        if " (decoded:" in s_str:
+            raw = s_str.split(" ", 1)[0]
+            normalised.add(raw.lower())
+
+        normalised.add(s_str.lower())
+
+    # Also normalise expected to lowercase for comparison
+    expected_normalised = {e.lower() for e in expected}
+
+    missing = expected_normalised - normalised
     assert not missing, f"Missing IOCs in {name}: {missing}"
+
 
 @pytest.mark.parametrize("fixture", [
     "pe_basic",

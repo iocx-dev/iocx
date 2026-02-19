@@ -1,20 +1,21 @@
 import re
 from ..detectors import register_detector
 
-# Matches Windows paths like C:\Users\Bob\file.txt
-# and Unix paths like /usr/local/bin/script.sh
-# Do NOT match if the preceding characters are ://
+# Windows absolute drive paths: C:\Windows\System32\cmd.exe, D:/temp/run.exe
+# UNC paths: \\server\share\folder\file.txt
+# Unix absolute: /usr/bin/python, /etc/ssh/sshd_config
 FILEPATH_REGEX = re.compile(
     r"""
+    (?x)
     (
-        # UNC paths: \\server\share or //server/share
-        (?:\\\\|//)[A-Za-z0-9._-]+(?:\\|/)[^\s"']+
+        # Windows drive absolute, e.g. C:\path\file.txt
+        [A-Za-z]:[\\/] (?: [^\\/:*?"<>|\r\n]+ [\\/] )* [^\\/:*?"<>|\r\n\s]+
         |
-        # Windows drive paths: C:\folder\file  (NO forward slashes)
-        [A-Za-z]:\\[^\s"']+
+        # UNC path, e.g. \\server\share\path
+        \\\\ [^\\\/\s]+ \\ [^\\\/\s]+ (?: \\ [^\\\/\s]+ )*
         |
-        # Unix paths, but NOT domain-like paths or URLs
-        /(?![A-Za-z0-9.-]+\.[A-Za-z]{2,})(?!/)[^\s"']+
+        # Unix absolute, e.g. /usr/bin/python
+        \/(?:[A-Za-z0-9._~-]+\/)+[A-Za-z0-9._~-]+
     )
     """,
     re.VERBOSE,

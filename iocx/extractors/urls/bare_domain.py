@@ -4,11 +4,12 @@ import re
 BARE_DOMAIN_REGEX = re.compile(
     r"""
     \b
-    (?:[a-zA-Z0-9-]+\.)+       # one or more labels
-    [a-zA-Z]{2,63}             # TLD
-    (?!\.)                     # must NOT be followed by a dot
+    (?:[A-Za-z0-9-]+\.)+                 # one or more labels
+    (?!dll\b|exe\b|sys\b|startup\b|text\b|pdata\b|xdata\b|rdata\b)
+    [A-Za-z]{2,63}                       # TLD (syntactic only)
+    \b
     """,
-    re.VERBOSE,
+    re.VERBOSE | re.IGNORECASE,
 )
 
 

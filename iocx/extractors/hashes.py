@@ -7,6 +7,7 @@ HASH_REGEX = re.compile(
     r"|[a-fA-F0-9]{40}"     # SHA1
     r"|[a-fA-F0-9]{64}"     # SHA256
     r"|[a-fA-F0-9]{128}"    # SHA512
+    r"|[a-fA-F0-9]{8,31}" # generic short hex (keys, IDs, partial hashes)
     r")\b"
 )
 
