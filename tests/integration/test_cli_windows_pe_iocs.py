@@ -1,4 +1,9 @@
-@pytest.mark.integration
+import json
+import subprocess
+import pytest
+from pathlib import Path
+
+# @pytest.mark.integration
 def test_cli_with_generated_pe_with_iocs():
     fixture = Path("tests/fixtures/pe_with_iocs.exe")
 

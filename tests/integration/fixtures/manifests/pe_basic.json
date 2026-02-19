@@ -1,0 +1,10 @@
+{
+    "fixture": "pe_basic",
+    "expected_iocs": [
+        "http://example.com/c2",
+        "192.168.44.10",
+        "abcd1234deadbeef"
+    ],
+    "encoding": "ascii",
+    "location": "data-section"
+}

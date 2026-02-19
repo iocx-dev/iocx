@@ -1,0 +1,9 @@
+{
+    "fixture": "pe_utf16",
+    "expected_iocs": [
+        "http://evil.com/door",
+        "172.16.0.77"
+    ],
+    "encoding": "utf16-le",
+    "location": "data-section"
+}

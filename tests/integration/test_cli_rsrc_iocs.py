@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 import pytest
 
-@pytest.mark.integration
+#@pytest.mark.integration
 def test_cli_with_rsrc_embedded_iocs():
     fixture = Path("tests/fixtures/pe_with_rsrc_iocs.exe")
     assert fixture.exists(), "Missing .rsrc PE fixture"
