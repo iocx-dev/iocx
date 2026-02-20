@@ -3,22 +3,25 @@ import base64
 import string
 from ..detectors import register_detector
 
-# Allow URL-safe base64 too: '-' and '_'
-# Allow unpadded base64 (={0,2}).
-# Prevents matching inside larger tokens (via lookbehind/lookahead).
+# Accepts standard + URL‑safe base64
+# Handles missing padding
+# Avoids matching inside larger tokens
+# Decodes safely
+# Filters by “looks like text”
+# Requires min. length of 12
 BASE64_REGEX = re.compile(
-    r"(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/=_-]{4,}(?:={0,2})(?![A-Za-z0-9+/=_-])"
+    r"(?<![A-Za-z0-9+/=_-])[A-Za-z0-9+/=_-]{12,}(?:={0,2})(?![A-Za-z0-9+/=_-])"
 )
 
 # Checks whether the decoded bytes are mostly printable characters.
 def looks_like_text(decoded: bytes) -> bool:
-
-    # Accept UTF-16LE (lots of null bytes)
-    if b"\x00" in decoded:
+    # Detect UTF‑16LE: null bytes in every odd position
+    if len(decoded) > 2 and all(decoded[i] == 0 for i in range(1, len(decoded), 2)):
         return True
 
     printable = sum(c in bytes(string.printable, "ascii") for c in decoded)
-    return printable / max(len(decoded), 1) >= 0.7
+    return printable / max(len(decoded), 1) >= 0.85
+
 
 def extract(text: str):
     results = []
@@ -36,6 +39,14 @@ def extract(text: str):
             # urlsafe handles both standard and URL-safe base64
             decoded_bytes = base64.urlsafe_b64decode(padded)
         except Exception:
+            continue
+
+        # reject control characters
+        if any(c < 9 or (13 < c < 32) for c in decoded_bytes):
+            continue
+
+        # require at least one alphabetic character
+        if not any(chr(c).isalpha() for c in decoded_bytes):
             continue
 
         if not looks_like_text(decoded_bytes):
