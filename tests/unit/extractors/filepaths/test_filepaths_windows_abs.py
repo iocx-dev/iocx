@@ -10,7 +10,7 @@ from iocx.extractors.filepaths import extract
     # Windows absolute path + Unix absolute path
     (
         "prefix C:/Users/Admin/run.bat suffix",
-        ["C:/Users/Admin/run.bat suffix", "/Users/Admin/run.bat"]
+        ["C:/Users/Admin/run.bat", "/Users/Admin/run.bat"]
     ),
 ])
 def test_windows_abs_matches(text, expected):

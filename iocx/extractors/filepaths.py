@@ -9,12 +9,15 @@ WINDOWS_ABS = re.compile(
     \b
     [A-Z]:[\\/]
     (?:
-        [^\\/:*?"<>|\r\n]+[\\/]      # directories
+        [^\\/:*?"<>|\r\n\s]+[\\/]      # directories
     )*
-    [^\\/:*?"<>|\r\n]+              # final filename
+    [^\\/:*?"<>|\r\n\s]+               # final filename
     """,
     re.VERBOSE | re.IGNORECASE,
 )
+
+
+
 
 # -----------------------------
 # UNC paths
@@ -24,13 +27,14 @@ UNC_PATH = re.compile(
     \\\\                                # leading UNC slashes
     [A-Z0-9._-]+                        # server or IP
     [\\/]                               # separator
-    [A-Z0-9._$-]+                       # share name (allow $)
+    [A-Z0-9._$-]+                       # share name
     (?:
-        [\\/] [^\\/:*?"<>|\r\n]+
+        [\\/] [^\\/:*?"<>|\r\n\s]+
     )*
     """,
     re.VERBOSE | re.IGNORECASE,
 )
+
 
 # -----------------------------
 # Unix absolute paths
