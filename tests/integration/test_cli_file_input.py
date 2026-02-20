@@ -136,3 +136,16 @@ def test_cli_with_unc_network_paths(tmp_path):
 
     # Base64
     assert "aGVsbG8gd29ybGQ= (decoded: hello world)" in iocs["base64"]
+
+@pytest.mark.integration
+def test_empty_file(tmp_path):
+    file = tmp_path / "empty.txt"
+    file.write_text("")
+
+    result = subprocess.run(["iocx", str(file)], capture_output=True, text=True)
+    assert result.returncode == 0
+
+    data = json.loads(result.stdout)
+    for key in data["iocs"]:
+        assert data["iocs"][key] == []
+
