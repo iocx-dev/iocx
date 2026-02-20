@@ -46,20 +46,15 @@ UNIX_ABS = re.compile(
     re.VERBOSE,
 )
 
-
 # -----------------------------
 # Relative paths
 # -----------------------------
 RELATIVE_PATH = re.compile(
-    r"""
-    (?<![A-Za-z0-9._-])                 # avoid matching inside words
-    (?:\.{1,2}[\\/])                    # ./ or ../
-    (?:
-        [^\\/:*?"<>|\r\n]+[\\/]
-    )*
-    [^\\/:*?"<>|\r\n]+\.[A-Za-z0-9]{1,10}
-    """,
-    re.VERBOSE | re.IGNORECASE,
+    r"(?<![A-Za-z0-9._-])"
+    r"(?:\.{1,2}[\\/])"
+    r"(?:[^\\/:*?\"<>|\r\n]+[\\/])*"
+    r"[^\\/:*?\"<>|\r\n]+(?:\.[A-Za-z0-9]{1,10})?",
+    re.IGNORECASE,
 )
 
 # -----------------------------
@@ -78,13 +73,23 @@ ENV_PATH = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
+TILDE_PATH = re.compile(
+    r"""
+    (?<![A-Za-z0-9._-])
+    ~[A-Za-z0-9._-]*              # ~ or ~username
+    (?:/[A-Za-z0-9._~-]+)+        # /path/segments
+    """,
+    re.VERBOSE,
+)
+
+
 # -----------------------------
 # Extractor
 # -----------------------------
 def extract(text: str):
     results = []
 
-    for regex in (WINDOWS_ABS, UNC_PATH, UNIX_ABS, RELATIVE_PATH, ENV_PATH):
+    for regex in (WINDOWS_ABS, UNC_PATH, UNIX_ABS, RELATIVE_PATH, TILDE_PATH, ENV_PATH):
         results.extend(regex.findall(text))
 
     # Deduplicate while preserving order
