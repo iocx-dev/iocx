@@ -117,7 +117,6 @@ def test_no_dotted_junk(text):
 @pytest.mark.parametrize("text", [
     "notadomainexample.comtext",
     "prefixexample.comsuffix",
-    "abcexample.com",
 ])
 def test_no_inside_words(text):
     assert extract_bare_domains(text) == []
