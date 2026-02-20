@@ -65,7 +65,7 @@ install: $(STAMP_INSTALL)
 # Development Tools
 # ===========================
 $(STAMP_DEV): install
-	$(PIP) install pytest ruff black
+	$(PIP) install pytest ruff black coverage
 	@touch $(STAMP_DEV)
 	@echo "Development tools installed"
 
@@ -86,6 +86,14 @@ test: dev
 test-integration: dev
 	@echo "Running integration tests..."
 	$(PYTEST) -m integration $(INTEGRATION_DIR)
+
+# ----------------------------------------
+# Tests with coverage
+# ----------------------------------------
+.PHONY: test-coverage
+test-coverage: dev
+	$(PYTHON) -m coverage run -m pytest
+	$(PYTHON) -m coverage report -m
 
 # ===========================
 # Linting & Formatting
