@@ -82,23 +82,6 @@ sudo apt install mingw-w64
 
 ---
 
-## Building All Fixtures
-
-If a `Makefile` exists in `examples/generators/c/`, run:
-
-```bash
-cd examples/generators/c/
-make
-```
-
-This will compile all `.c` and `.rc` files and output the binaries into:
-
-```
-tests/integration/fixtures/bin/
-```
-
----
-
 ## Building Fixtures Manually
 
 ### 1. `pe_basic.exe`
