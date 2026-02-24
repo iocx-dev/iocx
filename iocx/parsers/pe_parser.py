@@ -1,4 +1,5 @@
 import pefile
+from .string_extractor import extract_strings_from_bytes
 
 def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
     if visited is None:
