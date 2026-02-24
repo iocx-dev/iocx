@@ -1,14 +1,31 @@
 import pefile
 
-def _walk_resources(pe, directory, resource_strings):
+def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
+    if visited is None:
+        visited = set()
+
+    if max_allowed is None:
+        max_allowed = min(pe.__data__.size // 10, 20_000_000) # 10% of file, capped at 20MB
+
+    # Prevent infinite recursion on malformed resource trees
+    dir_id = id(directory)
+    if dir_id in visited:
+        return
+    visited.add(dir_id)
+
     for entry in directory.entries:
         if hasattr(entry, "directory"):
-            walk_resources(pe, entry.directory, resource_strings)
+            _walk_resources(pe, entry.directory, resource_strings, max_allowed, visited)
         elif hasattr(entry, "data"):
             data_rva = entry.data.struct.OffsetToData
             size = entry.data.struct.Size
-            data = pe.get_data(data_rva, size)
-            resource_strings.extend(extract_strings_from_bytes(data))
+            if size <= max_allowed:
+                try:
+                    data = pe.get_data(data_rva, size) # Some malformed resources have invalid RVAs or sizes so handle exceptions
+                except Exception:
+                    continue
+
+                resource_strings.extend(extract_strings_from_bytes(data))
 
 def parse_pe(path):
     try:
@@ -30,6 +47,9 @@ def parse_pe(path):
         if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
             _walk_resources(pe, pe.DIRECTORY_ENTRY_RESOURCE, resource_strings)
 
+        # Deduplicate resource strings
+        resource_strings = list(dict.fromkeys(resource_strings))
+
         return {
             "file_type": "PE",
             "imports": imports,
@@ -37,5 +57,5 @@ def parse_pe(path):
             "resource_strings": resource_strings,
         }
 
-    except Exception:
+    except pefile.PEFormatError:
         return {}
