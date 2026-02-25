@@ -6,7 +6,7 @@ from iocx.extractors.filepaths import extract
     ("..\\bin\\tool", ["..\\bin\\tool"]),
     ("./run", ["./run"]),
     ("../bin/tool", ["../bin/tool"]),
-    ("prefix ../scripts/build suffix", ["../scripts/build suffix"]),
+    ("prefix ../scripts/build suffix", ["../scripts/build"]),
 ])
 def test_relative_extless_matches(text, expected):
     assert extract(text) == expected

@@ -56,12 +56,12 @@ RELATIVE_PATH = re.compile(
     (?<![A-Za-z0-9._-])
     (?:\.{1,2}[\\/])
     (?:[^\\/:*?"<>|\r\n]+[\\/])*      # directories (allow spaces)
-    [^\\/:*?"<>|\r\n]+                # final segment
-    (?:[ ]+\S+)?                      # allow inline trailing text ONLY
-    (?=$|\s|[.,;:!?])
+    [^\\/:*?"<>|\r\n\s]+              # final filename (NO whitespace)
+    (?=$|\s|[.,;:!?])                 # end boundary
     """,
     re.VERBOSE,
 )
+
 
 
 
