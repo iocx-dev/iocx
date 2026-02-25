@@ -38,41 +38,49 @@ echo "visit http://malicious.example" | iocx -
 
 The CLI supports a focused set of flags designed to keep the interface simple while still offering meaningful control.
 
-Input
-Flag	Description
-input	File path or raw text. Use - to read from stdin.
+### Input
+| Flag  | Description                                        |
+|-------|----------------------------------------------------|
+| input | File path or raw text. Use `-` to read from stdin. |
 
 
-Output Options
-Flag	Description
--o, --output FILE	Write JSON output to a file instead of stdout.
--p, --pretty	Pretty‑print JSON output (indent=2).
+### Output
+| Flag               | Description                                        |
+|--------------------|----------------------------------------------------|
+| -o, --output FILE  | Write JSON output to a file instead of stdout.     |
+| -p, --pretty       | Pretty‑print JSON output (indent=2).               |
 
-Examples:
+### Examples
 ```bash
 
 iocx sample.txt --pretty
 iocx sample.txt -o results.json
+
 ```
 
-Engine Options
-Flag	Description
---no-cache	Disable engine caching. Useful for debugging or repeated extraction tests.
+## Engine Options
+| Flag       | Description                                                                |
+|------------|----------------------------------------------------------------------------|
+| --no-cache | Disable engine caching. Useful for debugging or repeated extraction tests. |
 
-Detector Options
-Flag	Description
---list-detectors	Print all available detectors and exit.
 
-Example:
+## Detector Options
+| Flag             | Description                             |
+|------------------|-----------------------------------------|
+| --list-detectors | Print all available detectors and exit. |
+
+### Example:
 ```bash
 
 iocx --list-detectors
 
 ```
 
-Misc
-Flag	Description
---version	Show the installed version of iocx.
+## Misc
+| Flag             | Description                             |
+|------------------|-----------------------------------------|
+| --version        | Show the installed version of iocx.     |
+
 
 ## Output Format
 
@@ -98,7 +106,7 @@ iocx input.txt --pretty
 
 ```
 
-## Examples
+### Examples
 
 Extract from a PE file
 ```bash
