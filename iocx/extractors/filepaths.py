@@ -1,100 +1,121 @@
 import re
 from ..detectors import register_detector
 
-# -----------------------------
-# Windows absolute paths
-# -----------------------------
+# ============================================================
+# WINDOWS ABSOLUTE PATHS (supports spaces)
+# ============================================================
 WINDOWS_ABS = re.compile(
     r"""
-    \b
-    [A-Z]:[\\/]
-    (?:
-        [^\\/:*?"<>|\r\n\s]+[\\/]      # directories
-    )*
-    [^\\/:*?"<>|\r\n\s]+               # final filename
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
-
-
-
-
-# -----------------------------
-# UNC paths
-# -----------------------------
-UNC_PATH = re.compile(
-    r"""
-    \\\\                                # leading UNC slashes
-    [A-Z0-9._-]+                        # server or IP
-    [\\/]                               # separator
-    [A-Z0-9._$-]+                       # share name
-    (?:
-        [\\/] [^\\/:*?"<>|\r\n\s]+
-    )*
-    """,
-    re.VERBOSE | re.IGNORECASE,
-)
-
-
-# -----------------------------
-# Unix absolute paths
-# -----------------------------
-UNIX_ABS = re.compile(
-    r"""
-    (?<![A-Za-z0-9._-])        # not inside a word or domain
-    /
-    (?:[A-Za-z0-9._~-]+/)+     # one or more directories, each ending with /
-    [A-Za-z0-9._~-]+           # final filename (no trailing slash)
-    (?![A-Za-z0-9._-])         # don't bleed into domains
+    (?<![A-Za-z0-9])                 # boundary
+    [A-Za-z]:                        # drive letter
+    [\\/]
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*     # directories (allow spaces)
+    [^\\/:*?"<>|\r\n\s]+             # final filename (no spaces)
+    (?=$|\s|[.,;:!?])                # end boundary
     """,
     re.VERBOSE,
 )
 
-# -----------------------------
-# Relative paths
-# -----------------------------
-RELATIVE_PATH = re.compile(
-    r"(?<![A-Za-z0-9._-])"
-    r"(?:\.{1,2}[\\/])"
-    r"(?:[^\\/:*?\"<>|\r\n]+[\\/])*"
-    r"[^\\/:*?\"<>|\r\n]+(?:\.[A-Za-z0-9]{1,10})?",
-    re.IGNORECASE,
+
+# ============================================================
+# UNC PATHS
+# ============================================================
+UNC_PATH = re.compile(
+    r"""
+    (?<![A-Za-z0-9])
+    \\\\                              # \\server
+    [A-Za-z0-9._-]+                   # server or IP
+    [\\/]
+    [A-Za-z0-9._$-]+                  # share
+    (?:[\\/][^\\/:*?"<>|\r\n]+)*      # directories (allow spaces)
+    [\\/]
+    [^\\/:*?"<>|\r\n\s]+              # final filename (NO spaces)
+    (?=$|\s|[.,;:!?])                 # end boundary
+    """,
+    re.VERBOSE,
 )
 
-# -----------------------------
-# Environment variable paths
-# -----------------------------
+
+
+# ============================================================
+# UNIX ABSOLUTE PATHS (no Windows drive letters)
+# ============================================================
+UNIX_ABS = re.compile(
+    r"""
+    (?<![A-Za-z0-9._-])               # boundary
+    /
+    (?:[A-Za-z0-9._~-]+/)+            # directories
+    [A-Za-z0-9._~-]+                  # final filename
+    (?=$|\s|[.,;:!?])
+    """,
+    re.VERBOSE,
+)
+
+
+# ============================================================
+# RELATIVE PATHS (strict, no trailing text)
+# ============================================================
+RELATIVE_PATH = re.compile(
+    r"""
+    (?<![A-Za-z0-9._-])
+    (?:\.{1,2}[\\/])
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*      # directories
+    [^\\/:*?"<>|\r\n]+                # final filename
+    (?=$|\s|[.,;:!?])
+    """,
+    re.VERBOSE,
+)
+
+# ============================================================
+# ENVIRONMENT VARIABLE PATHS
+# ============================================================
 ENV_PATH = re.compile(
     r"""
     (
-        % [A-Z0-9_]+ %                  # %APPDATA%
+        % [A-Z0-9_]+ %                # %APPDATA%
         (?: [\\/][^\\/:*?"<>|\r\n]+ )+
       |
-        \$[A-Z_][A-Z0-9_]*              # $HOME
-        (?: / [A-Za-z0-9._~-]+ )+       # allow .config, etc.
+        \$[A-Z_][A-Z0-9_]*            # $HOME
+        (?: / [A-Za-z0-9._~-]+ )+
     )
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
+# ============================================================
+# TILDE PATHS
+# ============================================================
 TILDE_PATH = re.compile(
     r"""
     (?<![A-Za-z0-9._-])
-    ~[A-Za-z0-9._-]*              # ~ or ~username
-    (?:/[A-Za-z0-9._~-]+)+        # /path/segments
+    ~[A-Za-z0-9._-]*                  # ~ or ~user
+    (?:/[A-Za-z0-9._~-]+)+            # /path/segments
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
 
-
-# -----------------------------
+# ============================================================
 # Extractor
-# -----------------------------
+# ============================================================
 def extract(text: str):
     results = []
 
-    for regex in (WINDOWS_ABS, UNC_PATH, UNIX_ABS, RELATIVE_PATH, TILDE_PATH, ENV_PATH):
-        results.extend(regex.findall(text))
+    # Order matters — Windows first, then UNC, then Unix, etc.
+    for regex in (
+        WINDOWS_ABS,
+        UNC_PATH,
+        UNIX_ABS,
+        RELATIVE_PATH,
+        TILDE_PATH,
+        ENV_PATH,
+    ):
+        for match in regex.findall(text):
+            # Some regexes return tuples; flatten them
+            if isinstance(match, tuple):
+                match = match[0]
+            results.append(match)
 
     # Deduplicate while preserving order
     seen = set()
