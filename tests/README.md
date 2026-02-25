@@ -274,7 +274,7 @@ detect_file_type() is fully covered via mocks of magic.from_file, including:
 The test suite is built around these principles:
 
 - Deterministic: No randomness, no external dependencies.
-- Fast: Entire suite runs in under 2 seconds.
+- Fast: Entire suite runs in under 3 seconds.
 - Isolated: Each test mocks only what it needs.
 - Exhaustive: Every branch and edge case is covered.
 - Realistic: Integration tests use real binaries and text samples.
