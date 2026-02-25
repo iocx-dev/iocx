@@ -3,12 +3,20 @@ import json
 import sys
 from ..engine import Engine, EngineConfig
 from ..detectors import all_detectors
-from .. import __version__
+from importlib.metadata import version, PackageNotFoundError
+
+
+def get_version():
+    try:
+        return version("iocx")
+    except PackageNotFoundError:
+        return "0.0.0"
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Static IOC extractor for binaries, logs, and text."
+        description="Static IOC extractor for binaries, logs, and text.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     # ---------------------------
@@ -25,7 +33,8 @@ def main():
     # ---------------------------
     input_group.add_argument(
         "input",
-        help="File path or raw text. Use '-' to read from stdin."
+        nargs="?",
+        help="File path or raw text. Use '-' to read from stdin.",
     )
 
     # ---------------------------
@@ -75,7 +84,7 @@ def main():
     # Handle --version
     # ---------------------------
     if args.version:
-        print(__version__)
+        print(get_version())
         return
 
     # ---------------------------
@@ -87,10 +96,16 @@ def main():
         return
 
     # ---------------------------
+    # Validate input for extraction
+    # ---------------------------
+    if not args.input:
+        parser.error("input is required unless using --version or --list-detectors")
+
+    # ---------------------------
     # Configure engine
     # ---------------------------
     config = EngineConfig(
-        cache=not args.no_cache,
+        enable_cache=not args.no_cache,
     )
     engine = Engine(config)
 
