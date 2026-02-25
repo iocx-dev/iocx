@@ -2,7 +2,7 @@ import re
 from ..detectors import register_detector
 
 # ============================================================
-# WINDOWS ABSOLUTE PATHS (supports spaces)
+# WINDOWS ABSOLUTE PATHS (supports spaces in directories)
 # ============================================================
 WINDOWS_ABS = re.compile(
     r"""
@@ -10,15 +10,14 @@ WINDOWS_ABS = re.compile(
     [A-Za-z]:                        # drive letter
     [\\/]
     (?:[^\\/:*?"<>|\r\n]+[\\/])*     # directories (allow spaces)
-    [^\\/:*?"<>|\r\n\s]+             # final filename (no spaces)
+    [^\\/:*?"<>|\r\n\s]+             # final filename (NO spaces)
     (?=$|\s|[.,;:!?])                # end boundary
     """,
     re.VERBOSE,
 )
 
-
 # ============================================================
-# UNC PATHS
+# UNC PATHS (no whitespace in share or directory segments)
 # ============================================================
 UNC_PATH = re.compile(
     r"""
@@ -27,18 +26,16 @@ UNC_PATH = re.compile(
     [A-Za-z0-9._-]+                   # server or IP
     [\\/]
     [A-Za-z0-9._$-]+                  # share
-    (?:[\\/][^\\/:*?"<>|\r\n]+)*      # directories (allow spaces)
+    (?:[\\/][^\\/:*?"<>|\r\n\s]+)*    # directories (NO whitespace)
     [\\/]
-    [^\\/:*?"<>|\r\n\s]+              # final filename (NO spaces)
+    [^\\/:*?"<>|\r\n\s]+              # final filename (NO whitespace)
     (?=$|\s|[.,;:!?])                 # end boundary
     """,
     re.VERBOSE,
 )
 
-
-
 # ============================================================
-# UNIX ABSOLUTE PATHS (no Windows drive letters)
+# UNIX ABSOLUTE PATHS (strict, no Windows drive letters)
 # ============================================================
 UNIX_ABS = re.compile(
     r"""
@@ -51,32 +48,36 @@ UNIX_ABS = re.compile(
     re.VERBOSE,
 )
 
-
 # ============================================================
-# RELATIVE PATHS (strict, no trailing text)
+# RELATIVE PATHS (no whitespace in final filename)
 # ============================================================
 RELATIVE_PATH = re.compile(
     r"""
     (?<![A-Za-z0-9._-])
     (?:\.{1,2}[\\/])
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*      # directories
-    [^\\/:*?"<>|\r\n]+                # final filename
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*      # directories (allow spaces)
+    [^\\/:*?"<>|\r\n]+                # final segment
+    (?:[ ]+\S+)?                      # allow inline trailing text ONLY
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
 
+
+
 # ============================================================
-# ENVIRONMENT VARIABLE PATHS
+# ENVIRONMENT VARIABLE PATHS (no whitespace in final filename)
 # ============================================================
 ENV_PATH = re.compile(
     r"""
     (
         % [A-Z0-9_]+ %                # %APPDATA%
-        (?: [\\/][^\\/:*?"<>|\r\n]+ )+
+        (?: [\\/][^\\/:*?"<>|\r\n]+ )*
+        [\\/][^\\/:*?"<>|\r\n\s]+     # final filename (NO whitespace)
       |
         \$[A-Z_][A-Z0-9_]*            # $HOME
-        (?: / [A-Za-z0-9._~-]+ )+
+        (?: / [A-Za-z0-9._~-]+ )*
+        / [A-Za-z0-9._~-]+            # final filename
     )
     (?=$|\s|[.,;:!?])
     """,
@@ -112,7 +113,6 @@ def extract(text: str):
         ENV_PATH,
     ):
         for match in regex.findall(text):
-            # Some regexes return tuples; flatten them
             if isinstance(match, tuple):
                 match = match[0]
             results.append(match)
