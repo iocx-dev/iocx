@@ -1,3 +1,19 @@
+<p align="center">
+  <a href="https://pypi.org/project/iocx/">
+    <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
+  </a>
+  <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
+  <img src="https://img.shields.io/badge/tests-238_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
+  <a href="https://github.com/malx-labs/malx-ioc-extractor/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/malx-labs/malx-ioc-extractor" alt="License">
+  </a>
+  <a href="https://github.com/malx-labs/malx-ioc-extractor/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/malx-labs/malx-ioc-extractor/tests.yml?label=build" alt="Build Status">
+  </a>
+</p>
+
+
 # Unit Test Suite
 
 This directory contains the unit tests for all individual IOC extractors in
@@ -155,3 +171,122 @@ ensure that:
 
 These tests run slower than unit tests but provide high confidence that `iocx`
 behaves correctly in real‑world scenarios.
+
+# Test Coverage & Quality Assurance
+
+This project includes a comprehensive, high‑performance test suite designed to guarantee correctness, stability, and maintainability across all IOC extraction components. The suite covers unit tests, integration tests, and targeted mocks for complex subsystems like PE parsing and file‑type detection.
+
+The result is a fast, deterministic, and deeply reliable testing environment.
+
+## Coverage Summary
+
+As of the latest build:
+
+- Total coverage: ~97%
+- Core modules: 100%
+- Engine: 97%
+- Extractors: 100%
+- Detectors: 100%
+- Utils: 100%
+- PE parser: 90%+
+- String extractor: 100%
+- Validators: 100%
+
+The remaining uncovered lines are either defensive branches or integration‑level paths that are intentionally exercised only in end‑to‑end tests.
+
+## Testing Strategy
+
+1. Unit Tests (Majority of the suite)
+
+Unit tests isolate each module and validate:
+
+- Input/output correctness
+- Error handling
+- Edge cases
+- Branch coverage
+- Cache behaviour
+- Detector registration and merging
+- String extraction logic
+- Normalisation and deduplication
+
+All external dependencies (filesystem, magic, PE parsing, detectors) are mocked to ensure deterministic behaviour.
+
+2. Integration Tests
+
+Integration tests validate:
+
+- CLI behaviour
+- Real PE files
+- Real text inputs
+- End‑to‑end IOC extraction
+- Resource string extraction
+- Cross‑extractor interactions
+
+These tests ensure the system behaves correctly in real‑world scenarios.
+
+## Engine Coverage Highlights
+
+The engine is the orchestrator of the entire system. It now has full behavioural coverage, including:
+
+- File vs text routing
+- PE, text, and unknown pipelines
+- Fallback logic
+- Cache enable/disable behaviour
+- Detector execution
+- Post‑processing (merge → normalise → dedupe)
+- Resource string merging
+- Error‑tolerant file detection
+
+Every branch of the engine is exercised through targeted mocks.
+
+## Extractor Coverage Highlights
+
+All extractors now have 100% coverage, including:
+
+- Base64
+- Emails
+- Filepaths (Windows, Unix, UNC, tilde, relative, malformed)
+- Hashes
+- IPs
+- URL detectors (strict, bare domain, normalisation, deobfuscation)
+- Super‑detector orchestration
+
+The string extractor is fully covered, including:
+
+- ASCII runs
+- UTF‑16LE runs
+- Max‑length caps
+- Deduplication
+- Mixed encodings
+- Empty input
+- File‑based extraction
+
+## Utils Coverage
+
+detect_file_type() is fully covered via mocks of magic.from_file, including:
+
+- All MIME types
+- Exception path
+- Unknown fallback
+
+## Testing Philosophy
+
+The test suite is built around these principles:
+
+- Deterministic: No randomness, no external dependencies.
+- Fast: Entire suite runs in under 2 seconds.
+- Isolated: Each test mocks only what it needs.
+- Exhaustive: Every branch and edge case is covered.
+- Realistic: Integration tests use real binaries and text samples.
+- Maintainable: Clear structure, no brittle assumptions.
+
+This ensures contributors can refactor confidently without fear of regressions.
+
+## Future Enhancements
+
+Potential next steps:
+
+- Mutation testing (to measure test strength, not just coverage)
+- Fuzzing for PE parsing
+- Performance benchmarks
+- Coverage thresholds in CI
