@@ -65,7 +65,7 @@ install: $(STAMP_INSTALL)
 # Development Tools
 # ===========================
 $(STAMP_DEV): install
-	$(PIP) install pytest ruff black coverage
+	$(PIP) install pytest ruff black coverage pip-audit bandit
 	@touch $(STAMP_DEV)
 	@echo "Development tools installed"
 
@@ -94,6 +94,16 @@ test-integration: dev
 test-coverage: dev
 	$(PYTHON) -m coverage run -m pytest
 	$(PYTHON) -m coverage report -m
+
+# ----------------------------------------
+# Static analysis and SCA
+# ----------------------------------------
+.PHONY: security
+security: dev
+	@echo "Running pip-audit..."
+	-$(VENV)/bin/pip-audit --skip-editable
+	@echo "Running Bandit..."
+	$(VENV)/bin/bandit -r $(PACKAGE) -lll
 
 # ===========================
 # Linting & Formatting
