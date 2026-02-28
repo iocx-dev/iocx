@@ -30,14 +30,14 @@ def test_cli_extracts_from_stdin():
     assert "example.com" in result.stdout
 
 
-def test_cli_pretty_flag(tmp_path):
+def test_cli_compact_flag(tmp_path):
     sample = tmp_path / "sample.txt"
     sample.write_text("http://example.com")
 
-    result = run_cli(str(sample), "--pretty")
+    result = run_cli(str(sample), "--compact")
     assert result.returncode == 0
     # Pretty JSON should contain newlines and indentation
-    assert "\n  \"" in result.stdout
+    assert "\n  \"" not in result.stdout
 
 
 def test_cli_list_detectors():

@@ -46,9 +46,9 @@ def main():
     )
 
     output_group.add_argument(
-        "-p", "--pretty",
+        "-c", "--compact",
         action="store_true",
-        help="Pretty-print JSON output."
+        help="Output compact (minified) JSON."
     )
 
     # ---------------------------
@@ -122,11 +122,13 @@ def main():
     # ---------------------------
     # Output
     # ---------------------------
+    indent = None if args.compact else 2
+
     if args.output:
         with open(args.output, "w") as f:
-            json.dump(result, f, indent=2 if args.pretty else None)
+            json.dump(result, f, indent=indent)
     else:
-        json.dump(result, sys.stdout, indent=2 if args.pretty else None)
+        json.dump(result, sys.stdout, indent=indent)
         print()
 
 

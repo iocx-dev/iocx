@@ -48,12 +48,12 @@ The CLI supports a focused set of flags designed to keep the interface simple wh
 | Flag               | Description                                        |
 |--------------------|----------------------------------------------------|
 | -o, --output FILE  | Write JSON output to a file instead of stdout.     |
-| -p, --pretty       | Pretty‑print JSON output (indent=2).               |
+| -c, --compact      | Minify JSON output (indent=None).                  |
 
 ### Examples
 ```bash
 
-iocx sample.txt --pretty
+iocx sample.txt --compact
 iocx sample.txt -o results.json
 
 ```
@@ -99,10 +99,10 @@ The CLI always emits JSON. A typical output structure looks like:
 
 ```
 
-Pretty‑printed output is enabled with:
+Minified output is enabled with:
 ```bash
 
-iocx input.txt --pretty
+iocx input.txt --compact
 
 ```
 
@@ -111,7 +111,7 @@ iocx input.txt --pretty
 Extract from a PE file
 ```bash
 
-iocx malware.exe --pretty
+iocx malware.exe
 
 ```
 
@@ -125,7 +125,7 @@ iocx logs.txt -o iocs.json
 Pipe data in
 ```bash
 
-cat suspicious.log | iocx - --pretty
+cat suspicious.log | iocx - --compact
 
 ```
 
@@ -153,7 +153,7 @@ Input:
 Output:
   -o OUTPUT, --output OUTPUT
                         Write JSON output to a file instead of stdout.
-  -p, --pretty          Pretty-print JSON output.
+  -c, --compact         Minified JSON output.
 
 Engine Options:
   --no-cache            Disable engine caching.
