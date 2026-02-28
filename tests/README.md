@@ -9,10 +9,9 @@
     <img src="https://img.shields.io/github/license/malx-labs/malx-ioc-extractor" alt="License">
   </a>
   <a href="https://github.com/malx-labs/malx-ioc-extractor/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/malx-labs/malx-ioc-extractor/tests.yml?label=build" alt="Build Status">
+    <img src="https://img.shields.io/github/actions/workflow/status/malx-labs/malx-ioc-extractor/ci.yml?label=build" alt="Build Status">
   </a>
 </p>
-
 
 # Unit Test Suite
 

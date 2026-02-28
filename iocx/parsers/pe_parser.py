@@ -6,7 +6,10 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
         visited = set()
 
     if max_allowed is None:
-        max_allowed = min(pe.__data__.size // 10, 20_000_000) # 10% of file, capped at 20MB
+        size_attr = pe.__data__.size
+        # Support both pefile.PE (size is a method) and test fakes (size is an int)
+        size = size_attr() if callable(size_attr) else size_attr
+        max_allowed = min(size // 10, 20_000_000) # 10 % of file, capped at 20 MB
 
     # Prevent infinite recursion on malformed resource trees
     dir_id = id(directory)
