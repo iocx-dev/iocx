@@ -68,3 +68,21 @@ def test_cli_no_cache_flag(tmp_path):
     result = run_cli(str(sample), "--no-cache")
     assert result.returncode == 0
     assert "example.com" in result.stdout
+
+def test_cli_min_length_flag(tmp_path):
+    sample = tmp_path / "sample.bin"
+
+    # Clean URL followed by a null byte to force binary classification
+    sample.write_bytes(b"http://x.co\x00")
+
+    # Default min length = 4 → URL length is 11 → should be extracted
+    result_default = run_cli(str(sample))
+    assert result_default.returncode == 0
+    assert "http://x.co" in result_default.stdout
+
+    # With --min-length 12 → URL too short → should NOT be extracted
+    result_min12 = run_cli(str(sample), "--min-length", "12")
+    assert result_min12.returncode == 0
+    assert "http://x.co" not in result_min12.stdout
+
+

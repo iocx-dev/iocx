@@ -69,6 +69,14 @@ def main():
         help="List available detectors and exit."
     )
 
+    detector_group.add_argument(
+        "-m", "--min-length",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Minimum printable string length for the string extractor (default: 4)."
+    )
+
     # ---------------------------
     # Misc
     # ---------------------------
@@ -106,6 +114,7 @@ def main():
     # ---------------------------
     config = EngineConfig(
         enable_cache=not args.no_cache,
+        min_string_length=args.min_length
     )
     engine = Engine(config)
 
