@@ -30,7 +30,7 @@ iocx sample.bin
 Read from stdin:
 ```bash
 
-echo "visit http://malicious.example" | iocx -
+echo "visit http://malicious.com" | iocx -
 
 ```
 
