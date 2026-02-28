@@ -84,17 +84,21 @@ iocx --list-detectors
 
 ## Output Format
 
-The CLI always emits JSON. A typical output structure looks like:
+The CLI always emits JSON (Indent=2 by default). A typical output structure looks like:
 ```json
-
 {
-  "urls": ["http://example.com"],
-  "domains": ["example.com"],
-  "emails": [],
-  "ips": [],
-  "filepaths": [],
-  "hashes": [],
-  "base64": []
+  "file": "example.txt",
+  "type": "text",
+  "iocs": {
+    "urls": ["http://example.com"],
+    "domains": ["example.com"],
+    "emails": [],
+    "ips": [],
+    "filepaths": [],
+    "hashes": [],
+    "base64": []
+  },
+  "metadata": {}
 }
 
 ```
