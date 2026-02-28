@@ -20,6 +20,16 @@
 malx‑ioc‑extractor is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) using pure static analysis. No execution. No sandboxing. No risk.
 Built for DFIR workflows, SOC automation, and large‑scale threat analysis.
 
+It’s designed to be:
+
+- **Safe** — never executes untrusted code
+- **Fast** — built for automation and pipelines
+- **Extensible** — plug in your own regexes, parsers, and rules
+- **Developer‑friendly** — clean API, CLI, and examples
+- **Open‑source** — the extraction engine is free; enrichment lives in the MalX cloud platform
+
+This project is the foundation of the MalX Labs ecosystem for scalable, modern threat‑analysis tooling.
+
 ## Features
 
 ### IOC Extraction
@@ -30,8 +40,9 @@ Built for DFIR workflows, SOC automation, and large‑scale threat analysis.
 
 ### Detections
 
-- URLs & domains
-- IPv4 / IPv6
+- URLs
+- Domains
+- IPv4 / IPv6 addresses
 - File paths
 - Hashes (MD5 / SHA1 / SHA256)
 - Email addresses
