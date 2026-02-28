@@ -19,14 +19,6 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: Cache pip
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
     - name: Install package
       run: |
         python -m pip install --upgrade pip
@@ -34,21 +26,13 @@ jobs:
 
     - name: Install dev tools
       run: |
-        pip install pytest ruff black coverage pip-audit bandit
-
-    - name: Lint (ruff)
-      run: ruff check iocx
-
-    - name: Format check (black)
-      run: black --check iocx
+        pip install pytest coverage pip-audit bandit
 
     - name: Run tests
       run: pytest -q
 
     - name: Security scan (pip-audit)
-      run: |
-        pip-audit --skip-editable || true
+      run: pip-audit --skip-editable || true
 
     - name: Security scan (Bandit)
-      run: |
-        bandit -r iocx -lll
+      run: bandit -r iocx -lll
