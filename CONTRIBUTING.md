@@ -5,7 +5,7 @@ We appreciate improvements of all kinds — bug fixes, new extractors, documenta
 
 This guide explains how to contribute effectively and keep the project consistent and maintainable.
 
-# Project Philosophy
+## Project Philosophy
 
 This project is intentionally:
 
@@ -16,7 +16,7 @@ This project is intentionally:
 
 Contributions should align with these principles.
 
-# How to Contribute
+## How to Contribute
 1. Fork the repository
 
 Create your own fork and clone it locally:
@@ -73,7 +73,7 @@ When your changes are ready:
 
 CI will run automatically on your PR.
 
-# Tests
+## Tests
 
 All new features should include tests.
 If you fix a bug, please add a test that reproduces it.
@@ -87,7 +87,7 @@ tests/
 
 We use pytest for the test suite.
 
-# Adding New Extractors
+## Adding New Extractors
 
 Extractor modules live in:
 ```plaintext
@@ -109,7 +109,7 @@ Keep extractors:
 - side‑effect‑free
 - safe for untrusted input
 
-# Code Style
+## Code Style
 
 We keep the codebase clean and consistent.
 
@@ -125,18 +125,18 @@ black iocx
 
 ```
 
-# Security
+## Security
 
 If you discover a security issue, do not open a GitHub issue.
 
 Please follow the instructions in SECURITY.md.
 
-# Code of Conduct
+## Code of Conduct
 
 By participating, you agree to uphold a respectful and constructive environment.
 Be kind, be clear, and help others succeed.
 
-# Thank You
+## Thank You
 
 Your contributions help make this project better for everyone.
 We’re grateful for your time, ideas, and expertise.
