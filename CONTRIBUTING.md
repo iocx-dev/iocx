@@ -1,6 +1,7 @@
 # Welcome
 
-Thank you for your interest in contributing to malx‑ioc‑extractor.
+Thank you for your interest in contributing to malx‑ioc‑extractor. This project is part of the MalX Labs ecosystem — a collection of modern, developer‑friendly security tools focused on safe, scalable analysis.
+
 We appreciate improvements of all kinds — bug fixes, new extractors, documentation updates, and thoughtful discussions.
 
 This guide explains how to contribute effectively and keep the project consistent and maintainable.
@@ -17,6 +18,38 @@ This project is intentionally:
 Contributions should align with these principles.
 
 ## How to Contribute
+
+There are several ways to contribute:
+
+### Fix bugs
+
+Open an issue or submit a PR with a clear description.
+
+### Add new IOC detectors
+
+Regex‑based detectors live under `extractors/`.
+Please include:
+
+- a clear regex
+- validation logic
+- test cases
+- examples
+
+### Improve PE parsing
+
+Enhancements to metadata extraction, imports, sections, or resources are welcome.
+
+### Add synthetic test samples
+
+We do **not** accept real malware samples.
+See the “Testing” section below.
+
+### Improve documentation
+
+Better examples, diagrams, or explanations are always appreciated.
+
+### Process
+
 1. Fork the repository
 
 Create your own fork and clone it locally:
@@ -73,7 +106,30 @@ When your changes are ready:
 
 CI will run automatically on your PR.
 
-## Tests
+## Testing
+
+This project is designed to be **safe to develop on any machine**.
+
+To maintain that:
+
+### Do NOT:
+
+- Upload or commit real malware
+- Submit password‑protected malware archives
+- Include malicious payloads, droppers, or exploit code
+- Add samples that require execution to analyse
+
+### Do:
+
+- Use synthetic PE files
+- Embed fake IOCs inside harmless executables
+- Use benign Windows binaries for structural testing
+- Use public test files like EICAR or GTUBE
+- Add text files containing mixed IOCs
+
+If you’re unsure whether a sample is safe, open an issue first.
+
+### Tests
 
 All new features should include tests.
 If you fix a bug, please add a test that reproduces it.
@@ -115,7 +171,7 @@ We keep the codebase clean and consistent.
 
 - Use Black for formatting
 - Use Ruff for linting (locally; CI does not enforce linting)
-- Follow existing module structure and naming conventions
+- Follow existing module structure and naming conventions, adhering to PEP8 for Python code
 
 Run locally:
 ```bash
@@ -135,6 +191,10 @@ Please follow the instructions in SECURITY.md.
 
 By participating, you agree to uphold a respectful and constructive environment.
 Be kind, be clear, and help others succeed.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the project's MIT License.
 
 ## Thank You
 
