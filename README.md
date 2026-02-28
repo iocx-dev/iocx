@@ -15,8 +15,6 @@
 
 # malx‑ioc‑extractor
 
-[![CI](https://github.com/malx-labs/malx-ioc-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/malx-labs/malx-ioc-extractor/actions/workflows/ci.yml)
-
 **Static IOC extraction for binaries, text, and artifacts — fast, safe, and open‑source.**
 
 malx‑ioc‑extractor is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) using pure static analysis. No execution. No sandboxing. No risk.
