@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-238_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-246_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/malx-labs/malx-ioc-extractor/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/malx-labs/malx-ioc-extractor" alt="License">
