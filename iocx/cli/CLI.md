@@ -141,9 +141,10 @@ iocx --list-detectors
 ```
 
 ## Exit Codes
-Code	Meaning
-0	Success
-1	Invalid arguments or runtime error
+| Code | Meaning                            |
+|------|------------------------------------|
+|  0   | Success                            |
+|  1   | Invalid arguments or runtime error |
 
 ## ioc --help example
 ```text
