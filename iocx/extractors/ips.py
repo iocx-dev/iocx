@@ -1,0 +1,16 @@
+import re
+from ..detectors import register_detector
+
+# IPv4: 1.2.3.4
+IPV4 = r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b"
+
+# IPv6: simplified matcher (covers most real-world cases)
+IPV6 = r"\b(?:[A-Fa-f0-9:]+:+)+[A-Fa-f0-9]+\b"
+
+IP_REGEX = re.compile(f"({IPV4}|{IPV6})")
+
+def extract(text: str):
+    return IP_REGEX.findall(text)
+
+# register on import
+register_detector("ips", extract)

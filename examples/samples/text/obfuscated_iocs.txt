@@ -1,0 +1,4 @@
+hxxp://malx-labs[.]example
+45[.]77[.]12[.]34
+"htt" + "p://" + "evil.example"
+C2 = "mal" + "x" + "-labs" + ".example"

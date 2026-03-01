@@ -1,0 +1,12 @@
+{
+    "fixture": "pe_rsrc",
+    "expected_iocs": [
+        "http://malx-labs.com/api",
+        "10.55.22.9",
+        "C:\\Windows\\System32\\rsrc.dll",
+        "YmFzZTY0LXJzcmMtc3RyaW5n",
+        "rsrc-attacker@example.com"
+    ],
+    "encoding": "ascii",
+    "location": "rsrc-stringtable"
+}

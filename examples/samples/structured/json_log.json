@@ -1,0 +1,6 @@
+{
+  "event": "connection_attempt",
+  "src_ip": "45.77.12.34",
+  "dst_url": "http://malx-c2.example",
+  "hash": "d41d8cd98f00b204e9800998ecf8427e"
+}

@@ -1,0 +1,22 @@
+[project]
+name = "iocx"
+version = "0.1.0"
+description = "Static IOC extraction engine for binaries, text, and logs."
+authors = [
+    { name = "MalX Labs" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+
+dependencies = [
+    "pefile",
+    "python-magic",
+]
+
+[project.scripts]
+iocx = "iocx.cli.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

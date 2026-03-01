@@ -1,0 +1,9 @@
+{
+    "fixture": "pe_overlay",
+    "expected_iocs": [
+        "http://overlay.net/c2",
+        "8.8.8.8"
+    ],
+    "encoding": "ascii",
+    "location": "overlay"
+}
