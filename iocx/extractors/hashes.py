@@ -12,7 +12,6 @@ HASH_REGEX = re.compile(
 )
 
 def extract(text: str):
-    """Extract cryptographic hashes from text."""
     return HASH_REGEX.findall(text)
 
 # register on import

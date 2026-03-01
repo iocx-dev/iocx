@@ -1,6 +1,6 @@
 # iocx Command‑Line Interface (CLI)
 
-The iocx CLI provides a simple, fast way to extract Indicators of Compromise (IOCs) from text, logs, and binaries. It wraps the same engine used by the Python API and exposes a clean set of options suitable for both interactive use and scripting.
+The `iocx` CLI provides a simple, fast way to extract Indicators of Compromise (IOCs) from text, logs, and binaries. It wraps the same engine used by the Python API and exposes a clean set of options suitable for both interactive use and scripting.
 
 ## Installation
 ```bash
@@ -9,7 +9,7 @@ pip install iocx
 
 ```
 
-After installation, the iocx command becomes available on your system.
+After installation, the `iocx` command becomes available on your system.
 
 ## Basic Usage
 

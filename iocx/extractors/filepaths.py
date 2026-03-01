@@ -62,9 +62,6 @@ RELATIVE_PATH = re.compile(
     re.VERBOSE,
 )
 
-
-
-
 # ============================================================
 # ENVIRONMENT VARIABLE PATHS (no whitespace in final filename)
 # ============================================================

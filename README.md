@@ -37,6 +37,7 @@ This project is the foundation of the MalX Labs ecosystem for scalable, modern t
 - Windows PE files (.exe, .dll)
 - Raw text
 - Extracted strings from binaries
+- Caching for increased performance
 
 ### Detections
 
@@ -44,7 +45,7 @@ This project is the foundation of the MalX Labs ecosystem for scalable, modern t
 - Domains
 - IPv4 / IPv6 addresses
 - File paths
-- Hashes (MD5 / SHA1 / SHA256)
+- Hashes (MD5 / SHA1 / SHA256 / SHA512 / Generic Hex)
 - Email addresses
 - Base64
 
@@ -181,7 +182,10 @@ You can add custom:
 - File parsers
 - Normalisation logic
 
-Example: register a custom detector. The second argument is a detector function (a callable that receives the input and returns extracted values):
+### Register a custom detector
+
+The second argument is a detector function (a callable that receives the input and returns extracted values):
+
 ```python
 
 from iocx.detectors import register_detector

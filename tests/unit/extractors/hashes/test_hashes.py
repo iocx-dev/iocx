@@ -73,7 +73,7 @@ def test_hash_followed_by_punctuation():
 # ------------------------------------------------------------
 
 def test_short_hex_is_captured():
-    # Your detector intentionally captures 8–31 hex chars
+    # The detector intentionally captures 8–31 hex chars
     text = "short hex: deadbeef"
     assert extract(text) == ["deadbeef"]
 

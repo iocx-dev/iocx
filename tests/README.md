@@ -16,7 +16,7 @@
 # Unit Test Suite
 
 This directory contains the unit tests for all individual IOC extractors in
-`iocx`. Each extractor is tested in isolation to ensure it behaves consistently,
+malx-ioc-extractor. Each extractor is tested in isolation to ensure it behaves consistently,
 predictably, and according to the extraction rules defined for the project.
 
 ## What These Tests Cover
@@ -89,7 +89,7 @@ These tests run fast and provide immediate feedback during development.
 
 # Integration Test Suite
 
-This directory contains integration tests that exercise the full `iocx` CLI
+This directory contains integration tests that exercise the full malx-ioc-extractor CLI
 pipeline. Unlike unit tests, these tests validate the behaviour of the entire
 system:
 
@@ -117,7 +117,7 @@ system:
 
 ### Binary Input Integration
 - Running the CLI on real executables
-- Go‑compiled binaries (ELF/Mach‑O/PE depending on platform)
+- Go‑compiled and MinGW-compiled binaries (ELF/Mach‑O/PE depending on platform)
 - Python script binaries with shebangs
 - Ensuring metadata extraction does not break the pipeline
 - Ensuring no crashes on non‑text input
@@ -168,7 +168,7 @@ ensure that:
 - JSON output is consistent
 - regressions are caught early
 
-These tests run slower than unit tests but provide high confidence that `iocx`
+These tests run slower than unit tests but provide high confidence that malx-ioc-extractor
 behaves correctly in real‑world scenarios.
 
 # Test Coverage & Quality Assurance
@@ -231,6 +231,7 @@ The engine is the orchestrator of the entire system. It now has full behavioural
 - PE, text, and unknown pipelines
 - Fallback logic
 - Cache enable/disable behaviour
+- Overridable minimum string length
 - Detector execution
 - Post‑processing (merge → normalise → dedupe)
 - Resource string merging
@@ -262,7 +263,7 @@ The string extractor is fully covered, including:
 
 ## Utils Coverage
 
-detect_file_type() is fully covered via mocks of magic.from_file, including:
+detect_file_type() is fully covered via mocks of `magic.from_file`, including:
 
 - All MIME types
 - Exception path

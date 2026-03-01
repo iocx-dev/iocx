@@ -62,7 +62,7 @@ def test_email_preceded_by_parenthesis():
 # ------------------------------------------------------------
 
 def test_email_inside_url():
-    # Your extractor *does* match this, because the regex allows it.
+    # The extractor *does* match this, because the regex allows it.
     text = "http://user@example.com/path"
     assert extract(text) == ["user@example.com"]
 

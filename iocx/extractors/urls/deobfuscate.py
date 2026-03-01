@@ -1,6 +1,5 @@
 import re
 
-# Simple, common deobfuscations used in threat intel reports
 PATTERNS = [
     (re.compile(r"hxxp", re.IGNORECASE), "http"),
     (re.compile(r"\[\.]", re.IGNORECASE), "."),

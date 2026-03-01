@@ -63,8 +63,7 @@ If you discover a security issue, we appreciate responsible disclosure.
 
 ### How to report
 
-Please email:
-
+Please email: security@malx.io
 
 Include:
 
@@ -75,7 +74,7 @@ Include:
 
 We aim to acknowledge reports within 72 hours.
 
-### Please do not open public GitHub issues for security problems.
+### Please do not open public GitHub issues for security problems
 
 This helps protect users while we investigate and patch the issue.
 

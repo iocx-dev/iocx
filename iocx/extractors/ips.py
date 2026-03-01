@@ -10,7 +10,6 @@ IPV6 = r"\b(?:[A-Fa-f0-9:]+:+)+[A-Fa-f0-9]+\b"
 IP_REGEX = re.compile(f"({IPV4}|{IPV6})")
 
 def extract(text: str):
-    """Extract IPv4 and IPv6 addresses from text."""
     return IP_REGEX.findall(text)
 
 # register on import

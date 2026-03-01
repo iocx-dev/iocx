@@ -134,7 +134,7 @@ If you’re unsure whether a sample is safe, open an issue first.
 All new features should include tests.
 If you fix a bug, please add a test that reproduces it.
 
-Tests live in:
+Unit and integration tests live in:
 ```plaintext
 
 tests/
