@@ -136,6 +136,25 @@ x86_64-w64-mingw32-gcc examples/generators/c/pe_utf16.c -o tests/integration/fix
 
 ---
 
+### 5. `pe_chaos.exe` aka scatt3red.exe
+IOC strings (ASCII and UTF-16LE) embedded in `.rdata/.data`, imports and resource file strings.
+
+Compile the resource file:
+
+```bash
+x86_64-w64-mingw32-windres examples/generators/c/pe_chaos.rc -O coff -o examples/generators/c/pe_chaos.res
+
+```
+
+Compile and link, ensuring mingw compiler artefacts are not written to the PE:
+
+```bash
+x86_64-w64-mingw32-gcc examples/generators/c/pe_chaos.c examples/generators/c/pe_chaos.res -o tests/integration/fixtures/bin/pe_chaos.exe -municode -s -fno-asynchronous-unwind-tables
+
+```
+
+---
+
 ## Updating Manifests
 
 Each fixture has a corresponding JSON manifest in:
