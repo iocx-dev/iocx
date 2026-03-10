@@ -1,0 +1,9 @@
+#include <windows.h>
+
+STRINGTABLE
+BEGIN
+    1000 "C:\\Windows\\System32\\cmd.exe"
+    1001 "\\\\SERVER01\\share\\dropper.exe"
+    1002 "/home/alice/.config/evil.sh"
+    1003 "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\evil.lnk"
+END
