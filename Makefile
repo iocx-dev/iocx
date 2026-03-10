@@ -14,6 +14,9 @@ STAMP_DEV := .venv.devtools
 # Tests
 PYTEST := pytest
 INTEGRATION_DIR := tests/integration
+FUZZ_DIR := tests/fuzz
+ROBUSTNESS_DIR := tests/robustness
+PERFORMANCE_DIR := tests/performance
 
 .PHONY: activate
 activate:
@@ -77,7 +80,7 @@ dev: $(STAMP_DEV)
 # ===========================
 .PHONY: test
 test: dev
-	$(PYTHON) -m pytest -q -m "not integration"
+	$(PYTHON) -m pytest -q -m "not integration and not fuzz and not robustness and not performance"
 
 # ----------------------------------------
 # Integration tests only
@@ -86,6 +89,30 @@ test: dev
 test-integration: dev
 	@echo "Running integration tests..."
 	$(PYTEST) -m integration $(INTEGRATION_DIR)
+
+# ----------------------------------------
+# Fuzz tests only
+# ----------------------------------------
+.PHONY: test-fuzz
+test-fuzz: dev
+	@echo "Running fuzz tests..."
+	$(PYTEST) -m fuzz $(FUZZ_DIR)
+
+# ----------------------------------------
+# Resilience/chaos tests only
+# ----------------------------------------
+.PHONY: test-robustness
+test-robustness: dev
+	@echo "Running robustness tests..."
+	$(PYTEST) -m robustness $(ROBUSTNESS_DIR)
+
+# ----------------------------------------
+# Performance tests only
+# ----------------------------------------
+.PHONY: test-performance
+test-performance: dev
+	@echo "Running performance tests..."
+	$(PYTEST) -m performance $(PERFORMANCE_DIR) -q -s
 
 # ----------------------------------------
 # Tests with coverage
