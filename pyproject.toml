@@ -17,6 +17,11 @@ dependencies = [
 [project.scripts]
 iocx = "iocx.cli.main:main"
 
+[project.urls]
+Homepage = "https://iocx.dev"
+Repository = "https://github.com/malx-labs/malx-ioc-extractor"
+Issues = "https://github.com/malx-labs/malx-ioc-extractor/issues"
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
