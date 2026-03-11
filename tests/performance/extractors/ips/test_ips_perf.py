@@ -40,7 +40,7 @@ def test_detector_large_input_performance():
 
     print(f"[perf] 1MB mixed-content: {duration:.4f}s")
 
-    # Assert performance threshold (tune for your environment)
+    # Assert performance threshold
     assert duration < 1.0, f"Detector too slow: {duration:.3f}s"
 
 

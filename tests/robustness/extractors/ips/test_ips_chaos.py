@@ -63,9 +63,3 @@ def test_chaos_corpus(sample):
 
     # The key invariant: extractor must not crash and must return a list.
     assert isinstance(out, list)
-
-    # Optional: if you want to enforce salvage-first behaviour:
-    # If there's a valid IP hidden inside, extract() should not return [].
-    # If the sample contains no valid IP at all, [] is acceptable.
-    #
-    # This keeps the test flexible while still enforcing correctness.
