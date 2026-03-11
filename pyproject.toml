@@ -1,6 +1,6 @@
 [project]
 name = "iocx"
-version = "0.1.0"
+version = "0.2.0"
 description = "Static IOC extraction engine for binaries, text, and logs."
 authors = [
     { name = "MalX Labs" }
@@ -16,6 +16,11 @@ dependencies = [
 
 [project.scripts]
 iocx = "iocx.cli.main:main"
+
+[project.urls]
+Homepage = "https://iocx.dev"
+Repository = "https://github.com/malx-labs/malx-ioc-extractor"
+Issues = "https://github.com/malx-labs/malx-ioc-extractor/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]

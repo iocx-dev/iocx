@@ -1,0 +1,126 @@
+[
+  {
+    "timestamp": "2026-03-11T09:42:15Z",
+    "event": "network.connection",
+    "src_ip": "xxx192.168.1.10yyy",
+    "dst_ip": "[2001:db8::1]::::443",
+    "protocol": "tcp",
+    "details": {
+      "raw": "GET http://[2001:db8::1]:443::::/index",
+      "user_agent": "curl/8.0",
+      "notes": "IPv6 bracket abuse observed"
+    }
+  },
+  {
+    "timestamp": "2026-03-11T09:42:16Z",
+    "event": "auth.failure",
+    "username": "svc-backend",
+    "client": "DROP:client=10.0.0.1;;;ERR",
+    "message": "authentication failed",
+    "metadata": {
+      "trace": "Host: 192.168.1.10:evil",
+      "attempt": 3
+    }
+  },
+  {
+    "timestamp": "2026-03-11T09:42:17Z",
+    "event": "waf.alert",
+    "rule_id": "C2-IPv6-001",
+    "payload": "fe80::dead:beef%eth0/garbage",
+    "context": {
+      "path": "/login",
+      "method": "POST",
+      "headers": {
+        "X-Forwarded-For": "10.0.0.1,unknown"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-03-11T09:42:18Z",
+    "event": "proxy.request",
+    "client_ip": "1.2.3.4.............BAD",
+    "url": "udp://[fe80::1%eth0]::::53",
+    "status": 502,
+    "notes": "DNS over UDP tunnel attempt"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:19Z",
+    "event": "malware.telemetry",
+    "sample_id": "a9f1e2",
+    "beacon": "::ffff:192.168.1.10:evil",
+    "config": {
+      "encoded": "\\x66\\x65\\x38\\x30\\x3a\\x3a\\x31",
+      "hex_stream": "31 39 32 2e 31 36 38 2e 31 2e 31",
+      "percent": "2001%3Adb8%3A%3A1"
+    }
+  },
+  {
+    "timestamp": "2026-03-11T09:42:20Z",
+    "event": "log.corruption",
+    "message": "split indicator detected",
+    "raw": "192.168.\n1.10",
+    "source": "app-server-01"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:21Z",
+    "event": "log.corruption",
+    "message": "split IPv6 detected",
+    "raw": "2001:db8::\n1",
+    "source": "app-server-02"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:22Z",
+    "event": "interface.status",
+    "device": "eth0",
+    "raw": "fe80::\n1%eth\n0",
+    "status": "up"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:23Z",
+    "event": "anomaly.concatenation",
+    "raw": "192.168.1.110.0.0.1",
+    "notes": "possible log smearing"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:24Z",
+    "event": "anomaly.concatenation",
+    "raw": "2001:db8::12001:db8::2",
+    "notes": "dual IPv6 concatenation"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:25Z",
+    "event": "interface.dualstack",
+    "raw": "fe80::1%eth0fe80::2%eth1",
+    "device": "router-core-01"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:26Z",
+    "event": "invalid.indicator",
+    "raw": "256.256.256.256",
+    "reason": "IPv4 octet overflow"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:27Z",
+    "event": "invalid.indicator",
+    "raw": "2001:db8::g",
+    "reason": "invalid hex group"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:28Z",
+    "event": "invalid.brackets",
+    "raw": "[2001:db8::1",
+    "reason": "missing closing bracket"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:29Z",
+    "event": "invalid.brackets",
+    "raw": "2001:db8::1]",
+    "reason": "missing opening bracket"
+  },
+  {
+    "timestamp": "2026-03-11T09:42:30Z",
+    "event": "port.anomaly",
+    "raw": "1.2.3.4:999999",
+    "reason": "invalid port range"
+  }
+]
