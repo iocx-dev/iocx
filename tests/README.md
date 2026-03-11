@@ -28,11 +28,9 @@ The malx‑ioc‑extractor test suite is designed for real SOC conditions, not i
 
 At the core of the project is a simple, strict philosophy:
 
-```quote
-    If a valid IOC exists anywhere inside malformed or obfuscated text, extract it.
-    If not, return nothing.
-    Never crash.
-```
+> If a valid IOC exists anywhere inside malformed or obfuscated text, extract it.
+> If not, return nothing.
+> Never crash.
 
 # Unit Test Suite
 
@@ -401,15 +399,11 @@ Measured time:
 
 Throughput formula:
 
-\[
-\text{throughput} = \frac{\text{bytes processed}}{\text{time (seconds)}}
-\]
+$$ \[\text{throughput} = \frac{\text{bytes processed}}{\text{time (seconds)}}\] $$
 
 Calculation:
 
-\[
-\text{throughput} = \frac{1\ \text{MB}}{0.0053\ \text{s}} \approx 188.7\ \text{MB/s}
-\]
+$$ \[\text{throughput} = \frac{1\ \text{MB}}{0.0053\ \text{s}} \approx 188.7\ \text{MB/s}\] $$
 
 Rounded for readability, this becomes:
 
