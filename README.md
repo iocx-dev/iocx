@@ -73,8 +73,6 @@ malx‑ioc‑extractor fits naturally into DFIR, security automation, and threat
 - Use the Python API for batch workflows, ETL pipelines, or custom tooling
 - Combine with rule extensions to tailor detection to internal patterns or datasets
 
----
-
 ## v0.2.0 — High‑Reliability IP Detection in Hostile Data
 
 Version 0.2.0 significantly improves IPv4/IPv6 extraction in noisy, malformed, mixed-content environments — the kind often seen in:
@@ -156,7 +154,6 @@ All measurements from the latest performance suite:
 - **Worst‑case IPv6 blob:** ~0.5 ms
 - **Linear scaling:** almost perfect from 100 KB → 1 MB
 </details>
----
 
 ## Features
 
