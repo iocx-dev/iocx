@@ -152,9 +152,9 @@ All measurements from the latest performance suite:
 | 600 KB sample	               | 0.0031s  |
 | 1 MB sample	               | 0.0055s  |
 
-**Throughput:** ~200 MB/s
-**Worst‑case IPv6 blob:** ~0.5 ms
-**Linear scaling:** almost perfect from 100 KB → 1 MB
+- **Throughput:** ~200 MB/s
+- **Worst‑case IPv6 blob:** ~0.5 ms
+- **Linear scaling:** almost perfect from 100 KB → 1 MB
 
 ---
 
