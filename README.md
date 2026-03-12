@@ -241,6 +241,7 @@ print(results)
 <summary><strong>Show Example JSON Output</strong></summary>
 
 <br>
+
 ```json
 
 {
@@ -285,6 +286,7 @@ print(results)
 }
 
 ```
+
 </details>
 
 ## Architecture
