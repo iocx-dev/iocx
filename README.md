@@ -35,8 +35,6 @@ It’s designed to be:
 
 This project is the foundation of the MalX Labs ecosystem for scalable, modern threat‑analysis tooling.
 
----
-
 ## Why malx‑ioc‑extractor?
 
 malx‑ioc‑extractor is designed for environments where safety, determinism, and automation matter. While many IOC extractors operate only on raw text, malx‑ioc‑extractor includes binary‑aware static analysis and an extensible rule system, making it suitable for DFIR pipelines, CI systems, and high‑volume threat‑intel processing.
@@ -50,8 +48,6 @@ malx‑ioc‑extractor is designed for environments where safety, determinism, a
 - **Consistent JSON schema** — uniform output that integrates cleanly with SIEM, SOAR, and log pipelines
 - **Low dependency footprint** — minimal attack surface and safe for enterprise environments
 - **Designed for pipelines** — fast start‑up, fast throughput, and no heavyweight runtime requirements
-
----
 
 ## Use Cases
 
@@ -122,8 +118,9 @@ $ iocx chaos_corpus.json
 }
 
 ```
-
-### Chaos Corpus: Input → Extracted Output → Explanation
+<details>
+<summary><strong>Chaos Corpus: Input → Extracted Output → Explanation</strong></summary>
+<br>
 
 | Input                                 | Extracted Output                         | Explanation                                 |
 |---------------------------------------|------------------------------------------|---------------------------------------------|
@@ -138,6 +135,7 @@ $ iocx chaos_corpus.json
 | fe80::1%eth0fe80::2%eth1              | fe80::1%eth0fe80, ::2%eth1               | Concatenated IPv6 split up.                 |
 | 2001:db8::12001:db8::2                | 2001:db8::                               | Longest valid IPv6 prefix found.            |
 | 256.256.256:256                       | —                                        | Invalid indicator ignored.                  |
+</details>
 
 ### Performance Benchmarks (v0.2.0)
 
