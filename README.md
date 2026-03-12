@@ -137,7 +137,9 @@ $ iocx chaos_corpus.json
 | 256.256.256:256                       | —                                        | Invalid indicator ignored.                  |
 </details>
 
-### Performance Benchmarks (v0.2.0)
+<details>
+<summary><strong>Performance Benchmarks (v0.2.0)</strong></summary>
+<br>
 
 All measurements from the latest performance suite:
 
@@ -153,7 +155,7 @@ All measurements from the latest performance suite:
 - **Throughput:** ~200 MB/s
 - **Worst‑case IPv6 blob:** ~0.5 ms
 - **Linear scaling:** almost perfect from 100 KB → 1 MB
-
+</details>
 ---
 
 ## Features
@@ -238,8 +240,10 @@ results = extract("suspicious.exe")
 print(results)
 
 ```
+<details>
+<summary><strong>Show Example JSON Output</strong></summary>
 
-## Example Output
+<br>
 ```json
 
 {
@@ -273,16 +277,7 @@ print(results)
       ".idata",
       ".CRT",
       ".tls",
-      ".reloc",
-      "/4",
-      "/19",
-      "/31",
-      "/45",
-      "/57",
-      "/70",
-      "/81",
-      "/97",
-      "/113"
+      ".reloc"
     ],
     "resource_strings": [
       "C:\\Windows\\System32\\cmd.exe",
@@ -293,6 +288,7 @@ print(results)
 }
 
 ```
+</details>
 
 ## Architecture
 ```plaintext
