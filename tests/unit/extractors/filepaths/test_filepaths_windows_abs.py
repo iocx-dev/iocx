@@ -22,3 +22,17 @@ def test_windows_abs_matches(text, expected):
 ])
 def test_windows_abs_negative(text):
     assert extract(text) == []
+
+
+@pytest.mark.parametrize("text", [
+    "C:\\Program Files\\Windows Defender\\mpcmdrun.exe"
+])
+def test_windows_dirs_with_spaces(text):
+    assert extract(text) == ["C:\\Program Files\\Windows Defender\\mpcmdrun.exe"]
+
+
+@pytest.mark.parametrize("text", [
+    "C:\\Users\\Public\\bad file.exe"
+])
+def test_windows_filename_with_spaces_rejected(text):
+    assert extract(text)   # truly supporting filenames with spaces belongs in dfir mode

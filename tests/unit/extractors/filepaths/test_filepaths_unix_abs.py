@@ -15,3 +15,15 @@ def test_unix_abs_matches(text, expected):
 ])
 def test_unix_abs_negative(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "/etc"
+])
+def test_unix_single_segment_rejected(text):
+    assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "/opt/app/run suffix"
+])
+def test_unix_suffix_rejected(text):
+    assert extract(text) == ["/opt/app/run"]

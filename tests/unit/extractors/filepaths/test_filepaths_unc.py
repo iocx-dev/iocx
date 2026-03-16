@@ -15,3 +15,9 @@ def test_unc_matches(text, expected):
 ])
 def test_unc_negative(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "\\\\MY SERVER\\Share\\file.exe"
+])
+def test_unc_reject_spaces_in_server(text):
+    assert extract(text) == []

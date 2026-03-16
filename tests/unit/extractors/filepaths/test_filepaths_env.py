@@ -15,3 +15,10 @@ def test_env_matches(text, expected):
 ])
 def test_env_negative(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "%APPDATA",
+    "$HOME"
+])
+def test_env_requires_trailing_path(text):
+    assert extract(text) == []

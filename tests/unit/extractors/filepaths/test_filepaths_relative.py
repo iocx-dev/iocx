@@ -19,3 +19,9 @@ def test_relative_matches(text, expected):
 ])
 def test_relative_negative(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "src/main.py"
+])
+def test_relative_folder_slash_rejected(text):
+    assert extract(text) == []

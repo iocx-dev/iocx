@@ -16,3 +16,9 @@ def test_tilde_matches(text, expected):
 ])
 def test_tilde_negative(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text", [
+    "user~/.config"
+])
+def test_tilde_mid_token_rejected(text):
+    assert extract(text) == []
