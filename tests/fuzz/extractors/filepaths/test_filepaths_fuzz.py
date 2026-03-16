@@ -92,3 +92,27 @@ def test_fuzz_random_noise():
 
         results = extract(noise)
         assert results == []  # strict mode: no false positives
+
+def rand_suffix():
+    # Random garbage that should NEVER be consumed by the UNC regex
+    return "".join(random.choice(string.ascii_letters) for _ in range(8))
+
+@pytest.mark.fuzz
+def test_unc_greediness():
+    """UNC paths must not consume trailing characters."""
+    for _ in range(200):
+        # Generate a valid UNC path
+        server = "".join(random.choice(string.ascii_letters) for _ in range(8))
+        share = "".join(random.choice(string.ascii_letters) for _ in range(6))
+        file  = "".join(random.choice(string.ascii_letters) for _ in range(5)) + ".exe"
+
+        unc = f"\\\\{server}\\{share}\\{file}"
+
+        suffix = rand_suffix()
+        text = f"{unc} {suffix}"
+
+        results = extract(text)
+
+        # Must extract EXACTLY the UNC path, nothing more
+        assert results == [unc], f"Greedy match detected: {results}"
+
