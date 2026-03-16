@@ -39,8 +39,8 @@ UNIX_ABS = re.compile(
     r"""
     (?<![A-Za-z0-9._-])               # boundary
     /
-    (?:[A-Za-z0-9._~-]+/)+            # directories
-    [A-Za-z0-9._~-]+                  # final filename
+    [A-Za-z0-9._~-]+                  # first segment
+    (?:/[A-Za-z0-9._~-]+)*            # optional additional segments
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,

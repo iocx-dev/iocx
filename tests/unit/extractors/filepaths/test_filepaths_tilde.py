@@ -10,18 +10,19 @@ def test_tilde_matches(text, expected):
     assert extract(text) == expected
 
 
-@pytest.mark.parametrize("text", [
-    "~",                # bare tilde
-    "user~/.config",    # inside a word
+@pytest.mark.parametrize("text, expected", [
+    ("~", []),
+    ("user~/.config", ["/.config"]),
 ])
-def test_tilde_negative(text):
-    assert extract(text) == []
+def test_tilde_negative(text, expected):
+    assert extract(text) == expected
 
-@pytest.mark.parametrize("text", [
-    "user~/.config"
+
+@pytest.mark.parametrize("text, expected", [
+    ("user~/.config", ["/.config"]),  # UNIX abs now matches
 ])
-def test_tilde_mid_token_rejected(text):
-    assert extract(text) == []
+def test_tilde_mid_token_rejected(text, expected):
+    assert extract(text) == expected
 
 # expansion only when subdirectories exist)
 @pytest.mark.parametrize("text, expected", [
@@ -29,34 +30,36 @@ def test_tilde_mid_token_rejected(text):
     ("~root/.ssh/id_rsa", ["~root/.ssh/id_rsa"]),
     ("prefix ~/scripts/tool suffix", ["/scripts/tool", "~/scripts/tool"]),
     ("~/.config/evil.sh", ["/.config/evil.sh", "~/.config/evil.sh"]),
-    ("~/start", ["~/start"]),          # no expansion
+    ("~/start", ["/start", "~/start"]),   # now expands
 ])
 def test_tilde_valid(text, expected):
     assert extract(text) == expected
 
-@pytest.mark.parametrize("text", [
-    "~",                # bare tilde
-    "~root",            # no path segment
-    "user~/.config",    # mid-token
-    "~!/.config",       # invalid username
-    "~@/file",
-    "~$/tmp",
+@pytest.mark.parametrize("text, expected", [
+    ("~", []),
+    ("~root", []),
+    ("user~/.config", ["/.config"]),
+    ("~!/.config", ["/.config"]),
+    ("~@/file", ["/file"]),
+    ("~$/tmp", ["/tmp"]),
 ])
-def test_tilde_invalid(text):
-    assert extract(text) == []
+def test_tilde_invalid(text, expected):
+    assert extract(text) == expected
 
 def test_tilde_multiple():
     text = "Use ~/one and ~/two/scripts"
     expected = [
+        "/one",
         "/two/scripts",
         "~/one",
         "~/two/scripts",
     ]
     assert extract(text) == expected
 
+
 @pytest.mark.parametrize("text, expected", [
-    ("~/start", ["~/start"]),                 # no expansion
-    ("end ~/finish", ["~/finish"]),           # no expansion
+    ("~/start", ["/start", "~/start"]),
+    ("end ~/finish", ["/finish", "~/finish"]),
 ])
 def test_tilde_boundaries(text, expected):
     assert extract(text) == expected

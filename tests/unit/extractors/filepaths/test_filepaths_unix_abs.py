@@ -19,8 +19,8 @@ def test_unix_abs_negative(text):
 @pytest.mark.parametrize("text", [
     "/etc"
 ])
-def test_unix_single_segment_rejected(text):
-    assert extract(text) == []
+def test_unix_single_segment_not_rejected(text):
+    assert extract(text) == ["/etc"]
 
 @pytest.mark.parametrize("text", [
     "/opt/app/run suffix"
