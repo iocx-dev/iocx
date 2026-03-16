@@ -25,9 +25,9 @@ UNC_PATH = re.compile(
     \\\\                                       # leading UNC slashes
     [A-Za-z0-9._-]+                            # server name or IP
     [\\/]
-    [^\\/:*?"<>|\r\n]+                         # share name (allow spaces)
-    (?:[\\/][^\\/:*?"<>|\r\n]+)*               # optional directories
-    (?:[^\\/:*?"<>|\r\n ]+|(?: [ ](?!\S) ))?   # optional final filename
+    [A-Za-z0-9.$_-]+                           # share name (no spaces)
+    (?:[\\/][A-Za-z0-9._-]+)*                  # directories (no spaces)
+    (?:[^\\/:*?"<>|\r\n ]+)?                   # optional final filename
     (?=\s|$|[.,;:!?])                          # end boundary
     """,
     re.VERBOSE,
