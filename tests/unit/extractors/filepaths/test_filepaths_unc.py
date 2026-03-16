@@ -21,3 +21,12 @@ def test_unc_negative(text):
 ])
 def test_unc_reject_spaces_in_server(text):
     assert extract(text) == []
+
+@pytest.mark.parametrize("text, expected", [
+    ("\\\\server\\share", ["\\\\server\\share"]),
+    ("\\\\server\\C$", ["\\\\server\\C$"]),
+    ("\\\\server\\IPC$", ["\\\\server\\IPC$"]),
+    ("\\\\MACHINE\\ADMIN$", ["\\\\MACHINE\\ADMIN$"]),
+])
+def test_unc_single_segment(text, expected):
+    assert extract(text) == expected
