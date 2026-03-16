@@ -17,7 +17,7 @@ CHAOS_CORPUS = [
     r"C:\\\\double\\\\slashes\\\\file.txt",
     r"C:\Windows\System32\drivers\etc\hosts#####",
     r"C:\Windows\System32\calc.exe suffix",     # boundary test
-    r"C:\Windows\System32\calc.exesuffix",      # should NOT match suffix
+    r"C:\Windows\System32\calc.exesuffix",
 
     # ---------------------------------------------------------
     # UNC paths — malformed, greedy, admin shares, weird hosts
@@ -26,9 +26,9 @@ CHAOS_CORPUS = [
     r"xxx\\192.168.1.50\C$\Temp\evil.dllxxx",
     r"\\LONG-SERVER_123\SHARE$\sub\dir\evil.bin",
     r"\\server\share suffix",                   # boundary test
-    r"\\server\share_suffix",                   # should NOT match
+    r"\\server\share_suffix",
     r"\\server\share\file.exe suffix",          # greedy test
-    r"\\server\share\file.exesuffix",           # should NOT match
+    r"\\server\share\file.exesuffix",
     r"\\server only",                           # invalid
     r"\\server\ spaced\share",                  # invalid share
 
@@ -56,7 +56,7 @@ CHAOS_CORPUS = [
     "./0xDEADBEEFxxx",
     "../O0O0O0",
     "./file.txt suffix",                        # boundary test
-    "./file.txtsuffix",                         # should NOT match
+    "./file.txtsuffix",
 
     # ---------------------------------------------------------
     # Tilde paths — weird usernames, unicode, obfuscation
@@ -67,7 +67,7 @@ CHAOS_CORPUS = [
     "~user123/Ωmega/script.sh",
     "~/.config/evil###",
     "~/.bashrc suffix",                         # boundary test
-    "~/.bashrcsuffix",                          # should NOT match
+    "~/.bashrcsuffix",
 
     # ---------------------------------------------------------
     # Environment variable paths — mixed OS, malformed
@@ -80,7 +80,7 @@ CHAOS_CORPUS = [
     "%NOTCLOSED\path.exe",                      # malformed
     "$not valid/path",                          # valid var, valid path
     "$VAR/file suffix",                         # boundary test
-    "$VAR/filesuffix",                          # should NOT match
+    "$VAR/filesuffix",
 
     # ---------------------------------------------------------
     # Mixed separators and hybrid paths
@@ -88,7 +88,7 @@ CHAOS_CORPUS = [
     r"C:/Windows\System32/mixed\slashes.exe",
     "/home/user\\weird/mix/of\\separators",
     r"\\server/share/dir\subdir/file???",
-    r"C:\path/with\mixed/slashes.txtsuffix",    # should NOT match
+    r"C:\path/with\mixed/slashes.txtsuffix",
 
     # ---------------------------------------------------------
     # Unicode, invisible, homoglyphs, control chars
