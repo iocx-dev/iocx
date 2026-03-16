@@ -66,18 +66,18 @@ RELATIVE_PATH = re.compile(
 ENV_PATH = re.compile(
     r"""
     (
-        % [A-Z0-9_]+ %                # %APPDATA%
-        (?: [\\/][^\\/:*?"<>|\r\n]+ )*
-        [\\/][^\\/:*?"<>|\r\n\s]+     # final filename (NO whitespace)
+        % [A-Z0-9_]+ %                    # %APPDATA%
+        (?: [\\/][^\\/:*?"<>|\r\n]+ )*    # zero or more \segments
+
       |
-        \$[A-Z_][A-Z0-9_]*            # $HOME
-        (?: / [A-Za-z0-9._~-]+ )*
-        / [A-Za-z0-9._~-]+            # final filename
+        \$[A-Z_][A-Z0-9_]*                # $HOME
+        (?: / [A-Za-z0-9._~-]+ )*         # zero or more /segments
     )
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE | re.IGNORECASE,
 )
+
 
 # ============================================================
 # TILDE PATHS

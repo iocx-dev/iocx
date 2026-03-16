@@ -106,13 +106,12 @@ def test_env_matches(path):
     assert ENV_PATH.search(path)
 
 
-@pytest.mark.parametrize("text", [
-    "%NOTCLOSED\path.exe",   # malformed
-    "$not valid/path",       # invalid var name
+@pytest.mark.parametrize("text, expected", [
+    ("%NOTCLOSED\\path.exe", []),   # malformed: missing closing %
+    ("$not valid/path", ["$not"]),  # valid env var name, should match
 ])
-def test_env_negative(text):
-    assert not ENV_PATH.search(text)
-
+def test_env_negative(text, expected):
+    assert extract(text) == expected
 
 # -----------------------------
 # FULL EXTRACTOR TEST
