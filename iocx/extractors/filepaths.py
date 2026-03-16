@@ -2,16 +2,16 @@ import re
 from ..detectors import register_detector
 
 # ============================================================
-# WINDOWS ABSOLUTE PATHS (supports spaces in directories)
+# WINDOWS ABSOLUTE PATHS (supports spaces in directories and filenames)
 # ============================================================
 WINDOWS_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9])                 # boundary
-    [A-Za-z]:                        # drive letter
+    (?<![A-Za-z0-9])                           # boundary
+    [A-Za-z]:                                  # drive letter
     [\\/]
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*     # directories (allow spaces)
-    [^\\/:*?"<>|\r\n\s]+             # final filename (NO spaces)
-    (?=$|\s|[.,;:!?])                # end boundary
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*               # directories (allow spaces)
+    (?:[^\\/:*?"<>|\r\n ]+|(?: [ ](?!\S) ))+   # filename with safe internal spaces
+    (?=\s|$|[.,;:!?])                          # end boundary
     """,
     re.VERBOSE,
 )
@@ -22,14 +22,12 @@ WINDOWS_ABS = re.compile(
 UNC_PATH = re.compile(
     r"""
     (?<![A-Za-z0-9])
-    \\\\                              # \\server
-    [A-Za-z0-9._-]+                   # server or IP
+    \\\\                                       # leading UNC slashes
+    [A-Za-z0-9._-]+                            # server name or IP
     [\\/]
-    [A-Za-z0-9._$-]+                  # share
-    (?:[\\/][^\\/:*?"<>|\r\n\s]+)*    # directories (NO whitespace)
-    [\\/]
-    [^\\/:*?"<>|\r\n\s]+              # final filename (NO whitespace)
-    (?=$|\s|[.,;:!?])                 # end boundary
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*               # share + directories (allow spaces)
+    (?:[^\\/:*?"<>|\r\n ]+|(?: [ ](?!\S) ))+   # final filename with safe internal spaces
+    (?=\s|$|[.,;:!?])                          # end boundary
     """,
     re.VERBOSE,
 )
