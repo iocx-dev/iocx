@@ -87,7 +87,7 @@ def test_fuzz_random_noise():
         noise = "".join(random.choice(string.printable) for _ in range(40))
 
         # Skip noise that contains characters that can legitimately start a path
-        if any(c in noise for c in ("/", "\\", "~", ".", "$")):
+        if any(c in noise for c in ("/", "\\", "~", ".", "$", "%")):
             continue
 
         results = extract(noise)
