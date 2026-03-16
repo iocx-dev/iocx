@@ -27,3 +27,11 @@ def test_unix_single_segment_not_rejected(text):
 ])
 def test_unix_suffix_rejected(text):
     assert extract(text) == ["/opt/app/run"]
+
+@pytest.mark.parametrize("text, expected", [
+    ("/.config", ["/.config"]),
+    ("/.hidden", ["/.hidden"]),
+])
+def test_unix_hidden_root(text, expected):
+    assert extract(text) == expected
+

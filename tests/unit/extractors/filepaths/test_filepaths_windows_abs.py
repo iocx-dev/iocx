@@ -36,3 +36,12 @@ def test_windows_dirs_with_spaces(text):
 ])
 def test_windows_filename_with_spaces_rejected(text):
     assert extract(text)   # truly supporting filenames with spaces belongs in dfir mode
+
+@pytest.mark.parametrize("text, expected", [
+    ("C:\\Program Files\\Windows", ["C:\\Program Files\\Windows"]),
+    ("C:\\Users\\John Doe\\file.txt", ["C:\\Users\\John Doe\\file.txt"]),
+    ("C:\\Users\\John Doe\\file name.txt",
+    ["C:\\Users\\John Doe\\file"]),  # stops before space in filename
+])
+def test_windows_space_handling(text, expected):
+    assert extract(text) == expected

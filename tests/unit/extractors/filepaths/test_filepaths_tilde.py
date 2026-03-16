@@ -63,3 +63,16 @@ def test_tilde_multiple():
 ])
 def test_tilde_boundaries(text, expected):
     assert extract(text) == expected
+
+@pytest.mark.parametrize("text", ["~root", "~admin", "~bob"])
+def test_tilde_user_no_slash(text):
+    assert extract(text) == []
+
+@pytest.mark.parametrize("text, expected", [
+    ("~/.bashrc", ["~/.bashrc", "/.bashrc"]),
+    ("~/.profile", ["~/.profile", "/.profile"]),
+])
+def test_tilde_hidden_files(text, expected):
+    assert set(extract(text)) == set(expected)
+
+
