@@ -3,7 +3,7 @@ C:\Program Files\Windows Defender\MpCmdRun.exe
 C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
 \\FILE-SERVER\Finance Share\Q1 Reports\payload.exe
 \\NAS01\HR Data\2024\export.csv
-bin/run.sh
+cmd.exe -e bin/run.sh
 temp/payload.exe
 modules/http/server.py
 %APPDATA%\Microsoft
@@ -12,3 +12,4 @@ $HOME/.config
 $HOME/Library/Application Support
 ~/file
 ~user/.ssh
+../scripts/build.sh

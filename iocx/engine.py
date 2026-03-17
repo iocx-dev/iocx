@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os
-from .utils import detect_file_type, FileType
+from .utils import detect_file_type, spans_overlap, suppress_overlaps, FileType
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
@@ -163,29 +163,54 @@ class Engine:
 
         return detections
 
-    def _post_process(self, raw_iocs: Dict[str, Any]) -> Dict[str, List[str]]:
-        merged: Dict[str, List[str]] = {}
+    def _post_process(self, raw_iocs):
+        """
+        Global overlap suppression:
+        - raw_iocs is a dict of lists of 4-tuples: (value, start, end, category)
+        - Flatten all matches
+        - Sort by (start, -length)
+        - Keep longest match in each region
+        - Rebuild per-category lists as 3-tuples
+        """
 
-        for detector_name, result in raw_iocs.items():
+        # 1. Flatten all matches
+        all_matches = []  # (value, start, end, category)
+        for items in raw_iocs.values():
+            for value, start, end, category in items:
+                all_matches.append((value, start, end, category))
 
-            # Case 1: detector returned a list of strings
-            if isinstance(result, list):
-                if detector_name not in merged:
-                    merged[detector_name] = []
-                merged[detector_name].extend(result)
+        # 2. Sort by start, then longest first
+        all_matches.sort(key=lambda m: (m[1], -(m[2] - m[1])))
 
-            # Case 2: detector returned a dict of lists
-            elif isinstance(result, dict):
-                for key, values in result.items():
-                    if key not in merged:
-                        merged[key] = []
-                    merged[key].extend(values)
+        # 3. Global suppression
+        survivors = []
+        last_end = -1
 
-        # Normalise + dedupe
-        merged = normalise_iocs(merged)
-        merged = dedupe(merged)
+        for value, start, end, category in all_matches:
+            if start >= last_end:
+                survivors.append((value, start, end, category))
+                last_end = end
+
+        # 4. Rebuild per-category lists (strip category)
+        merged = {
+            "urls": [],
+            "domains": [],
+            "ips": [],
+            "emails": [],
+            "filepaths": [],
+            "hashes": [],
+            "base64": [],
+        }
+
+        for value, start, end, category in survivors:
+            merged[category].append((value, start, end))
+
+        # Strip positions for final output
+        for key in merged:
+            merged[key] = [value for value, _, _ in merged[key]]
 
         return merged
+
 
     # ---------- Helpers ----------
 

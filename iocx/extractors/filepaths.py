@@ -56,9 +56,8 @@ UNIX_ABS = re.compile(
 RELATIVE_PATH = re.compile(
     r"""
     (?:
-        ^                      # start of string
-      | (?<=\n)                # start of new line
-      | (?<=\s)(?<![A-Za-z0-9\\/:%$~]\s)   # whitespace, but NOT after a path or alphanumeric char
+        ^            # start of string
+      | (?<=\s)      # or after any whitespace
     )
     (?:
         \.{1,2}[\\/]
@@ -71,6 +70,7 @@ RELATIVE_PATH = re.compile(
     """,
     re.VERBOSE,
 )
+
 
 # ============================================================
 # ENVIRONMENT VARIABLE PATHS
@@ -111,6 +111,19 @@ TILDE_PATH = re.compile(
     re.VERBOSE,
 )
 
+GENERIC_PATH = re.compile(
+    r"""
+    (?<![A-Za-z0-9])
+    [A-Za-z0-9._-]{1,100}              # limit segment length
+    (?:/[A-Za-z0-9._-]{1,100}){0,10}   # limit depth
+    \.[A-Za-z0-9]{1,6}
+    (?![A-Za-z0-9])
+    """,
+    re.VERBOSE,
+)
+
+
+
 # ============================================================
 # Extractor
 # ============================================================
@@ -125,19 +138,19 @@ def extract(text: str):
         RELATIVE_PATH,
         TILDE_PATH,
         ENV_PATH,
+        GENERIC_PATH,
     ):
-        for match in regex.findall(text):
-            if isinstance(match, tuple):
-                match = match[0]
-            results.append(match)
+        for m in regex.finditer(text):
+            value = m.group(0)
+            results.append((value, m.start(), m.end(), "filepaths"))
 
     # Deduplicate while preserving order
     seen = set()
     deduped = []
-    for r in results:
-        if r not in seen:
-            seen.add(r)
-            deduped.append(r)
+    for value, start, end, category in results:
+        if value not in seen:
+            seen.add(value)
+            deduped.append((value, start, end, category))
 
     return deduped
 

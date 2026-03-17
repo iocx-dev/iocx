@@ -19,5 +19,8 @@ URL_REGEX = re.compile(
     re.VERBOSE,
 )
 
-def extract_strict_urls(text: str) -> list[str]:
-    return URL_REGEX.findall(text)
+def extract_strict_urls(text: str):
+    results = []
+    for m in URL_REGEX.finditer(text):
+        results.append((m.group(0), m.start(), m.end(), "urls"))
+    return results

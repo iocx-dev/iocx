@@ -104,7 +104,8 @@ def extract(text: str):
     results = []
     cache = {}
 
-    for token in REGEX.findall(text):
+    for m in REGEX.finditer(text):
+        token = m.group(0)
         if token in cache:
             if cache[token] is not None:
                 results.append(cache[token])
@@ -120,7 +121,7 @@ def extract(text: str):
 
         cache[token] = validated
         if validated is not None:
-            results.append(validated)
+            results.append((validated, m.start(), m.end(), "ips"))
 
     return results
 

@@ -1,0 +1,18 @@
+this is a path C:\Users\John Doe\malicious payload.exe
+C:\Program Files\Windows Defender\MpCmdRun.exe
+C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
+this is a server \\FILE-SERVER\Finance Share\Q1 Reports\payload.exe
+\\NAS01\HR Data\2024\export.csv
+cmd -e bin/run.sh
+temp/payload.exe
+modules/http/server.py
+this is a %APPDATA%\Microsoft
+%LOCALAPPDATA%\Programs
+this is a  $HOME/.config
+$HOME/Library/Application Support
+this is a ~/file
+~user/.ssh
+prefix ../scripts/build suffix
+C:\Windows\System32\bitsadmin.exesomething
+rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump
+

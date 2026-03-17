@@ -5,36 +5,22 @@ from .deobfuscate import deobfuscate_text
 from .normalise import normalise_url
 
 def extract(text: str):
-    # 1. Deobfuscate common patterns
     clean = deobfuscate_text(text)
 
-    # 2. Extract strict URLs (with protocol)
-    urls = extract_strict_urls(clean)
+    results = []
 
-    # 3. Extract bare domains
-    domains = extract_bare_domains(clean)
+    # Strict URLs
+    for value, start, end, _ in extract_strict_urls(clean):
+        norm = normalise_url(value)
+        if norm:
+            results.append((norm, start, end, "urls"))
 
-    # 4. Normalise
-    urls = [normalise_url(u) for u in urls]
-    domains = [normalise_url(d) for d in domains]
+    # Bare domains
+    for value, start, end, _ in extract_bare_domains(clean):
+        norm = normalise_url(value)
+        if norm:
+            results.append((norm, start, end, "domains"))
 
-    # 5. Deduplicate while preserving order
-    def dedupe(seq):
-        seen = set()
-        out = []
-        for item in seq:
-            if item not in seen:
-                seen.add(item)
-                out.append(item)
-        return out
+    return results
 
-    urls = dedupe(urls)
-    domains = dedupe(domains)
-
-    return {
-        "urls": urls,
-        "domains": domains,
-    }
-
-# register on import
 register_detector("urls", extract)

@@ -25,11 +25,12 @@ def looks_like_text(decoded: bytes) -> bool:
 
 def extract(text: str):
     results = []
-    for match in BASE64_REGEX.findall(text):
+    for m in BASE64_REGEX.finditer(text):
+        raw = m.group(0)
 
         # Normalise to string
         # re.findall() may return bytes or str depending on input type. This ensures consistent handling.
-        s = match if isinstance(match, str) else match.decode("ascii", "ignore")
+        s = raw if isinstance(raw, str) else raw.decode("ascii", "ignore")
 
         # Add padding if missing
         # This ensures decoding always works as URL‑safe base64 is often unpadded
@@ -53,7 +54,7 @@ def extract(text: str):
             continue
 
         decoded = decoded_bytes.decode("utf-8", errors="replace")
-        results.append(f"{s} (decoded: {decoded})")
+        results.append((f"{s} (decoded: {decoded})", m.start(), m.end(), "base64"))
 
     return results
 

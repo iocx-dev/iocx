@@ -12,7 +12,11 @@ HASH_REGEX = re.compile(
 )
 
 def extract(text: str):
-    return HASH_REGEX.findall(text)
+    results = []
+    for m in HASH_REGEX.finditer(text):
+        results.append((m.group(1), m.start(1), m.end(1), "hashes"))
+    return results
+
 
 # register on import
 register_detector("hashes", extract)

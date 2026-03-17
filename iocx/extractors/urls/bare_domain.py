@@ -24,6 +24,11 @@ BARE_DOMAIN_REGEX = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-def extract_bare_domains(text: str) -> list[str]:
-    return BARE_DOMAIN_REGEX.findall(text)
+def extract_bare_domains(text: str):
+    results = []
+    for m in BARE_DOMAIN_REGEX.finditer(text):
+        domain = m.group(1)
+        results.append((domain, m.start(1), m.end(1), "domains"))
+    return results
+
 

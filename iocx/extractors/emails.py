@@ -6,7 +6,10 @@ EMAIL_REGEX = re.compile(
 )
 
 def extract(text: str):
-    return EMAIL_REGEX.findall(text)
+    results = []
+    for m in EMAIL_REGEX.finditer(text):
+        results.append((m.group(0), m.start(), m.end(), "emails"))
+    return results
 
 # register on import
 register_detector("emails", extract)
