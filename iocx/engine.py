@@ -165,24 +165,19 @@ class Engine:
 
     def _post_process(self, raw_iocs):
         """
-        Global overlap suppression:
-        - raw_iocs is a dict of lists of 4-tuples: (value, start, end, category)
-        - Flatten all matches
-        - Sort by (start, -length)
-        - Keep longest match in each region
-        - Rebuild per-category lists as 3-tuples
+        Combine detector outputs, suppress overlaps, and return clean IOC lists.
         """
 
-        # 1. Flatten all matches
-        all_matches = []  # (value, start, end, category)
+        # 1. Flatten all detector outputs into a single list
+        all_matches = []
         for items in raw_iocs.values():
             for value, start, end, category in items:
                 all_matches.append((value, start, end, category))
 
-        # 2. Sort by start, then longest first
+        # 2. Sort by start position, then by longest span first
         all_matches.sort(key=lambda m: (m[1], -(m[2] - m[1])))
 
-        # 3. Global suppression
+        # 3. Suppress overlaps globally
         survivors = []
         last_end = -1
 
@@ -191,7 +186,7 @@ class Engine:
                 survivors.append((value, start, end, category))
                 last_end = end
 
-        # 4. Rebuild per-category lists (strip category)
+        # 4. Rebuild category lists
         merged = {
             "urls": [],
             "domains": [],
@@ -203,11 +198,7 @@ class Engine:
         }
 
         for value, start, end, category in survivors:
-            merged[category].append((value, start, end))
-
-        # Strip positions for final output
-        for key in merged:
-            merged[key] = [value for value, _, _ in merged[key]]
+            merged[category].append(value)
 
         return merged
 

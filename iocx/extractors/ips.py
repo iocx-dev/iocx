@@ -106,6 +106,8 @@ def extract(text: str):
 
     for m in REGEX.finditer(text):
         token = m.group(0)
+
+        # If we've seen this token before, reuse the tuple
         if token in cache:
             if cache[token] is not None:
                 results.append(cache[token])
@@ -119,11 +121,15 @@ def extract(text: str):
             or _try_ip(token)
         )
 
-        cache[token] = validated
         if validated is not None:
-            results.append((validated, m.start(), m.end(), "ips"))
+            tup = (validated, m.start(), m.end(), "ips")
+            cache[token] = tup
+            results.append(tup)
+        else:
+            cache[token] = None
 
     return results
+
 
 # register on import
 register_detector("ips", extract)

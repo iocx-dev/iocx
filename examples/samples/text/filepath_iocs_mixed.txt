@@ -1,4 +1,4 @@
-this is a path C:\Users\John Doe\malicious payload.exe
+this is a path C:\Users\John Doe\malicious payload.exe   sssss
 C:\Program Files\Windows Defender\MpCmdRun.exe
 C:\Program Files (x86)\Google\Chrome\Application\chrome.exe
 this is a server \\FILE-SERVER\Finance Share\Q1 Reports\payload.exe

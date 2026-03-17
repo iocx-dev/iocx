@@ -2,33 +2,35 @@ import re
 from ..detectors import register_detector
 
 # ============================================================
-# WINDOWS ABSOLUTE PATHS (supports spaces, prevents substrings)
+# WINDOWS ABSOLUTE PATHS
 # ============================================================
 WINDOWS_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9])                     # strict boundary
-    [A-Za-z]:                            # drive letter
+    (?<![A-Za-z0-9])
+    [A-Za-z]:
     [\\/]
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*         # directories (allow spaces)
-    [^\\/:*?"<>|\r\n]+                   # final filename
-    (?=$|\s|[.,;:!?])                    # end boundary
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*       # directories (allow spaces)
+    [^\\/:*?"<>|\r\n]*?                # filename base (allow spaces)
+    \.[A-Za-z0-9]{1,6}                 # extension
+    (?=$|\s|[.,;:!?])                  # boundary
     """,
     re.VERBOSE,
 )
 
 # ============================================================
-# UNC PATHS (supports spaces, prevents substring matches)
+# UNC PATHS
 # ============================================================
 UNC_PATH = re.compile(
     r"""
-    (?<![A-Za-z0-9])                     # strict boundary
-    \\\\                                  # leading UNC slashes
-    [^\\/:*?"<>|\r\n]+                    # server
+    (?<![A-Za-z0-9])
+    \\\\
+    [^\\/:*?"<>|\r\n]+
     [\\/]
-    [^\\/:*?"<>|\r\n]+                    # share
-    (?:[\\/][^\\/:*?"<>|\r\n]+)*          # directories
-    (?:[\\/][^\\/:*?"<>|\r\n]+)?          # optional final filename
-    (?=$|\s|[.,;:!?])                     # end boundary
+    [^\\/:*?"<>|\r\n]+
+    (?:[\\/][^\\/:*?"<>|\r\n]+)*
+    [^\\/:*?"<>|\r\n]*?
+    \.[A-Za-z0-9]{1,6}
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
@@ -43,34 +45,31 @@ UNIX_ABS = re.compile(
       | (?<=[\s"'`([{<])
     )
     /
-    [^/\r\n]+                # allow spaces inside segments
-    (?:/[^/\r\n]+)*          # additional segments
-    (?=$|\s|[.,;:!?])
+    [^/\r\n]+
+    (?:/[^/\r\n]+)*
     """,
     re.VERBOSE,
 )
 
 # ============================================================
-# RELATIVE PATHS (do NOT match inside absolute/env paths)
+# RELATIVE PATHS
 # ============================================================
 RELATIVE_PATH = re.compile(
     r"""
     (?:
-        ^            # start of string
-      | (?<=\s)      # or after any whitespace
+        ^
+      | (?<=\s)
     )
     (?:
         \.{1,2}[\\/]
       |
         [A-Za-z0-9._~-]+[\\/]
     )
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*   # directories
-    [^\\/:*?"<>|\r\n\s]+           # final filename
-    (?=$|\s|[.,;:!?])
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*
+    [^\\/:*?"<>|\r\n\s]+
     """,
     re.VERBOSE,
 )
-
 
 # ============================================================
 # ENVIRONMENT VARIABLE PATHS
@@ -84,45 +83,43 @@ ENV_PATH = re.compile(
     )
     (
         % [A-Z0-9_]+ %                    # %APPDATA%
-        (?: [\\/][^\\/:*?"<>|\r\n]+ )*    # segments
-
+        (?: [\\/][^\\/:*?"<>|\r\n]+ )*
       |
         \$[A-Z_][A-Z0-9_]*                # $HOME
-        (?: / [^/\r\n]+ )*                # segments (allow spaces)
+        (?: / [^/\r\n]+ )*
     )
-    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
 # ============================================================
-# TILDE PATHS (unchanged logic, but now won't be shadowed by UNIX_ABS)
+# TILDE PATHS
 # ============================================================
 TILDE_PATH = re.compile(
     r"""
     (?:
-        ^                                  # start of string
-      | (?<=[\s"'`([{<])                   # or after whitespace / opening punctuation
+        ^
+      | (?<=[\s"'`([{<])
     )
-    ~[A-Za-z0-9._-]*                       # ~ or ~user
-    (?:/[^/\s]+)+                          # one or more segments
+    ~[A-Za-z0-9._-]*
+    (?:/[^/\s]+)+
+    """,
+    re.VERBOSE,
+)
+
+# ============================================================
+# GENERIC EXTENSION PATHS
+# ============================================================
+GENERIC_PATH = re.compile(
+    r"""
+    (?<![A-Za-z0-9])
+    [A-Za-z0-9._-]{1,100}
+    (?:/[A-Za-z0-9._-]{1,100}){0,10}
+    \.[A-Za-z0-9]{1,6}
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
-
-GENERIC_PATH = re.compile(
-    r"""
-    (?<![A-Za-z0-9])
-    [A-Za-z0-9._-]{1,100}              # limit segment length
-    (?:/[A-Za-z0-9._-]{1,100}){0,10}   # limit depth
-    \.[A-Za-z0-9]{1,6}
-    (?![A-Za-z0-9])
-    """,
-    re.VERBOSE,
-)
-
-
 
 # ============================================================
 # Extractor
@@ -130,7 +127,6 @@ GENERIC_PATH = re.compile(
 def extract(text: str):
     results = []
 
-    # Order matters — Windows first, then UNC, then Unix, etc.
     for regex in (
         WINDOWS_ABS,
         UNC_PATH,
@@ -142,9 +138,11 @@ def extract(text: str):
     ):
         for m in regex.finditer(text):
             value = m.group(0)
-            results.append((value, m.start(), m.end(), "filepaths"))
+            start = m.start()
+            end = m.end()
+            results.append((value, start, end, "filepaths"))
 
-    # Deduplicate while preserving order
+    # Deduplicate by value
     seen = set()
     deduped = []
     for value, start, end, category in results:
@@ -153,5 +151,6 @@ def extract(text: str):
             deduped.append((value, start, end, category))
 
     return deduped
+
 
 register_detector("filepaths", extract)
