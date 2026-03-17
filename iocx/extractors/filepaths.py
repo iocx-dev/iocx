@@ -6,15 +6,19 @@ from ..detectors import register_detector
 # ============================================================
 WINDOWS_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9])                           # boundary
-    [A-Za-z]:                                  # drive letter
+    (?<![A-Za-z0-9])
+    [A-Za-z]:
     [\\/]
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*               # directories (allow spaces)
-    (?:[^\\/:*?"<>|\r\n ]+|(?: [ ](?!\S) ))+   # filename with safe internal spaces
-    (?=\s|$|[.,;:!?])                          # end boundary
+    [^\\/:*?"<>|\r\n]+                     # first directory segment (spaces allowed)
+    (?:[\\/][^\\/:*?"<>|\r\n]+)*           # additional directory segments (spaces allowed)
+    [\\/]
+    [^\\/:*?"<>|\r\n\s]+                   # final filename (NO spaces)
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
+
+
 
 # ============================================================
 # UNC PATHS (no whitespace in share or directory segments)
@@ -22,30 +26,30 @@ WINDOWS_ABS = re.compile(
 UNC_PATH = re.compile(
     r"""
     (?<![A-Za-z0-9])
-    \\\\                                       # leading UNC slashes
-    [A-Za-z0-9._-]+                            # server name or IP
+    \\\\
+    [A-Za-z0-9._-]+
     [\\/]
-    [A-Za-z0-9.$_-]+                           # share name (no spaces)
-    (?:[\\/][A-Za-z0-9._-]+)*                  # directories (no spaces)
-    (?:[^\\/:*?"<>|\r\n ]+)?                   # optional final filename
-    (?=\s|$|[.,;:!?])                          # end boundary
+    [A-Za-z0-9.$_-]+
+    (?:[\\/][A-Za-z0-9._-]+)*          # safe repetition
+    (?:[\\/][A-Za-z0-9._-]+)?          # optional final filename (safe)
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
+
 
 # ============================================================
 # UNIX ABSOLUTE PATHS (strict, no Windows drive letters)
 # ============================================================
 UNIX_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9._-])               # boundary
-    /
-    [A-Za-z0-9._~-]+                  # first segment
-    (?:/[A-Za-z0-9._~-]+)*            # optional additional segments
+    (?<![A-Za-z0-9._-])
+    (?:/[A-Za-z0-9._~-]+)+
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
+
 
 # ============================================================
 # RELATIVE PATHS (no whitespace in final filename)
