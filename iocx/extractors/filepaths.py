@@ -2,96 +2,110 @@ import re
 from ..detectors import register_detector
 
 # ============================================================
-# WINDOWS ABSOLUTE PATHS (supports spaces in directories and filenames)
+# WINDOWS ABSOLUTE PATHS (supports spaces, prevents substrings)
 # ============================================================
 WINDOWS_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9])
-    [A-Za-z]:
+    (?<![A-Za-z0-9])                     # strict boundary
+    [A-Za-z]:                            # drive letter
     [\\/]
-    [^\\/:*?"<>|\r\n]+                     # first directory segment (spaces allowed)
-    (?:[\\/][^\\/:*?"<>|\r\n]+)*           # additional directory segments (spaces allowed)
-    [\\/]
-    [^\\/:*?"<>|\r\n\s]+                   # final filename (NO spaces)
-    (?=$|\s|[.,;:!?])
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*         # directories (allow spaces)
+    [^\\/:*?"<>|\r\n]+                   # final filename
+    (?=$|\s|[.,;:!?])                    # end boundary
     """,
     re.VERBOSE,
 )
 
-
-
 # ============================================================
-# UNC PATHS (no whitespace in share or directory segments)
+# UNC PATHS (supports spaces, prevents substring matches)
 # ============================================================
 UNC_PATH = re.compile(
     r"""
-    (?<![A-Za-z0-9])
-    \\\\
-    [A-Za-z0-9._-]+
+    (?<![A-Za-z0-9])                     # strict boundary
+    \\\\                                  # leading UNC slashes
+    [^\\/:*?"<>|\r\n]+                    # server
     [\\/]
-    [A-Za-z0-9.$_-]+
-    (?:[\\/][A-Za-z0-9._-]+)*          # safe repetition
-    (?:[\\/][A-Za-z0-9._-]+)?          # optional final filename (safe)
-    (?=$|\s|[.,;:!?])
+    [^\\/:*?"<>|\r\n]+                    # share
+    (?:[\\/][^\\/:*?"<>|\r\n]+)*          # directories
+    (?:[\\/][^\\/:*?"<>|\r\n]+)?          # optional final filename
+    (?=$|\s|[.,;:!?])                     # end boundary
     """,
     re.VERBOSE,
 )
 
-
 # ============================================================
-# UNIX ABSOLUTE PATHS (strict, no Windows drive letters)
+# UNIX ABSOLUTE PATHS
 # ============================================================
 UNIX_ABS = re.compile(
     r"""
-    (?<![A-Za-z0-9._-])
-    (?:/[A-Za-z0-9._~-]+)+
+    (?:
+        ^
+      | (?<=[\s"'`([{<])
+    )
+    /
+    [^/\r\n]+                # allow spaces inside segments
+    (?:/[^/\r\n]+)*          # additional segments
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
 
-
 # ============================================================
-# RELATIVE PATHS (no whitespace in final filename)
+# RELATIVE PATHS (do NOT match inside absolute/env paths)
 # ============================================================
 RELATIVE_PATH = re.compile(
     r"""
-    (?<![A-Za-z0-9._-])
-    (?:\.{1,2}[\\/])
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*      # directories (allow spaces)
-    [^\\/:*?"<>|\r\n\s]+              # final filename (NO whitespace)
-    (?=$|\s|[.,;:!?])                 # end boundary
+    (?:
+        ^                      # start of string
+      | (?<=\n)                # start of new line
+      | (?<=\s)(?<![A-Za-z0-9\\/:%$~]\s)   # whitespace, but NOT after a path or alphanumeric char
+    )
+    (?:
+        \.{1,2}[\\/]
+      |
+        [A-Za-z0-9._~-]+[\\/]
+    )
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*   # directories
+    [^\\/:*?"<>|\r\n\s]+           # final filename
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
 
 # ============================================================
-# ENVIRONMENT VARIABLE PATHS (no whitespace in final filename)
+# ENVIRONMENT VARIABLE PATHS
 # ============================================================
 ENV_PATH = re.compile(
     r"""
+    (?:
+        ^
+      | (?<=\s)
+      | (?<=[\s"'`([{<])
+    )
     (
         % [A-Z0-9_]+ %                    # %APPDATA%
-        (?: [\\/][^\\/:*?"<>|\r\n]+ )*    # zero or more \segments
+        (?: [\\/][^\\/:*?"<>|\r\n]+ )*    # segments
 
       |
         \$[A-Z_][A-Z0-9_]*                # $HOME
-        (?: / [A-Za-z0-9._~-]+ )*         # zero or more /segments
+        (?: / [^/\r\n]+ )*                # segments (allow spaces)
     )
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE | re.IGNORECASE,
 )
 
-
 # ============================================================
-# TILDE PATHS
+# TILDE PATHS (unchanged logic, but now won't be shadowed by UNIX_ABS)
 # ============================================================
 TILDE_PATH = re.compile(
     r"""
-    (?<![A-Za-z0-9._-])
-    ~[A-Za-z0-9._-]*                  # ~ or ~user
-    (?:/[A-Za-z0-9._~-]+)+            # /path/segments
+    (?:
+        ^                                  # start of string
+      | (?<=[\s"'`([{<])                   # or after whitespace / opening punctuation
+    )
+    ~[A-Za-z0-9._-]*                       # ~ or ~user
+    (?:/[^/\s]+)+                          # one or more segments
     (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
@@ -126,6 +140,5 @@ def extract(text: str):
             deduped.append(r)
 
     return deduped
-
 
 register_detector("filepaths", extract)
