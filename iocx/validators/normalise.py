@@ -15,7 +15,7 @@ def normalise_iocs(iocs: dict):
             v = v.strip()
 
             # Lowercase only for types where case is irrelevant
-            if key in ("domains", "emails", "urls", "filepaths"):
+            if key in ("domains", "emails", "urls"):
                 v = v.lower()
 
             cleaned.append(v)
