@@ -38,10 +38,10 @@ def test_detector_large_input_performance():
     result = extract(text)
     duration = time.perf_counter() - start
 
-    print(f"[perf] 1MB mixed-content: {duration:.4f}s")
+    print(f"[perf] IP 1MB mixed-content: {duration:.4f}s")
 
     # Assert performance threshold
-    assert duration < 1.0, f"Detector too slow: {duration:.3f}s"
+    assert duration < 1.0, f"IP detector too slow: {duration:.3f}s"
 
 
 @pytest.mark.performance
@@ -55,7 +55,7 @@ def test_detector_pathological_performance():
 
     print(f"[perf] pathological IPv6 blob: {duration:.4f}s")
 
-    assert duration < 0.5, f"Pathological input too slow: {duration:.3f}s"
+    assert duration < 0.5, f"IP pathological input too slow: {duration:.3f}s"
 
 
 @pytest.mark.performance
@@ -69,7 +69,7 @@ def test_scaling_behavior():
         extract(text)
         duration = time.perf_counter() - start
         timings.append(duration)
-        print(f"[perf] {size}KB: {duration:.4f}s")
+        print(f"[perf] IP {size}KB: {duration:.4f}s")
 
     # Ensure roughly linear scaling
     for i in range(1, len(timings)):
