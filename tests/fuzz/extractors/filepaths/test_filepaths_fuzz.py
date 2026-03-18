@@ -19,7 +19,6 @@ def rand_windows_path():
     return f"{drive}:\\{dirs}\\{file}"
 
 def rand_unix_path():
-    # require at least 2 dirs → total segments = 3
     dirs = "/".join(rand_segment() for _ in range(random.randint(2, 4)))
     file = rand_segment()
     return f"/{dirs}/{file}"
@@ -30,7 +29,6 @@ def rand_unc_path():
     dirs = [rand_segment() for _ in range(random.randint(0, 3))]
     file = rand_segment() + ".exe"
 
-    # Build UNC path without accidental double slashes
     parts = ["\\\\", server, "\\", share]
     for d in dirs:
         parts.extend(["\\", d])
@@ -45,9 +43,10 @@ def mutate(s):
         lambda x: x.replace("/", "//"),
         lambda x: x.replace("\\", "\\\\"),
         lambda x: x.replace(".", ".."),
-        lambda x: x[::-1],  # reversed
+        lambda x: x[::-1],
     ]
     return random.choice(mutations)(s)
+
 
 # ------------------------------------------------------------
 # Fuzz Tests
@@ -64,7 +63,8 @@ def test_fuzz_valid_paths(generator):
     for _ in range(200):
         p = generator()
         text = f"prefix {p} suffix"
-        assert p in extract(text)
+        values = [d.value for d in extract(text)]
+        assert p in values
 
 
 @pytest.mark.parametrize("generator", [
@@ -80,39 +80,38 @@ def test_fuzz_mutated_paths(generator):
         m = mutate(p)
         extract(m)  # no crash expected
 
+
 @pytest.mark.fuzz
 def test_fuzz_random_noise():
     """Random noise should not produce false positives."""
     for _ in range(500):
         noise = "".join(random.choice(string.printable) for _ in range(40))
 
-        # Skip noise that contains characters that can legitimately start a path
         if any(c in noise for c in ("/", "\\", "~", ".", "$", "%")):
             continue
 
         results = extract(noise)
-        assert results == []  # strict mode: no false positives
+        values = [d.value for d in results]
+        assert values == []
+
 
 def rand_suffix():
-    # Random garbage that should NEVER be consumed by the UNC regex
     return "".join(random.choice(string.ascii_letters) for _ in range(8))
+
 
 @pytest.mark.fuzz
 def test_unc_greediness():
     """UNC paths must not consume trailing characters."""
     for _ in range(200):
-        # Generate a valid UNC path
         server = "".join(random.choice(string.ascii_letters) for _ in range(8))
         share = "".join(random.choice(string.ascii_letters) for _ in range(6))
         file  = "".join(random.choice(string.ascii_letters) for _ in range(5)) + ".exe"
 
         unc = f"\\\\{server}\\{share}\\{file}"
-
         suffix = rand_suffix()
         text = f"{unc} {suffix}"
 
         results = extract(text)
+        values = [d.value for d in results]
 
-        # Must extract EXACTLY the UNC path, nothing more
-        assert results == [unc], f"Greedy match detected: {results}"
-
+        assert values == [unc], f"Greedy match detected: {values}"

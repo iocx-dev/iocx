@@ -1,5 +1,6 @@
 import pytest
 from iocx.extractors.filepaths import extract
+from iocx.models import Detection
 
 # ---------------------------------------------------------
 # Chaos corpus: attacker‑style malformed or obfuscated paths
@@ -129,4 +130,11 @@ CHAOS_CORPUS = [
 @pytest.mark.robustness
 def test_chaos_corpus(sample):
     out = extract(sample)
+
+    # Must always return a list of Detection objects
     assert isinstance(out, list)
+    for d in out:
+        assert hasattr(d, "value")
+        assert hasattr(d, "start")
+        assert hasattr(d, "end")
+        assert hasattr(d, "category")

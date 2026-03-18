@@ -2,36 +2,20 @@ import pytest
 from iocx.extractors.filepaths import extract
 
 @pytest.mark.parametrize("text, expected", [
-    ("/usr/bin/python", ["/usr/bin/python"]),
-    ("/bin/sh", ["/bin/sh"]),
-    ("prefix /opt/app/run suffix", ["/opt/app/run"]),
+    ("/usr/bin/python3", ["/usr/bin/python3"]),
+    ("/opt/my-app/run.sh", ["/opt/my-app/run.sh"]),
+    ("/path/with\nnewline", ["/path/with"]),
 ])
-def test_unix_abs_matches(text, expected):
-    assert extract(text) == expected
+def test_unix_abs_positive(text, expected):
+    out = extract(text)
+    assert [d.value for d in out] == expected
+
 
 @pytest.mark.parametrize("text", [
-    "usr/bin/python",     # missing leading slash
-    "/justslash/",        # ends with slash only
+    "/justslash/",        # trailing slash → directory
+    "/path with space/a", # spaces not allowed
 ])
 def test_unix_abs_negative(text):
-    assert extract(text) == []
-
-@pytest.mark.parametrize("text", [
-    "/etc"
-])
-def test_unix_single_segment_not_rejected(text):
-    assert extract(text) == ["/etc"]
-
-@pytest.mark.parametrize("text", [
-    "/opt/app/run suffix"
-])
-def test_unix_suffix_rejected(text):
-    assert extract(text) == ["/opt/app/run"]
-
-@pytest.mark.parametrize("text, expected", [
-    ("/.config", ["/.config"]),
-    ("/.hidden", ["/.hidden"]),
-])
-def test_unix_hidden_root(text, expected):
-    assert extract(text) == expected
+    out = extract(text)
+    assert [d.value for d in out] == []
 

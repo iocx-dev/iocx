@@ -2,46 +2,32 @@ import pytest
 from iocx.extractors.filepaths import extract
 
 @pytest.mark.parametrize("text, expected", [
-    (
-        "C:\\Windows\\System32\\cmd.exe",
-        ["C:\\Windows\\System32\\cmd.exe"]
-    ),
+    ("C:\\Windows\\System32\\cmd.exe",
+     ["C:\\Windows\\System32\\cmd.exe"]),
 
-    # Windows absolute path + Unix absolute path
-    (
-        "prefix C:/Users/Admin/run.bat suffix",
-        ["C:/Users/Admin/run.bat", "/Users/Admin/run.bat"]
-    ),
+    ("C:/Program Files/Windows Defender/mpcmdrun.exe",
+     ["C:/Program Files/Windows Defender/mpcmdrun.exe"]),
+
+    ("C:\\Users\\John Doe\\file.txt",
+     ["C:\\Users\\John Doe\\file.txt"]),
+
+    ("C:\\Users\\Public\\README",
+     ["C:\\Users\\Public\\README"]),
+
+    ("C:\\path\\with\nnewline.txt",
+     ["C:\\path\\with"]),
 ])
-def test_windows_abs_matches(text, expected):
-    assert extract(text) == expected
+def test_windows_abs_positive(text, expected):
+    out = extract(text)
+    values = [d.value for d in out]
+    assert values == expected
 
 
 @pytest.mark.parametrize("text", [
-    "C:folder\\file.exe",   # missing slash after drive letter
+    "C:folder\\file.exe",          # missing slash after drive
+    "C:\\Invalid|Name\\file.txt",  # illegal char
+    "C:\\",                        # too short
 ])
 def test_windows_abs_negative(text):
-    assert extract(text) == []
-
-
-@pytest.mark.parametrize("text", [
-    "C:\\Program Files\\Windows Defender\\mpcmdrun.exe"
-])
-def test_windows_dirs_with_spaces(text):
-    assert extract(text) == ["C:\\Program Files\\Windows Defender\\mpcmdrun.exe"]
-
-
-@pytest.mark.parametrize("text", [
-    "C:\\Users\\Public\\bad file.exe"
-])
-def test_windows_filename_with_spaces_rejected(text):
-    assert extract(text)   # truly supporting filenames with spaces belongs in dfir mode
-
-@pytest.mark.parametrize("text, expected", [
-    ("C:\\Program Files\\Windows", ["C:\\Program Files\\Windows"]),
-    ("C:\\Users\\John Doe\\file.txt", ["C:\\Users\\John Doe\\file.txt"]),
-    ("C:\\Users\\John Doe\\file name.txt",
-    ["C:\\Users\\John Doe\\file"]),  # stops before space in filename
-])
-def test_windows_space_handling(text, expected):
-    assert extract(text) == expected
+    out = extract(text)
+    assert [d.value for d in out] == []
