@@ -1,4 +1,5 @@
 import re
+from ...models import Detection
 
 URL_REGEX = re.compile(
     r"""
@@ -20,7 +21,15 @@ URL_REGEX = re.compile(
 )
 
 def extract_strict_urls(text: str):
-    results = []
+    results: list[Detection] = []
+
     for m in URL_REGEX.finditer(text):
-        results.append((m.group(0), m.start(), m.end(), "urls"))
+        results.append(
+            Detection(
+                value=m.group(0),
+                start=m.start(),
+                end=m.end(),
+                category="urls"
+                )
+            )
     return results

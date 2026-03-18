@@ -1,6 +1,7 @@
 import re
 import ipaddress
 from ..detectors import register_detector
+from ..models import Detection
 
 # Candidate extractor:
 # - IPv4 with optional CIDR
@@ -101,16 +102,17 @@ def _try_ip_with_port(token):
 
 
 def extract(text: str):
-    results = []
-    cache = {}
+    results: list[Detection] = []
+    cache: dict[str, Detection | None] = {}
 
     for m in REGEX.finditer(text):
         token = m.group(0)
 
         # If we've seen this token before, reuse the tuple
         if token in cache:
-            if cache[token] is not None:
-                results.append(cache[token])
+            det = cache[token]
+            if det is not None:
+                results.append(det)
             continue
 
         validated = (
@@ -122,9 +124,14 @@ def extract(text: str):
         )
 
         if validated is not None:
-            tup = (validated, m.start(), m.end(), "ips")
-            cache[token] = tup
-            results.append(tup)
+            det = Detection(
+                value=validated,
+                start=m.start(),
+                end=m.end(),
+                category="ips",
+            )
+            cache[token] = det
+            results.append(det)
         else:
             cache[token] = None
 

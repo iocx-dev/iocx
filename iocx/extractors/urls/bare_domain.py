@@ -1,4 +1,5 @@
 import re
+from ...models import Detection
 
 REAL_TLDS = (
     "com|net|org|io|co|uk|gov|edu|mil|info|biz|dev|app|ai|"
@@ -25,10 +26,17 @@ BARE_DOMAIN_REGEX = re.compile(
 )
 
 def extract_bare_domains(text: str):
-    results = []
+    results: list[Detection] = []
+
     for m in BARE_DOMAIN_REGEX.finditer(text):
-        domain = m.group(1)
-        results.append((domain, m.start(1), m.end(1), "domains"))
+        results.append(
+            Detection(
+                value=m.group(1),
+                start=m.start(1),
+                end=m.end(1),
+                category="domains"
+                )
+            )
     return results
 
 

@@ -1,5 +1,6 @@
 import re
 from ..detectors import register_detector
+from ..models import Detection
 
 # ============================================================
 # WINDOWS ABSOLUTE PATHS
@@ -9,10 +10,10 @@ WINDOWS_ABS = re.compile(
     (?<![A-Za-z0-9])
     [A-Za-z]:
     [\\/]
-    (?:[^\\/:*?"<>|\r\n]+[\\/])*       # directories (allow spaces)
-    [^\\/:*?"<>|\r\n]*?                # filename base (allow spaces)
-    \.[A-Za-z0-9]{1,6}                 # extension
-    (?=$|\s|[.,;:!?])                  # boundary
+    (?:[^\\/:*?"<>|\r\n]+[\\/])*
+    [^\\/:*?"<>|\r\n]*?
+    \.[A-Za-z0-9]{1,6}
+    (?=$|\s|[.,;:!?])
     """,
     re.VERBOSE,
 )
@@ -82,10 +83,10 @@ ENV_PATH = re.compile(
       | (?<=[\s"'`([{<])
     )
     (
-        % [A-Z0-9_]+ %                    # %APPDATA%
+        % [A-Z0-9_]+ %
         (?: [\\/][^\\/:*?"<>|\r\n]+ )*
       |
-        \$[A-Z_][A-Z0-9_]*                # $HOME
+        \$[A-Z_][A-Z0-9_]*
         (?: / [^/\r\n]+ )*
     )
     """,
@@ -114,7 +115,7 @@ GENERIC_PATH = re.compile(
     r"""
     (?<![A-Za-z0-9])
     [A-Za-z0-9._-]{1,100}
-    (?:/[A-Za-z0-9._-]{1,100})+      # <-- require at least ONE slash
+    (?:/[A-Za-z0-9._-]{1,100})+
     \.[A-Za-z0-9]{1,6}
     (?=$|\s|[.,;:!?])
     """,
@@ -126,7 +127,7 @@ GENERIC_PATH = re.compile(
 # Extractor
 # ============================================================
 def extract(text: str):
-    results = []
+    results: list[Detection] = []
 
     for regex in (
         WINDOWS_ABS,
@@ -138,18 +139,23 @@ def extract(text: str):
         GENERIC_PATH,
     ):
         for m in regex.finditer(text):
-            value = m.group(0)
-            start = m.start()
-            end = m.end()
-            results.append((value, start, end, "filepaths"))
+            results.append(
+                Detection(
+                    value=m.group(0),
+                    start=m.start(),
+                    end=m.end(),
+                    category="filepaths",
+                )
+            )
 
     # Deduplicate by value
     seen = set()
-    deduped = []
-    for value, start, end, category in results:
-        if value not in seen:
-            seen.add(value)
-            deduped.append((value, start, end, category))
+    deduped: list[Detection] = []
+
+    for det in results:
+        if det.value not in seen:
+            seen.add(det.value)
+            deduped.append(det)
 
     return deduped
 

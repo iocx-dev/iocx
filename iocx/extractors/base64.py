@@ -2,6 +2,7 @@ import re
 import base64
 import string
 from ..detectors import register_detector
+from ..models import Detection
 
 # Accepts standard + URL‑safe base64
 # Handles missing padding
@@ -24,7 +25,8 @@ def looks_like_text(decoded: bytes) -> bool:
 
 
 def extract(text: str):
-    results = []
+    results: list[Detection] = []
+
     for m in BASE64_REGEX.finditer(text):
         raw = m.group(0)
 
@@ -54,7 +56,14 @@ def extract(text: str):
             continue
 
         decoded = decoded_bytes.decode("utf-8", errors="replace")
-        results.append((f"{s} (decoded: {decoded})", m.start(), m.end(), "base64"))
+        results.append(
+            Detection(
+                value=f"{s} (decoded: {decoded})",
+                start=m.start(),
+                end=m.end(),
+                category="base64"
+                )
+            )
 
     return results
 

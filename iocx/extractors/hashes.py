@@ -1,5 +1,6 @@
 import re
 from ..detectors import register_detector
+from ..models import Detection
 
 HASH_REGEX = re.compile(
     r"\b("
@@ -7,16 +8,23 @@ HASH_REGEX = re.compile(
     r"|[a-fA-F0-9]{40}"     # SHA1
     r"|[a-fA-F0-9]{64}"     # SHA256
     r"|[a-fA-F0-9]{128}"    # SHA512
-    r"|[a-fA-F0-9]{8,31}" # generic short hex (keys, IDs, partial hashes)
+    r"|[a-fA-F0-9]{8,31}"   # generic short hex (keys, IDs, partial hashes)
     r")\b"
 )
 
 def extract(text: str):
-    results = []
+    results: list[Detection] = []
+
     for m in HASH_REGEX.finditer(text):
-        results.append((m.group(1), m.start(1), m.end(1), "hashes"))
+        results.append(
+            Detection(
+                value=m.group(1),
+                start=m.start(1),
+                end=m.end(1),
+                category="hashes",
+            )
+        )
+
     return results
 
-
-# register on import
 register_detector("hashes", extract)
