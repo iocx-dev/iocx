@@ -8,12 +8,17 @@ even when the CIDR portion is corrupted.
 
 import pytest
 import random
-from iocx.extractors.ips import extract
+from iocx.detectors.extractors.ips import extract
 
 
 # ---------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------
+def _vals(out):
+    if not out:
+        return []
+    return [d.value for d in out]
+
 def rand_ipv4():
     return ".".join(str(random.randint(0, 255)) for _ in range(4))
 
@@ -43,13 +48,15 @@ def test_fuzz_ipv4_cidr():
         # Must not crash
         assert isinstance(out, list)
 
+        vals = _vals(out)
+
         # Salvage-first behaviour:
         # - If valid CIDR → extractor may return "ip/mask"
         # - If invalid CIDR → extractor may salvage "ip"
         # - If mutation destroyed the IP → []
-        assert out == [] or any(
+        assert vals == [] or any(
             x == ip or x.startswith(ip + "/")
-            for x in out
+            for x in vals
         )
 
 @pytest.mark.fuzz
@@ -63,8 +70,10 @@ def test_fuzz_ipv6_cidr():
         # Must not crash
         assert isinstance(out, list)
 
+        vals = _vals(out)
+
         # Salvage-first behaviour
-        assert out == [] or any(":" in x for x in out)
+        assert vals == [] or any(":" in x for x in vals)
 
 @pytest.mark.fuzz
 def rand_ipv6_compressed():
@@ -86,9 +95,12 @@ def test_fuzz_ipv6_cidr_v2():
         out = extract(sample)
 
         assert isinstance(out, list)
-        assert out == [] or any(
+
+        vals = _vals(out)
+
+        assert vals == [] or any(
             x == ip or x.startswith(ip + "/") or ":" in x
-            for x in out
+            for x in vals
         )
 
 @pytest.mark.fuzz
@@ -100,7 +112,10 @@ def test_fuzz_ipv6_compressed_cidr():
         out = extract(sample)
 
         assert isinstance(out, list)
-        assert out == [] or any(":" in x for x in out)
+
+        vals = _vals(out)
+
+        assert vals == [] or any(":" in x for x in vals)
 
 @pytest.mark.fuzz
 def test_fuzz_ipv6_zone_cidr():
@@ -111,7 +126,10 @@ def test_fuzz_ipv6_zone_cidr():
         out = extract(sample)
 
         assert isinstance(out, list)
-        assert out == [] or any(":" in x for x in out)
+
+        vals = _vals(out)
+
+        assert vals == [] or any(":" in x for x in vals)
 
 
 # ---------------------------------------------------------
@@ -135,5 +153,7 @@ def test_cidr_mutation_fuzz(mutate):
         out = extract(sample)
 
         assert isinstance(out, list)
-        # Salvage IPv4 if present
-        assert out == [] or any("." in x for x in out)
+
+        vals = _vals(out)
+
+        assert vals == [] or any("." in x for x in vals)

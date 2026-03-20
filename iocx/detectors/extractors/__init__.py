@@ -5,3 +5,4 @@ from . import hashes
 from . import emails
 from . import filepaths
 from . import base64
+from . import crypto

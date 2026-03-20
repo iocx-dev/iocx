@@ -1,6 +1,6 @@
 import re
-from ..detectors import register_detector
-from ..models import Detection
+from ..registry import register_detector
+from ...models import Detection
 
 # ============================================================
 # WINDOWS ABSOLUTE PATHS (supports spaces in directories)

@@ -1,7 +1,7 @@
 import re
 import ipaddress
-from ..detectors import register_detector
-from ..models import Detection
+from ..registry import register_detector
+from ...models import Detection
 
 # Candidate extractor:
 # - IPv4 with optional CIDR

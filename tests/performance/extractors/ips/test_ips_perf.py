@@ -2,7 +2,7 @@ import pytest
 import time
 import random
 import string
-from iocx.extractors.ips import extract
+from iocx.detectors.extractors.ips import extract
 
 
 def random_ipv4():

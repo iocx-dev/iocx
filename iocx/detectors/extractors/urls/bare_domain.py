@@ -1,5 +1,5 @@
 import re
-from ...models import Detection
+from ....models import Detection
 
 REAL_TLDS = (
     "com|net|org|io|co|uk|gov|edu|mil|info|biz|dev|app|ai|"

@@ -1,33 +1,47 @@
+import os
 import pytest
-from types import SimpleNamespace
-from iocx.engine import Engine, EngineConfig, FileType
-from iocx.engine import detect_file_type
-from unittest.mock import patch
 
+from iocx.engine import Engine, EngineConfig, FileType
+from iocx.models import Detection
 
 # ------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------
 
-def fake_detector(result):
-    """Return a detector function that always returns `result`."""
-    return lambda text: result
+def make_det(value, start=0, end=None, category="urls"):
+    end = end if end is not None else start + len(value)
+    return Detection(value=value, start=start, end=end, category=category)
 
 
 @pytest.fixture
 def mock_detectors(monkeypatch):
-    """Mock all_detectors() to return predictable detectors."""
-    detectors = {
-        "ips": fake_detector(["1.2.3.4"]),
-        "urls": fake_detector({"url": ["http://example.com"]}),
-        "hashes": fake_detector([]),
-    }
-    monkeypatch.setattr("iocx.engine.all_detectors", lambda: detectors)
-    return detectors
+    """
+    Mock all_detectors() so that:
+    - ips → one IP detection
+    - urls → two URL detections
+    - hashes → empty
+    - everything else → empty
+    """
+    def fake_all_detectors():
+        return {
+            "ips": lambda text: [make_det("1.2.3.4", 0, 7, "ips")],
+            "urls": lambda text: [
+                make_det("http://a", 10, 18, "urls"),
+                make_det("http://b", 20, 28, "urls"),
+            ],
+            "hashes": lambda text: [],
+            "emails": lambda text: [],
+            "filepaths": lambda text: [],
+            "base64": lambda text: [],
+            "domains": lambda text: [],
+        }
+
+    monkeypatch.setattr("iocx.engine.all_detectors", fake_all_detectors)
+    return fake_all_detectors()
 
 
 # ------------------------------------------------------------
-# Test extract() routing
+# extract() routing
 # ------------------------------------------------------------
 
 def test_extract_routes_to_text_when_not_file(monkeypatch, mock_detectors):
@@ -39,6 +53,9 @@ def test_extract_routes_to_text_when_not_file(monkeypatch, mock_detectors):
     assert result["file"] is None
     assert "iocs" in result
     assert result["metadata"] == {}
+    # from mock_detectors: ips + urls
+    assert result["iocs"]["ips"] == ["1.2.3.4"]
+    assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
 
 def test_extract_routes_to_file_when_exists(monkeypatch, mock_detectors):
@@ -48,23 +65,21 @@ def test_extract_routes_to_file_when_exists(monkeypatch, mock_detectors):
     monkeypatch.setattr("iocx.engine.detect_file_type", lambda p: FileType.TEXT)
 
     class FakeFile:
-        def __enter__(self):
-            return self
-        def __exit__(self, exc_type, exc, tb):
-            return False
-        def read(self):
-            return "hello world"
+        def __enter__(self): return self
+        def __exit__(self, exc_type, exc, tb): return False
+        def read(self): return "hello world"
 
     monkeypatch.setattr("builtins.open", lambda *a, **k: FakeFile())
 
     result = engine.extract("file.txt")
     assert result["file"] == "file.txt"
     assert result["type"] == "text"
-
+    assert result["iocs"]["ips"] == ["1.2.3.4"]
+    assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
 
 # ------------------------------------------------------------
-# Test PE pipeline
+# PE pipeline
 # ------------------------------------------------------------
 
 def test_pipeline_pe(monkeypatch, mock_detectors, tmp_path):
@@ -73,10 +88,8 @@ def test_pipeline_pe(monkeypatch, mock_detectors, tmp_path):
 
     engine = Engine()
 
-    # Mock file type
     monkeypatch.setattr("iocx.engine.detect_file_type", lambda p: FileType.PE)
 
-    # Mock PE metadata
     monkeypatch.setattr("iocx.engine.parse_pe", lambda p: {
         "file_type": "PE",
         "imports": ["KERNEL32.dll"],
@@ -84,17 +97,20 @@ def test_pipeline_pe(monkeypatch, mock_detectors, tmp_path):
         "resource_strings": ["RSRC_STRING"],
     })
 
-    # Mock string extractor
     monkeypatch.setattr("iocx.engine.extract_strings", lambda p, min_length: ["STR1", "STR2"])
 
     result = engine.extract_from_file(str(path))
 
     assert result["type"] == "PE"
-    assert "RSRC_STRING" in "\n".join(result["iocs"].get("url", [])) or True  # detectors mocked
+    assert result["file"] == str(path)
+    assert result["metadata"]["file_type"] == "PE"
+    # detectors are mocked, but we know urls/ips are present
+    assert result["iocs"]["ips"] == ["1.2.3.4"]
+    assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
 
 # ------------------------------------------------------------
-# Test text file pipeline
+# Text file pipeline
 # ------------------------------------------------------------
 
 def test_pipeline_text_file(monkeypatch, mock_detectors, tmp_path):
@@ -108,10 +124,12 @@ def test_pipeline_text_file(monkeypatch, mock_detectors, tmp_path):
     result = engine.extract_from_file(str(path))
     assert result["type"] == "text"
     assert result["file"] == str(path)
+    assert result["iocs"]["ips"] == ["1.2.3.4"]
+    assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
 
 # ------------------------------------------------------------
-# Test unknown pipeline with fallback enabled
+# Unknown pipeline with fallback
 # ------------------------------------------------------------
 
 def test_pipeline_unknown_with_fallback(monkeypatch, mock_detectors, tmp_path):
@@ -125,12 +143,10 @@ def test_pipeline_unknown_with_fallback(monkeypatch, mock_detectors, tmp_path):
 
     result = engine.extract_from_file(str(path))
     assert result["type"] == "unknown"
-    assert result["iocs"]  # detectors run
+    assert result["file"] == str(path)
+    assert result["iocs"]["ips"] == ["1.2.3.4"]
+    assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
-
-# ------------------------------------------------------------
-# Test unknown pipeline with fallback disabled
-# ------------------------------------------------------------
 
 def test_pipeline_unknown_no_fallback(monkeypatch, mock_detectors, tmp_path):
     path = tmp_path / "unknown.bin"
@@ -142,11 +158,12 @@ def test_pipeline_unknown_no_fallback(monkeypatch, mock_detectors, tmp_path):
 
     result = engine.extract_from_file(str(path))
     assert result["type"] == "unknown"
+    assert result["file"] == str(path)
     assert result["iocs"] == {}
 
 
 # ------------------------------------------------------------
-# Test caching behaviour
+# Caching behaviour
 # ------------------------------------------------------------
 
 def test_cache_used(monkeypatch, mock_detectors, tmp_path):
@@ -155,7 +172,6 @@ def test_cache_used(monkeypatch, mock_detectors, tmp_path):
 
     engine = Engine()
 
-    # Track calls
     calls = {"pe": 0, "strings": 0}
 
     monkeypatch.setattr("iocx.engine.detect_file_type", lambda p: FileType.PE)
@@ -187,8 +203,17 @@ def test_cache_disabled(monkeypatch, mock_detectors, tmp_path):
     calls = {"pe": 0, "strings": 0}
 
     monkeypatch.setattr("iocx.engine.detect_file_type", lambda p: FileType.PE)
-    monkeypatch.setattr("iocx.engine.parse_pe", lambda p: calls.__setitem__("pe", calls["pe"] + 1) or {})
-    monkeypatch.setattr("iocx.engine.extract_strings", lambda p, min_length: calls.__setitem__("strings", calls["strings"] + 1) or ["X"])
+
+    def fake_pe(p):
+        calls["pe"] += 1
+        return {}
+
+    def fake_strings(p, min_length):
+        calls["strings"] += 1
+        return ["X"]
+
+    monkeypatch.setattr("iocx.engine.parse_pe", fake_pe)
+    monkeypatch.setattr("iocx.engine.extract_strings", fake_strings)
 
     engine.extract_from_file(str(path))
     engine.extract_from_file(str(path))
@@ -198,30 +223,32 @@ def test_cache_disabled(monkeypatch, mock_detectors, tmp_path):
 
 
 # ------------------------------------------------------------
-# Test _post_process merging logic
+# _post_process behaviour
 # ------------------------------------------------------------
 
-def test_post_process_merges_lists_and_dicts(monkeypatch):
+def test_post_process_merges_and_suppresses_overlaps(monkeypatch):
     engine = Engine()
 
-    monkeypatch.setattr("iocx.engine.normalise_iocs", lambda d: d)
-    monkeypatch.setattr("iocx.engine.dedupe", lambda d: d)
-
+    # Two overlapping detections: second is shorter and should be suppressed
     raw = {
-        "ips": ["1.1.1.1"],
-        "urls": {"url": ["http://a", "http://b"]},
+        "urls": [
+            make_det("http://long", 0, 12, "urls"),
+            make_det("http://sh", 2, 10, "urls"),
+        ],
+        "ips": [
+            make_det("1.2.3.4", 20, 27, "ips"),
+        ],
     }
 
     merged = engine._post_process(raw)
 
-    assert merged == {
-        "ips": ["1.1.1.1"],
-        "url": ["http://a", "http://b"],
-    }
+    # Only the longer URL survives
+    assert merged["urls"] == ["http://long"]
+    assert merged["ips"] == ["1.2.3.4"]
 
 
 # ------------------------------------------------------------
-# Test _is_file
+# _is_file
 # ------------------------------------------------------------
 
 def test_is_file_true(monkeypatch):
@@ -238,7 +265,10 @@ def test_is_file_false(monkeypatch):
 
 def test_is_file_exception(monkeypatch):
     engine = Engine()
-    monkeypatch.setattr("iocx.engine.os.path.exists", lambda p: (_ for _ in ()).throw(Exception("boom")))
+    monkeypatch.setattr(
+        "iocx.engine.os.path.exists",
+        lambda p: (_ for _ in ()).throw(Exception("boom")),
+    )
     assert engine._is_file("x") is False
 
 
@@ -254,4 +284,3 @@ def test_extract_file_and_text_paths(monkeypatch, mock_detectors):
     monkeypatch.setattr("iocx.engine.os.path.exists", lambda p: False)
     monkeypatch.setattr(engine, "extract_from_text", lambda t: {"ok": "text"})
     assert engine.extract("x") == {"ok": "text"}
-

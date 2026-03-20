@@ -2,7 +2,7 @@ import pytest
 import time
 import random
 import string
-from iocx.extractors.filepaths import extract
+from iocx.detectors.extractors.filepaths import extract
 
 
 # -----------------------------

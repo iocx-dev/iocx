@@ -1,5 +1,5 @@
 import re
-from ...models import Detection
+from ....models import Detection
 
 URL_REGEX = re.compile(
     r"""

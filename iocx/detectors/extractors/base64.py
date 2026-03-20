@@ -1,8 +1,8 @@
 import re
 import base64
 import string
-from ..detectors import register_detector
-from ..models import Detection
+from ..registry import register_detector
+from ...models import Detection
 
 # Accepts standard + URL‑safe base64
 # Handles missing padding

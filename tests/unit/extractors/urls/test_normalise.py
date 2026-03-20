@@ -1,5 +1,5 @@
 import pytest
-from iocx.extractors.urls.normalise import normalise_url
+from iocx.detectors.extractors.urls.normalise import normalise_url
 
 
 def test_normalise_basic():

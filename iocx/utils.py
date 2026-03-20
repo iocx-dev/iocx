@@ -38,30 +38,3 @@ def detect_file_type(path: str) -> str:
         return FileType.MACHO
 
     return FileType.UNKNOWN
-
-
-def spans_overlap(a, b):
-    return a[0] < b[1] and b[0] < a[1]
-
-
-def suppress_overlaps(matches):
-    """
-    matches: list of (value, start, end)
-    returns: list of (value, start, end) with overlaps removed
-    """
-
-    # Sort by start position, then by longest match first
-    matches = sorted(matches, key=lambda m: (m[1], -(m[2] - m[1])))
-
-    accepted = []
-    occupied = []
-
-    for value, start, end in matches:
-        # Check if this span overlaps any accepted span
-        if any(not (end <= s or start >= e) for (_, s, e) in accepted):
-            continue
-
-        accepted.append((value, start, end))
-
-    return accepted
-

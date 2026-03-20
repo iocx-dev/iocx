@@ -1,5 +1,5 @@
 import pytest
-from iocx.extractors.filepaths import extract
+from iocx.detectors.extractors.filepaths import extract
 
 @pytest.mark.parametrize("text, expected", [
     ("\\\\server\\share\\folder\\file.txt",

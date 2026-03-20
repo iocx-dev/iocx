@@ -2,7 +2,7 @@ import random
 import string
 import pytest
 
-from iocx.extractors.filepaths import extract
+from iocx.detectors.extractors.filepaths import extract
 
 # ------------------------------------------------------------
 # Helpers

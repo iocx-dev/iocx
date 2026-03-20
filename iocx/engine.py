@@ -2,13 +2,12 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
-
-from .utils import detect_file_type, spans_overlap, suppress_overlaps, FileType
+from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe
 from .parsers.string_extractor import extract_strings
 from .validators.normalise import normalise_iocs
 from .validators.dedupe import dedupe
-from .detectors import all_detectors
+from iocx.detectors import all_detectors
 from .models import Detection
 
 
@@ -120,18 +119,33 @@ class Engine:
         results: Dict[str, List[Detection]] = {}
 
         for name, detector in all_detectors().items():
-            detections = detector(text)
+            raw = detector(text)
 
-            # Normalise detector output:
-            # - detectors now return List[Detection]
-            # - legacy detectors returning tuples are converted
+            # Normalise detector output into a flat list of items
+            if isinstance(raw, dict):
+                # Super-detector: flatten all lists
+                items = []
+                for sublist in raw.values():
+                    if isinstance(sublist, list):
+                        items.extend(sublist)
+            elif isinstance(raw, list):
+                items = raw
+            else:
+                # Completely invalid detector output → skip
+                results[name] = []
+                continue
+
             normalised: List[Detection] = []
-            for item in detections:
+
+            for item in items:
                 if isinstance(item, Detection):
                     normalised.append(item)
-                else:
+                elif isinstance(item, (list, tuple)) and len(item) == 4:
                     value, start, end, category = item
                     normalised.append(Detection(value, start, end, category))
+                else:
+                    # Skip malformed items instead of crashing
+                    continue
 
             results[name] = normalised
 
@@ -160,21 +174,28 @@ class Engine:
                 survivors.append(det)
                 last_end = det.end
 
-        # 4. Rebuild category lists
-        merged = {
+        # 4. Rebuild category lists dynamically
+        merged: Dict[str, List[str]] = {}
+
+        for det in survivors:
+            merged.setdefault(det.category, []).append(det.value)
+
+        baseline = {
             "urls": [],
             "domains": [],
             "ips": [],
+            "hashes": [],
             "emails": [],
             "filepaths": [],
-            "hashes": [],
             "base64": [],
+            "crypto.btc": [],
+            "crypto.eth": [],
         }
 
-        for det in survivors:
-            merged[det.category].append(det.value)
+        for key, vals in merged.items():
+            baseline.setdefault(key, []).extend(vals)
 
-        return merged
+        return baseline
 
     # ---------- Helpers ----------
 

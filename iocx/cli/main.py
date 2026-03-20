@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 from ..engine import Engine, EngineConfig
-from ..detectors import all_detectors
+from ..detectors.registry import all_detectors
 from importlib.metadata import version, PackageNotFoundError
 
 

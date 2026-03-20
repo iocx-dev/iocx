@@ -1,5 +1,5 @@
 import pytest
-from iocx.extractors.urls.deobfuscate import deobfuscate_text
+from iocx.detectors.extractors.urls.deobfuscate import deobfuscate_text
 
 
 def test_deobfuscate_hxxp():
