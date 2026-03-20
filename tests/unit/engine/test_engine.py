@@ -128,6 +128,18 @@ def test_pipeline_text_file(monkeypatch, mock_detectors, tmp_path):
     assert result["iocs"]["urls"] == ["http://a", "http://b"]
 
 
+def test_engine_extract_dispatches_to_file(tmp_path):
+    p = tmp_path / "sample.txt"
+    p.write_text("example.com")
+
+    engine = Engine()
+    result = engine.extract(str(p))
+
+    assert result["file"] == str(p)
+    assert result["type"] == "text"
+    assert "iocs" in result
+
+
 # ------------------------------------------------------------
 # Unknown pipeline with fallback
 # ------------------------------------------------------------
@@ -284,3 +296,37 @@ def test_extract_file_and_text_paths(monkeypatch, mock_detectors):
     monkeypatch.setattr("iocx.engine.os.path.exists", lambda p: False)
     monkeypatch.setattr(engine, "extract_from_text", lambda t: {"ok": "text"})
     assert engine.extract("x") == {"ok": "text"}
+
+# -----------------------------------------------------------
+# Detector outcomes
+# -----------------------------------------------------------
+
+def test_engine_handles_invalid_detector_output(monkeypatch):
+    def bad_detector(_):
+        return 123 # invalid → triggers skip branch
+
+    monkeypatch.setattr(
+        "iocx.detectors.all_detectors",
+        lambda: {"bad": bad_detector}
+    )
+
+    engine = Engine()
+    result = engine.extract_from_text("hello")
+
+    assert "bad" not in result["iocs"]
+
+
+def test_engine_skips_malformed_detection_items(monkeypatch):
+    def malformed_detector(_):
+        return ["not-a-detection", (1, 2, 3)] # both malformed
+
+    monkeypatch.setattr(
+        "iocx.detectors.all_detectors",
+        lambda: {"malformed": malformed_detector}
+    )
+
+    engine = Engine()
+    result = engine.extract_from_text("hello")
+
+    assert "malformed" not in result["iocs"]
+
