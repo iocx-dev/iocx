@@ -120,16 +120,7 @@ def extract(text: str):
                 )
             )
 
-    # Deduplicate by value
-    seen = set()
-    deduped: list[Detection] = []
-
-    for det in results:
-        if det.value not in seen:
-            seen.add(det.value)
-            deduped.append(det)
-
-    return deduped
+    return results
 
 
 register_detector("filepaths", extract)

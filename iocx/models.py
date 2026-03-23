@@ -6,3 +6,4 @@ class Detection:
     start: str
     end: int
     category: str
+    metadata: dict | None = None

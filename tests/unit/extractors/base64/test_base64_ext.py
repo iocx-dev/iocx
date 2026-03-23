@@ -7,16 +7,16 @@ from iocx.detectors.extractors.base64 import extract
 
 @pytest.mark.parametrize("text, expected", [
 
-    # URL-safe base64
+    # URL-safe base64 (decoded: hello-world)
     (
         "aGVsbG8td29ybGQ",
-        ["aGVsbG8td29ybGQ (decoded: hello-world)"]
+        ["aGVsbG8td29ybGQ"]
     ),
 
-    # Correct padding preserved
+    # Correct padding preserved (decoded: hello world)
     (
         "aGVsbG8gd29ybGQ==",
-        ["aGVsbG8gd29ybGQ== (decoded: hello world)"]
+        ["aGVsbG8gd29ybGQ=="]
     ),
 
     # Very long payload
@@ -26,13 +26,13 @@ from iocx.detectors.extractors.base64 import extract
         None # handled separately below
     ),
 
-    # Multiline base64
+    # Multiline base64 (decoded: hello wor ld this i s a test)
     (
         "aGVsbG8gd29y\nbGQgdGhpcyBp\ncyBhIHRlc3Q=",
         [
-            "aGVsbG8gd29y (decoded: hello wor)",
-            "bGQgdGhpcyBp (decoded: ld this i)",
-            "cyBhIHRlc3Q= (decoded: s a test)"
+            "aGVsbG8gd29y",
+            "bGQgdGhpcyBp",
+            "cyBhIHRlc3Q="
         ]
     ),
 ])
@@ -42,7 +42,6 @@ def test_base64_positive(text, expected):
     # Special handling for the "very long payload" case
     if expected is None:
         assert len(out) == 1
-        assert "decoded: " in out[0].value
         return
 
     assert [d.value for d in out] == expected

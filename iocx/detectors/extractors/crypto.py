@@ -15,7 +15,7 @@ ETH_RE = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
 
 
 def extract(text: str):
-    detections = []
+    detections: list[Detection] = []
 
     # Legacy BTC
     for m in BTC_LEGACY_RE.finditer(text):

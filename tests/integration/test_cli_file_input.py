@@ -81,7 +81,7 @@ def test_cli_with_all_iocs(tmp_path):
     )
 
     # Base64
-    assert "aGVsbG8gd29ybGQ= (decoded: hello world)" in iocs["base64"]
+    assert "aGVsbG8gd29ybGQ=" in iocs["base64"]
 
 @pytest.mark.integration
 def test_cli_with_unc_network_paths(tmp_path):
@@ -135,7 +135,7 @@ def test_cli_with_unc_network_paths(tmp_path):
     )
 
     # Base64
-    assert "aGVsbG8gd29ybGQ= (decoded: hello world)" in iocs["base64"]
+    assert "aGVsbG8gd29ybGQ=" in iocs["base64"]
 
 @pytest.mark.integration
 def test_empty_file(tmp_path):

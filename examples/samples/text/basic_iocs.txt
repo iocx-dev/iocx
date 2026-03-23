@@ -1,8 +1,16 @@
 http://malx-labs.example
+HTTP://MALX-LABS.example
 malx-labs.com
+MALX-LABS.CoM
 https://c2.malx-sec.example/login
 45.77.12.34
+45.77.12.34
+2001:0db8:85a3:0000:0000:8a2e:0370:7334
 2001:0db8:85a3:0000:0000:8a2e:0370:7334
 attacker@example.com
+ATTACKER@example.com
 C:\Users\Public\payload.exe
+C:\users\public\payload.exe
 d41d8cd98f00b204e9800998ecf8427e
+D41D8CD98F00B204E9800998ECF8427E
+0x52908400098527886E0F7030069857D2E4169EE7

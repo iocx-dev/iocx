@@ -5,8 +5,6 @@ from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe
 from .parsers.string_extractor import extract_strings
-from .validators.normalise import normalise_iocs
-from .validators.dedupe import dedupe
 from iocx.detectors import all_detectors
 from .models import Detection
 
@@ -174,12 +172,25 @@ class Engine:
                 survivors.append(det)
                 last_end = det.end
 
-        # 4. Rebuild category lists dynamically
-        merged: Dict[str, List[str]] = {}
+        # Normalise
+        CASE_INSENSITIVE = {"domains", "emails", "hashes"}
 
         for det in survivors:
-            merged.setdefault(det.category, []).append(det.value)
+            v = det.value.strip()
+            if det.category in CASE_INSENSITIVE:
+                v = v.lower()
+            det.value = v
 
+        # 5. Group by category
+        grouped: Dict[str, List[str]] = {}
+        for det in survivors:
+            grouped.setdefault(det.category, []).append(det.value)
+
+        # 6. Dedupe once per category (order‑preserving)
+        for key, vals in grouped.items():
+            grouped[key] = list(dict.fromkeys(vals))
+
+        # 7. Ensure all categories exist
         baseline = {
             "urls": [],
             "domains": [],
@@ -191,9 +202,7 @@ class Engine:
             "crypto.btc": [],
             "crypto.eth": [],
         }
-
-        for key, vals in merged.items():
-            baseline.setdefault(key, []).extend(vals)
+        baseline.update(grouped)
 
         return baseline
 
