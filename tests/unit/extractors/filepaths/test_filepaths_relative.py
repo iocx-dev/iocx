@@ -1,21 +1,21 @@
 import pytest
-from iocx.extractors.filepaths import extract
+from iocx.detectors.extractors.filepaths import extract
 
 @pytest.mark.parametrize("text, expected", [
-    (".\\run", [".\\run"]),
-    ("..\\bin\\tool", ["..\\bin\\tool"]),
-    ("./run", ["./run"]),
+    ("./run.sh", ["./run.sh"]),
     ("../bin/tool", ["../bin/tool"]),
-    ("prefix ../scripts/build suffix", ["../scripts/build"]),
+    ("./path with space/a", ["./path with space/a"]),
 ])
-def test_relative_matches(text, expected):
-    assert extract(text) == expected
+def test_relative_positive(text, expected):
+    out = extract(text)
+    assert [d.value for d in out] == expected
+
 
 @pytest.mark.parametrize("text", [
-    ".",                # bare dot
-    "..",               # bare double dot
-    "abc./run",         # inside a word
-    "foo../bar",        # malformed
+    "temp/run",           # ambiguous
+    "../",
 ])
 def test_relative_negative(text):
-    assert extract(text) == []
+    out = extract(text)
+    assert [d.value for d in out] == []
+

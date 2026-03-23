@@ -1,12 +1,17 @@
 import pytest
 import random
 import string
-from iocx.extractors.ips import extract
+from iocx.detectors.extractors.ips import extract
 
 
 # -----------------------------
 # Helpers to generate fuzz data
 # -----------------------------
+def _vals(out):
+    if not out:
+        return []
+    return [d.value for d in out]
+
 def rand_ipv4():
     return ".".join(str(random.randint(0, 255)) for _ in range(4))
 
@@ -64,9 +69,12 @@ def test_invalid_ips(bad):
     out = extract(bad)
     # Extractor must not crash and must return a list
     assert isinstance(out, list)
+
+    vals = _vals(out)
+
     # If there's a valid IP substring, salvage it; otherwise return []
     # This matches the documented v0.2.0 behaviour
-    assert out == [] or all(isinstance(x, str) for x in out)
+    assert vals == [] or all(isinstance(x, str) for x in vals)
 
 
 # -----------------------------
@@ -76,7 +84,11 @@ def test_invalid_ips(bad):
 def test_fuzz_ipv4():
     for _ in range(500):
         ip = rand_ipv4()
-        assert extract(ip) == [ip]
+
+        out = extract(ip)
+        vals = _vals(out)
+
+        assert vals == [ip]
 
 
 # -----------------------------

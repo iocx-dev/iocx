@@ -68,7 +68,7 @@ install: $(STAMP_INSTALL)
 # Development Tools
 # ===========================
 $(STAMP_DEV): install
-	$(PIP) install pytest ruff black coverage pip-audit bandit
+	$(PIP) install pytest ruff black coverage pip-audit bandit pytest-timeout
 	@touch $(STAMP_DEV)
 	@echo "Development tools installed"
 
@@ -169,6 +169,15 @@ clean:
 	find . -name "__pycache__" -type d -exec rm -rf {} +
 	@echo "Cleaned build artifacts"
 
+.PHONY: clean-all
+clean-all:
+	rm -rf build dist *.egg-info
+	rm -rf .pytest_cache
+	find . -name "__pycache__" -type d -exec rm -rf {} +
+	find . -name "*.pyc" -delete
+	rm -rf $(VENV)
+	rm -f $(STAMP_VENV) $(STAMP_INSTALL) $(STAMP_DEV)
+	make dev
 
 # ===========================
 # Reset Everything
@@ -211,4 +220,3 @@ examples/samples/exe/%.exe: examples/generators/%.py
 clean-samples:
 	rm -rf examples/samples/exe
 	@echo "Removed all synthetic samples."
-

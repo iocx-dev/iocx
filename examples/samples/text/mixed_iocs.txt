@@ -4,3 +4,5 @@ User reported suspicious activity:
 - File: /tmp/runme.sh
 - Email: evil@phish.example
 - Hash: 44d88612fea8a8f36de82e1278abb02f
+- Crypto: Pay BTC to 1BoatSLRHtKNngkdXEeobR76b53LETtpyT
+or ETH to 0x52908400098527886E0F7030069857D2E4169EE7

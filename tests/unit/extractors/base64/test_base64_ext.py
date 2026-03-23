@@ -1,111 +1,82 @@
 import pytest
-from iocx.extractors.base64 import extract
+from iocx.detectors.extractors.base64 import extract
 
 # ------------------------------------------------------------
-# URL-SAFE BASE64
+# POSITIVE CASES
 # ------------------------------------------------------------
 
-def test_urlsafe_base64_decoding():
-    # "hello-world" encoded in URL-safe base64
-    text = "aGVsbG8td29ybGQ"
-    assert extract(text) == [
-        "aGVsbG8td29ybGQ (decoded: hello-world)"
-    ]
+@pytest.mark.parametrize("text, expected", [
 
+    # URL-safe base64 (decoded: hello-world)
+    (
+        "aGVsbG8td29ybGQ",
+        ["aGVsbG8td29ybGQ"]
+    ),
 
-# ------------------------------------------------------------
-# PADDING EDGE CASES
-# ------------------------------------------------------------
+    # Correct padding preserved (decoded: hello world)
+    (
+        "aGVsbG8gd29ybGQ==",
+        ["aGVsbG8gd29ybGQ=="]
+    ),
 
-def test_missing_padding_is_handled():
-    # "hello" without padding
-    text = "aGVsbG8"
-    # Too short (<12 chars) → should be ignored
-    assert extract(text) == []
+    # Very long payload
+    (
+        # "hello world " * 50 encoded
+        "aGVsbG8gd29ybGQg" * 50,
+        None # handled separately below
+    ),
 
+    # Multiline base64 (decoded: hello wor ld this i s a test)
+    (
+        "aGVsbG8gd29y\nbGQgdGhpcyBp\ncyBhIHRlc3Q=",
+        [
+            "aGVsbG8gd29y",
+            "bGQgdGhpcyBp",
+            "cyBhIHRlc3Q="
+        ]
+    ),
+])
+def test_base64_positive(text, expected):
+    out = extract(text)
 
-def test_correct_padding_is_preserved():
-    text = "aGVsbG8gd29ybGQ=="
-    assert extract(text) == [
-        "aGVsbG8gd29ybGQ== (decoded: hello world)"
-    ]
+    # Special handling for the "very long payload" case
+    if expected is None:
+        assert len(out) == 1
+        return
 
-
-# ------------------------------------------------------------
-# BINARY / CONTROL CHARACTER REJECTION
-# ------------------------------------------------------------
-
-def test_rejects_binary_decodes():
-    # This decodes to random binary
-    text = "AAECAwQFBgcICQoLDA0ODw=="
-    assert extract(text) == []
-
-
-def test_rejects_numeric_only_decodes():
-    # Decodes to "1234567890"
-    text = "MTIzNDU2Nzg5MA=="
-    assert extract(text) == []
-
-
-# ------------------------------------------------------------
-# UTF-16LE HANDLING
-# ------------------------------------------------------------
-
-def test_accepts_clean_utf16le_text():
-    text = "aABlAGwAbABvAA=="
-    # UTF‑16LE is now rejected due to control‑character filtering
-    assert extract(text) == []
-
-
-
-def test_rejects_utf16le_with_extra_control_chars():
-    # Similar to PowerShell payload but with extra control chars
-    text = "AAEAZQB2AGkAbAA="
-    assert extract(text) == []
+    assert [d.value for d in out] == expected
 
 
 # ------------------------------------------------------------
-# LONG PAYLOADS
+# NEGATIVE CASES
 # ------------------------------------------------------------
 
-def test_very_long_base64_payload():
-    payload = "hello world " * 50
-    encoded = payload.encode("utf-8")
-    import base64
-    b64 = base64.b64encode(encoded).decode("ascii")
+@pytest.mark.parametrize("text", [
 
-    result = extract(b64)
-    assert len(result) == 1
-    assert "decoded: " in result[0]
+    # Missing padding but too short (<12 chars)
+    "aGVsbG8",
 
+    # Invalid base64
+    "notbase64@@@",
 
-# ------------------------------------------------------------
-# MULTILINE BASE64
-# ------------------------------------------------------------
+    # Binary decode → rejected
+    "AAECAwQFBgcICQoLDA0ODw==",
 
-def test_multiline_base64():
-    text = (
-        "aGVsbG8gd29y\n"
-        "bGQgdGhpcyBp\n"
-        "cyBhIHRlc3Q="
-    )
-    assert extract(text) == [
-        "aGVsbG8gd29y (decoded: hello wor)",
-        "bGQgdGhpcyBp (decoded: ld this i)",
-        "cyBhIHRlc3Q= (decoded: s a test)"
-    ]
+    # Numeric-only decode → rejected
+    "MTIzNDU2Nzg5MA==",
 
+    # UTF‑16LE clean text → rejected due to control chars
+    "aABlAGwAbABvAA==",
 
+    # UTF‑16LE with extra control chars
+    "AAEAZQB2AGkAbAA=",
 
-# ------------------------------------------------------------
-# FALSE POSITIVE SUPPRESSION
-# ------------------------------------------------------------
+    # Random alphanumeric noise
+    "thisisnotbase64butlookslikeit12345",
 
-def test_does_not_match_random_alphanumeric():
-    text = "thisisnotbase64butlookslikeit12345"
-    assert extract(text) == []
-
-
-def test_does_not_match_short_words():
-    text = "hello world test data"
-    assert extract(text) == []
+    # Short words
+    "hello world test data",
+])
+def test_base64_negative(text):
+    out = extract(text)
+    assert [d.value for d in out] == []

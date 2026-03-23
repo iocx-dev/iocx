@@ -1,5 +1,5 @@
 import pytest
-from iocx.extractors.urls import extract
+from iocx.detectors.extractors.urls import extract
 
 
 def test_super_detector_combines_urls_and_domains():
@@ -13,12 +13,19 @@ def test_super_detector_combines_urls_and_domains():
     assert "urls" in result
     assert "domains" in result
 
-    assert "http://malx.io" in result["urls"]
-    assert "https://test.org/path" in result["urls"]
-    assert "example.com" in result["domains"]
+    urls = [d.value for d in result["urls"]]
+    domains = [d.value for d in result["domains"]]
+
+    assert "http://malx.io" in urls
+    assert "https://test.org/path" in urls
+    assert "example.com" in domains
 
 
 def test_super_detector_dedupes():
     text = "example.com example.com"
     result = extract(text)
-    assert result["domains"] == ["example.com"]
+
+    domains = [d.value for d in result["domains"]]
+
+    # Deduplication expected
+    assert domains == ["example.com"]

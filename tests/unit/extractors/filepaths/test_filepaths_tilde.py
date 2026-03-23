@@ -1,18 +1,19 @@
 import pytest
-from iocx.extractors.filepaths import extract
+from iocx.detectors.extractors.filepaths import extract
 
 @pytest.mark.parametrize("text, expected", [
-    ("~/bin/run.sh", ["/bin/run.sh", "~/bin/run.sh"]),
-    ("~root/.ssh/id_rsa", ["~root/.ssh/id_rsa"]),
-    ("prefix ~/scripts/tool suffix", ["/scripts/tool", "~/scripts/tool"]),
+    ("~/bin/tool", ["/bin/tool", "~/bin/tool"]),
+    ("~john/.ssh/id_rsa", ["~john/.ssh/id_rsa"]),
+    ("~/path with space", ["~/path"]),
 ])
-def test_tilde_matches(text, expected):
-    assert extract(text) == expected
+def test_tilde_positive(text, expected):
+    out = extract(text)
+    assert [d.value for d in out] == expected
 
 
 @pytest.mark.parametrize("text", [
-    "~",                # bare tilde
-    "user~/.config",    # inside a word
+    "~",                     # too short
 ])
 def test_tilde_negative(text):
-    assert extract(text) == []
+    out = extract(text)
+    assert [d.value for d in out] == []

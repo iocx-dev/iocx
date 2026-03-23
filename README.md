@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-251_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-273_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/malx-labs/malx-ioc-extractor/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/malx-labs/malx-ioc-extractor" alt="License">
@@ -17,8 +17,6 @@
 </p>
 
 # malx‑ioc‑extractor
-
-![Banner](https://iocx.dev/assets/v020-banner.png)
 
 **Static IOC extraction for binaries, text, and artifacts — fast, safe, and open‑source.**
 
@@ -173,6 +171,7 @@ All measurements from the latest performance suite:
 - Hashes (MD5 / SHA1 / SHA256 / SHA512 / Generic Hex)
 - Email addresses
 - Base64
+- Crypto wallets (Ethereum, Bitcoin) (new in v0.3.0)
 
 ### Static PE Parsing
 

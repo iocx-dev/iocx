@@ -1,5 +1,5 @@
 import pytest
-from iocx.extractors.ips import extract
+from iocx.detectors.extractors.ips import extract
 
 # ---------------------------------------------------------
 # Chaos corpus: attacker‑style malformed or obfuscated IOCs

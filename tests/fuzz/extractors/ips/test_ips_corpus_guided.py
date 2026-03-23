@@ -11,7 +11,7 @@ must never crash, and must salvage valid IPs when present, even inside junk.
 import pytest
 import random
 import string
-from iocx.extractors.ips import extract
+from iocx.detectors.extractors.ips import extract
 
 
 # ---------------------------------------------------------
@@ -47,6 +47,13 @@ SEED_CORPUS = [
     "2001:db8::1]",
 ]
 
+# ---------------------------------------------------------
+# Helper
+# ---------------------------------------------------------
+def _vals(out):
+    if not out:
+        return []
+    return [d.value for d in out]
 
 # ---------------------------------------------------------
 # Mutation strategies
@@ -85,7 +92,9 @@ def test_corpus_guided_fuzz(seed):
         # Extractor must not crash
         assert isinstance(out, list)
 
+        vals = _vals(out)
+
         # Salvage-first behaviour:
         # - If mutation preserved a valid IP substring → out != []
         # - If mutation destroyed all valid IPs → out == []
-        assert out == [] or all(isinstance(x, str) for x in out)
+        assert vals == [] or all(isinstance(x, str) for x in vals)

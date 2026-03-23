@@ -69,7 +69,7 @@ def test_cli_with_all_iocs(tmp_path):
     assert "admin@example.com" in iocs["emails"]
 
     # Filepath
-    assert r"c:\temp\malware.exe" in iocs["filepaths"]
+    assert r"C:\temp\malware.exe" in iocs["filepaths"]
 
     # IP
     assert "8.8.8.8" in iocs["ips"]
@@ -81,7 +81,7 @@ def test_cli_with_all_iocs(tmp_path):
     )
 
     # Base64
-    assert "aGVsbG8gd29ybGQ= (decoded: hello world)" in iocs["base64"]
+    assert "aGVsbG8gd29ybGQ=" in iocs["base64"]
 
 @pytest.mark.integration
 def test_cli_with_unc_network_paths(tmp_path):
@@ -123,7 +123,7 @@ def test_cli_with_unc_network_paths(tmp_path):
     assert "ops@example.org" in iocs["emails"]
 
     # Local filepath
-    assert r"c:\users\bob\desktop\loot.txt" in iocs["filepaths"]
+    assert r"C:\Users\Bob\Desktop\loot.txt" in iocs["filepaths"]
 
     # IP
     assert "10.0.0.42" in iocs["ips"]
@@ -135,7 +135,7 @@ def test_cli_with_unc_network_paths(tmp_path):
     )
 
     # Base64
-    assert "aGVsbG8gd29ybGQ= (decoded: hello world)" in iocs["base64"]
+    assert "aGVsbG8gd29ybGQ=" in iocs["base64"]
 
 @pytest.mark.integration
 def test_empty_file(tmp_path):
