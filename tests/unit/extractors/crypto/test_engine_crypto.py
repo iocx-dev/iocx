@@ -7,16 +7,6 @@ def _vals(result, category):
     return result["iocs"].get(category, [])
 
 def test_engine_detects_btc():
-    import iocx.detectors
-    import iocx.detectors.registry as r
-    import iocx.detectors.extractors as ex
-
-    print("PACKAGE PATH-----:", inspect.getfile(iocx))
-    print("DETECTORS MODULE PATH-----:", inspect.getfile(iocx.detectors))
-    print("REGISTRY:", r.all_detectors().keys())
-    print("EXTRACTORS PACKAGE:", inspect.getfile(ex))
-    print("CONTENTS:", dir(ex))
-
     engine = Engine()
     text = "BTC: 1BoatSLRHtKNngkdXEeobR76b53LETtpyT"
     result = engine.extract(text)
