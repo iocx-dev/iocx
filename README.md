@@ -153,6 +153,48 @@ All measurements from the latest performance suite:
 - **Linear scaling:** almost perfect from 100 KB → 1 MB
 </details>
 
+<details>
+<summary><strong>Performance Benchmarks (v0.3.0)</strong></summary>
+<br>
+
+All measurements from the latest performance suite:
+
+| Sample Type	               | Time     |
+|------------------------------|----------|
+| IP                           |          |
+|==============================|==========|
+| 1 MB mixed‑content sample	   | 0.0070s  |
+| Pathological IPv6 blob	   | 0.0004s  |
+| 100 KB sample	               | 0.0008s  |
+| 300 KB sample	               | 0.0021s  |
+| 600 KB sample	               | 0.0038s  |
+| 1 MB sample	               | 0.0068s  |
+|------------------------------|----------|
+| Filepath                     |          |
+|==============================|==========|
+| 1 MB mixed‑content sample	   | 0.0040s  |
+| Pathological deep unix path  | 0.0237s  |
+| 300 KB sample	               | 0.0011s  |
+| 600 KB sample	               | 0.0022s  |
+| 1000 KB sample               | 0.0038s  |
+| 1500 KB sample	           | 0.0055s  |
+|------------------------------|----------|
+| Crypto                       |          |
+|==============================|==========|
+| 1 MB mixed‑content sample	   | 0.0021s  |
+| Pathological ETH-like blob   | 0.0012s  |
+| 300 KB sample	               | 0.0006s  |
+| 600 KB sample	               | 0.0012s  |
+| 1000 KB sample               | 0.0020s  |
+| 1500 KB sample	           | 0.0031s  |
+
+- **Throughput:** ~200 MB/s
+- **Worst‑case IPv6 blob:** ~0.5 ms
+- **Worst‑case filepath blob:** ~23 ms
+- **Worst‑case crypto blob:** ~1 ms
+- **Linear scaling:** almost perfect from 100 KB → 1 MB
+</details>
+
 ## Features
 
 ### IOC Extraction
@@ -296,9 +338,8 @@ malx-ioc-extractor/
 ├── examples/        # Sample files + generators
 ├── tests/           # Unit and integration tests
 ├── iocx
-    ├── extractors/  # Regex-based IOC detectors
+    ├── detectors/   # Regex-based IOC detectors
     ├── parsers/     # PE parsing, string extraction
-    ├── validators/  # Normalisation + dedupe
     ├── cli/         # Command-line interface
 
 ```
