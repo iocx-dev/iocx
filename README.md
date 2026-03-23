@@ -71,6 +71,10 @@ malx‑ioc‑extractor fits naturally into DFIR, security automation, and threat
 - Use the Python API for batch workflows, ETL pipelines, or custom tooling
 - Combine with rule extensions to tailor detection to internal patterns or datasets
 
+## v0.3.0 — Stronger Architecture, New Crypto IOC Detection, Same Blazing Performance
+
+Version 0.3.0 is a foundational release that tightens the engine’s architecture, expands IOC coverage with Ethereum and Bitcoin wallet detection, and preserves the extractor’s extremely fast performance even on multi‑megabyte inputs. This release makes the engine more predictable, extensible, and resilient for the long-term extensibility.
+
 ## v0.2.0 — High‑Reliability IP Detection in Hostile Data
 
 Version 0.2.0 significantly improves IPv4/IPv6 extraction in noisy, malformed, mixed-content environments — the kind often seen in:
