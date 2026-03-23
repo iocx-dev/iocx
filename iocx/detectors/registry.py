@@ -1,4 +1,3 @@
-# registry.py
 from importlib import import_module
 
 _DETECTORS = {}
