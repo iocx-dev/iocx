@@ -272,9 +272,10 @@ iocx alerts.log
 ### Python API
 ```python
 
-from iocx import extract
+from iocx.engine import Engine
 
-results = extract("suspicious.exe")
+engine = Engine()
+results = engine.extract("suspicious.exe")
 print(results)
 
 ```
@@ -355,18 +356,40 @@ You can add custom:
 - Normalisation logic
 
 ### Register a custom detector
-
-The second argument is a detector function (a callable that receives the input and returns extracted values):
-
+As an example, the following detector extracts the word "SECRET" from a string of text:
 ```python
 
-from iocx.detectors import register_detector
+import re
+from iocx.models import Detection
+from iocx.detectors.registry import register_detector
 
-def extract(data):
-    # custom extraction logic here
-    return ["wallet123"]
+SECRET_REGEX = re.compile(r"\bSECRET\b")
 
-register_detector("crypto_wallet", extract)
+@register_detector("custom.secret")
+def detect_secret(text: str):
+    results = []
+    for m in SECRET_REGEX.finditer(text):
+        results.append(
+            Detection(
+                value=m.group(0),
+                start=m.start(),
+                end=m.end(),
+                category="custom.secret"
+            )
+        )
+    return results
+
+```
+Assuming the detector was saved as `my_detector.py`, consume the custom detector - if the detector fires, its results will be added to the list of detected IOCs:
+```python
+
+from iocx.engine import Engine
+import my_detector
+
+engine = Engine()
+
+results = engine.extract("This is a SECRET message.")
+print(results)
 
 ```
 
