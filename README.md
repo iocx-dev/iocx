@@ -18,8 +18,6 @@
 
 # malx‑ioc‑extractor
 
-![Banner](https://iocx.dev/assets/v020-banner.png)
-
 **Static IOC extraction for binaries, text, and artifacts — fast, safe, and open‑source.**
 
 malx‑ioc‑extractor is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) using pure static analysis. No execution. No sandboxing. No risk.
@@ -173,6 +171,7 @@ All measurements from the latest performance suite:
 - Hashes (MD5 / SHA1 / SHA256 / SHA512 / Generic Hex)
 - Email addresses
 - Base64
+- Crypto wallets (Ethereum, Bitcoin) (new in v0.3.0)
 
 ### Static PE Parsing
 
