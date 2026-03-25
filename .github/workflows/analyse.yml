@@ -1,0 +1,29 @@
+name: IOC Extraction
+
+on:
+  push:
+    paths:
+      - "tests/integration/fixtures/bin/*"
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2
+
+      - name: Install iocx
+        run: pip install iocx
+
+      - name: Run IOC extraction on all files
+        run: |
+          for f in tests/integration/fixtures/bin/*; do
+            echo "Processing $f"
+            iocx "$f" --output "results-$(basename "$f").json"
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
+        with:
+          name: ioc-results
+          path: results-*.json
