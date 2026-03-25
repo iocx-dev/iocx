@@ -1,12 +1,15 @@
 from __future__ import annotations
 import os
+import logging
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe
 from .parsers.string_extractor import extract_strings
-from iocx.detectors import all_detectors
-from .models import Detection
+from .detectors import all_detectors
+from .models import Detection, PluginContext
+from .plugins.loader import PluginLoader
 
 
 @dataclass
@@ -33,6 +36,10 @@ class Engine:
     def __init__(self, config: Optional[EngineConfig] = None):
         self.config = config or EngineConfig()
         self.cache = EngineCache()
+
+        # load plugins once per engine instance
+        self._plugin_loader = PluginLoader()
+        self._plugin_registry = self._plugin_loader.load_all()
 
     # ---------- Public API ----------
 
@@ -110,11 +117,27 @@ class Engine:
 
     # ---------- Detector execution ----------
 
+    def _build_plugin_context(self, key: str, text: str) -> PluginContext:
+        return PluginContext(
+            file_path=Path(key) if key != "<text>" else None,
+            raw_text=text,
+            logger=self._logger(),
+            config={},
+        )
+
     def _run_detectors(self, key: str, text: str) -> Dict[str, List[Detection]]:
         if self.config.enable_cache and key in self.cache.detections:
             return self.cache.detections[key]
 
         results: Dict[str, List[Detection]] = {}
+
+        ctx = self._build_plugin_context(key, text)
+
+        for plugin in self._plugin_registry.transformers:
+            try:
+                text = plugin.transform(text, ctx)
+            except Exception as e:
+                ctx.logger.warning(f"[iocx] transformer plugin {plugin.metadata.id} failed: {e}")
 
         for name, detector in all_detectors().items():
             raw = detector(text)
@@ -146,6 +169,28 @@ class Engine:
                     continue
 
             results[name] = normalised
+
+        for plugin in self._plugin_registry.detectors:
+            try:
+                raw = plugin.detect(text, ctx)
+            except Exception as e:
+                ctx.logger.warning(f"[iocx] detector plugin {plugin.metadata.id} failed: {e}")
+                continue
+
+            items = raw or []
+            normalised: List[Detection] = []
+
+            for item in items:
+                if isinstance(item, Detection):
+                    normalised.append(item)
+                elif isinstance(item, (list, tuple)) and len(item) == 4:
+                    value, start, end, category = item
+                    normalised.append(Detection(value, start, end, category))
+                else:
+                    continue
+
+            results[plugin.metadata.id] = normalised
+
 
         if self.config.enable_cache:
             self.cache.detections[key] = results
@@ -213,3 +258,6 @@ class Engine:
             return os.path.exists(value)
         except Exception:
             return False
+
+    def _logger(self):
+        return logging.getLogger("iocx")

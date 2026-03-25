@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict
 
 @dataclass
 class Detection:
@@ -7,3 +9,10 @@ class Detection:
     end: int
     category: str
     metadata: dict | None = None
+
+@dataclass
+class PluginContext:
+    file_path: Path
+    raw_text: str
+    logger: Any
+    config: Dict[str, Any]
