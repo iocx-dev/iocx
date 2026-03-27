@@ -1,21 +1,3 @@
-<p align="center">
-  <a href="https://pypi.org/project/iocx/">
-    <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
-  </a>
-  <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-279_passed-brightgreen" alt="Tests">
-  <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
-  <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
-  </a>
-  <a href="https://github.com/iocx-dev/iocx/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
-  </a>
-  <img src="https://img.shields.io/badge/v0.2.0_performance-1MB_in_0.0053s-brightgreen" alt="Performance">
-  <img src="https://img.shields.io/badge/v0.2.0_throughput-~200MB%2Fs-brightgreen" alt="Throughput">
-  <img src="https://img.shields.io/badge/v0.2.0_pathological_IPv6-0.0005s-brightgreen" alt="Pathological IPv6 Timing">
-</p>
-
 The IOCX test suite is designed for real SOC conditions, not idealised textbook inputs. Indicators in the wild are messy, malformed, adversarial, and often intentionally obfuscated. The suite reflects that reality through a layered approach:
 
 - Unit tests for correctness
