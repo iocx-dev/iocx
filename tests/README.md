@@ -1,3 +1,5 @@
+# IOCX test suite
+
 The IOCX test suite is designed for real SOC conditions, not idealised textbook inputs. Indicators in the wild are messy, malformed, adversarial, and often intentionally obfuscated. The suite reflects that reality through a layered approach:
 
 - Unit tests for correctness
@@ -13,6 +15,8 @@ At the core of the project is a simple, strict philosophy:
 > If a valid IOC exists anywhere inside malformed or obfuscated text, extract it.
 > If not, return nothing.
 > Never crash.
+
+---
 
 # Unit Test Suite
 
