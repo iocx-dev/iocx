@@ -174,26 +174,21 @@ All measurements from the latest performance suite:
 
 | Sample Type	               | Time     |
 |------------------------------|----------|
-| IP                           |          |
-|------------------------------|----------|
+|            **IP**            |          |
 | 1 MB mixed‑content sample	   | 0.0070s  |
 | Pathological IPv6 blob	   | 0.0004s  |
 | 100 KB sample	               | 0.0008s  |
 | 300 KB sample	               | 0.0021s  |
 | 600 KB sample	               | 0.0038s  |
 | 1 MB sample	               | 0.0068s  |
-|------------------------------|----------|
-| Filepath                     |          |
-|------------------------------|----------|
+|         **Filepath**         |          |
 | 1 MB mixed‑content sample	   | 0.0040s  |
 | Pathological deep unix path  | 0.0237s  |
 | 300 KB sample	               | 0.0011s  |
 | 600 KB sample	               | 0.0022s  |
 | 1000 KB sample               | 0.0038s  |
 | 1500 KB sample	           | 0.0055s  |
-|------------------------------|----------|
-| Crypto                       |          |
-|------------------------------|----------|
+|           **Crypto**         |          |
 | 1 MB mixed‑content sample	   | 0.0021s  |
 | Pathological ETH-like blob   | 0.0012s  |
 | 300 KB sample	               | 0.0006s  |
