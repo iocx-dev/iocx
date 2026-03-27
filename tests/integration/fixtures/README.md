@@ -17,7 +17,7 @@ The goal of these fixtures is to test the full binary‑extraction pipeline:
 - Normalisation and aggregation
 - CLI output consistency
 
-These tests ensure that `iocx` behaves correctly on realistic malware‑style
+These tests ensure that IOCX behaves correctly on realistic malware‑style
 binaries, not just text files.
 
 ---

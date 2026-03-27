@@ -5,18 +5,18 @@
   <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
   <img src="https://img.shields.io/badge/tests-279_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
-  <a href="https://github.com/malx-labs/malx-ioc-extractor/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/malx-labs/malx-ioc-extractor" alt="License">
+  <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
   </a>
-  <a href="https://github.com/malx-labs/malx-ioc-extractor/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/malx-labs/malx-ioc-extractor/ci.yml?label=build" alt="Build Status">
+  <a href="https://github.com/iocx-dev/iocx/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
   </a>
   <img src="https://img.shields.io/badge/v0.2.0_performance-1MB_in_0.0053s-brightgreen" alt="Performance">
   <img src="https://img.shields.io/badge/v0.2.0_throughput-~200MB%2Fs-brightgreen" alt="Throughput">
   <img src="https://img.shields.io/badge/v0.2.0_pathological_IPv6-0.0005s-brightgreen" alt="Pathological IPv6 Timing">
 </p>
 
-The malx‑ioc‑extractor test suite is designed for real SOC conditions, not idealised textbook inputs. Indicators in the wild are messy, malformed, adversarial, and often intentionally obfuscated. The suite reflects that reality through a layered approach:
+The IOCX test suite is designed for real SOC conditions, not idealised textbook inputs. Indicators in the wild are messy, malformed, adversarial, and often intentionally obfuscated. The suite reflects that reality through a layered approach:
 
 - Unit tests for correctness
 - Integration tests for end‑to‑end behaviour
@@ -35,7 +35,7 @@ At the core of the project is a simple, strict philosophy:
 # Unit Test Suite
 
 This directory contains the unit tests for all individual IOC extractors in
-malx-ioc-extractor. Each extractor is tested in isolation to ensure it behaves consistently,
+IOCX. Each extractor is tested in isolation to ensure it behaves consistently,
 predictably, and according to the extraction rules defined for the project.
 
 ## What These Tests Cover
@@ -95,9 +95,13 @@ predictably, and according to the extraction rules defined for the project.
 - Suppression of short or invalid base64
 - Normalisation of output (`raw (decoded: text)`)
 
+### Crypto Wallet Extractor
+- Ethereum
+- Bitcoin
+
 # Integration Test Suite
 
-This directory contains integration tests that exercise the full malx-ioc-extractor CLI
+This directory contains integration tests that exercise the full IOCX CLI
 pipeline. Unlike unit tests, these tests validate the behaviour of the entire
 system:
 
@@ -118,7 +122,7 @@ system:
 
 ### File Input Integration
 - Reading IOCs from text files
-- Mixed IOC extraction (URLs, domains, emails, filepaths, IPs, hashes, base64)
+- Mixed IOC extraction (URLs, domains, emails, filepaths, IPs, hashes, base64, crypto)
 - UNC paths and Windows filepaths
 - Normalisation of extracted values
 - Handling of empty files
@@ -176,7 +180,7 @@ ensure that:
 - JSON output is consistent
 - regressions are caught early
 
-These tests run slower than unit tests but provide high confidence that malx-ioc-extractor
+These tests run slower than unit tests but provide high confidence that IOCX
 behaves correctly in real‑world scenarios.
 
 # Chaos, Fuzzing & Robustness Tests
@@ -345,6 +349,7 @@ All extractors now have 100% coverage, including:
 - IPs
 - URL detectors (strict, bare domain, normalisation, deobfuscation)
 - Super‑detector orchestration
+- Crypto
 
 The string extractor is fully covered, including:
 

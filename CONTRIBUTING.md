@@ -1,6 +1,6 @@
 # Welcome
 
-Thank you for your interest in contributing to malx‑ioc‑extractor. This project is part of the MalX Labs ecosystem — a collection of modern, developer‑friendly security tools focused on safe, scalable analysis.
+Thank you for your interest in contributing to IOCX. This project is part of the MalX Labs ecosystem — a collection of modern, developer‑friendly security tools focused on safe, scalable analysis.
 
 We appreciate improvements of all kinds — bug fixes, new extractors, documentation updates, and thoughtful discussions.
 
@@ -27,7 +27,7 @@ Open an issue or submit a PR with a clear description.
 
 ### Add new IOC detectors
 
-Regex‑based detectors live under `extractors/`.
+Regex‑based detectors live under `detectors/extractors/`.
 Please include:
 
 - a clear regex
@@ -55,7 +55,7 @@ Better examples, diagrams, or explanations are always appreciated.
 Create your own fork and clone it locally:
 ```bash
 
-git clone https://github.com/malx-labs/malx-ioc-extractor.git
+git clone https://github.com/iocx-dev/iocx.git
 
 ```
 
@@ -148,7 +148,7 @@ We use pytest for the test suite.
 Extractor modules live in:
 ```plaintext
 
-iocx/extractors/
+iocx/detectors/extractors/
 
 ```
 
