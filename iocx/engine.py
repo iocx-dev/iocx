@@ -149,6 +149,10 @@ class Engine:
                 for sublist in raw.values():
                     if isinstance(sublist, list):
                         items.extend(sublist)
+
+                if not items: # if dict has no valid lists, skip it
+                    results[name] = []
+                    continue
             elif isinstance(raw, list):
                 items = raw
             else:

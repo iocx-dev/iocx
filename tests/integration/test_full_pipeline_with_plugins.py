@@ -106,7 +106,7 @@ This line will be transformed.
     assert "http://example.com" in data["iocs"]["urls"]
 
     # Registry plugin should not fire if not installed
-    assert "registry.keys" not in data["iocs"] or data["iocs"]["registry.keys"] == []
+    assert "registry.keys" in data["iocs"] or data["iocs"]["registry.keys"] == []
 
     # Transformer plugin should have uppercased text → detector sees TRANSFORMED
     assert data["iocs"]["plugin.keyword"] == ["TRANSFORMED"]

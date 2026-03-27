@@ -2,7 +2,6 @@ import argparse
 import json
 import sys
 from ..engine import Engine, EngineConfig
-from ..detectors.registry import all_detectors
 from importlib.metadata import version, PackageNotFoundError
 
 
@@ -70,6 +69,12 @@ def main():
     )
 
     detector_group.add_argument(
+        "--list-transformers",
+        action="store_true",
+        help="List available transformer plugins."
+    )
+
+    detector_group.add_argument(
         "-m", "--min-length",
         type=int,
         default=4,
@@ -99,8 +104,56 @@ def main():
     # Handle --list-detectors
     # ---------------------------
     if args.list_detectors:
-        for name in all_detectors().keys():
-            print(name)
+        from iocx.detectors.registry import all_detectors
+
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        # Built‑in detectors
+        builtin = all_detectors()
+
+        # Plugin detectors
+        plugin_dets = []
+        for plugin in plugin_registry.detectors:
+            meta = plugin.metadata
+            plugin_dets.append({
+                "category": meta.id,
+                "plugin_id": meta.id,
+                "version": meta.version,
+                "name": meta.name,
+            })
+
+        print("Built‑in Detectors:")
+        for name in sorted(builtin.keys()):
+            print(f" {name}")
+
+        if plugin_dets:
+            print("\nPlugin Detectors:")
+            for det in plugin_dets:
+                print(f" {det['category']} (plugin: {det['plugin_id']} v{det['version']})")
+
+        return
+
+    # ---------------------------
+    # Handle --list-transformers
+    # ---------------------------
+    if args.list_transformers:
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        transformers = plugin_registry.transformers
+
+        print("Transformer Plugins:")
+        if not transformers:
+            print(" (none)")
+            return
+
+        for plugin in transformers:
+            meta = plugin.metadata
+            print(f" {meta.id} (plugin: {meta.name} v{meta.version})")
+
         return
 
     # ---------------------------

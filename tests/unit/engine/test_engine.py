@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from iocx.engine import Engine, EngineConfig, FileType
+from iocx.engine import Engine, EngineConfig, FileType, EngineCache
 from iocx.models import Detection
 
 # ------------------------------------------------------------
@@ -39,6 +39,30 @@ def mock_detectors(monkeypatch):
     monkeypatch.setattr("iocx.engine.all_detectors", fake_all_detectors)
     return fake_all_detectors()
 
+# ------------------------------------------------------------
+# cache clearing
+# ------------------------------------------------------------
+
+def test_context_clear():
+    cache = EngineCache()
+
+    # Populate fields
+    cache.pe_metadata["sample"] = {"arch": "x86"}
+    cache.strings["sample"] = ["hello", "world"]
+    cache.detections["sample"] = {"urls": [Detection("http://x", 0, 10, "urls")]}
+
+    # Sanity check: fields are non‑empty before clear()
+    assert cache.pe_metadata
+    assert cache.strings
+    assert cache.detections
+
+    # Call the method under test
+    cache.clear()
+
+    # All fields should now be empty
+    assert cache.pe_metadata == {}
+    assert cache.strings == {}
+    assert cache.detections == {}
 
 # ------------------------------------------------------------
 # extract() routing
@@ -330,3 +354,191 @@ def test_engine_skips_malformed_detection_items(monkeypatch):
 
     assert "malformed" not in result["iocs"]
 
+
+def test_transformer_exception_is_caught(caplog, exploding_transformer):
+    # Capture warnings
+    import logging
+    caplog.set_level(logging.WARNING, logger="iocx")
+
+    # Create engine
+    engine = Engine()
+
+    # Inject our exploding transformer into the engine's registry
+    engine._plugin_registry.transformers = [exploding_transformer]
+
+    # Run extraction (any text is fine)
+    result = engine.extract_from_text("hello world")
+
+    # Assert the warning was logged
+    assert any(
+        "exploding-transformer" in rec.message and "failed" in rec.message
+        for rec in caplog.records
+    ), "Expected transformer failure warning not logged"
+
+    # Assert extraction still completed normally
+    assert "iocs" in result
+    assert isinstance(result["iocs"], dict)
+
+
+def test_invalid_detector_output_is_skipped(monkeypatch):
+    import iocx.detectors.registry as det_registry
+
+    # Fake detector that returns a completely invalid type
+    def bad_detector(text):
+        return 123 # invalid → should be skipped
+
+    monkeypatch.setitem(det_registry._DETECTORS, "bad", bad_detector)
+
+    engine = Engine()
+    result = engine.extract_from_text("hello world")
+
+    # The invalid detector should not exist in output
+    assert "bad" not in result["iocs"]
+
+    assert isinstance(result["iocs"], dict)
+
+
+def test_invalid_detector_dict_with_no_valid_lists_is_skipped(monkeypatch):
+    """
+    A detector that returns a dict whose values are NOT lists should be skipped
+    """
+    from iocx.detectors import registry as det_registry
+
+    # Detector returns a dict, but with no list values → should now be skipped
+    def bad_detector(text):
+        return {"foo": 123, "bar": None, "baz": 999}
+
+    # Inject into detector registry
+    monkeypatch.setitem(det_registry._DETECTORS, "bad", bad_detector)
+
+    engine = Engine()
+    result = engine.extract_from_text("hello world")
+
+    # The invalid detector should NOT appear in the IOC output
+    assert "bad" not in result["iocs"]
+
+    # Engine should still return a valid IOC structure
+    assert isinstance(result["iocs"], dict)
+
+
+def test_detector_output_detection_objects(monkeypatch):
+    from iocx.detectors import registry as det_registry
+
+    def good_detector(text):
+        return [Detection("abc", 0, 3, "testcat")]
+
+    monkeypatch.setitem(det_registry._DETECTORS, "good", good_detector)
+
+    engine = Engine()
+    result = engine.extract_from_text("abc")
+
+    assert result["iocs"]["testcat"] == ["abc"]
+
+
+def test_detector_output_tuple_is_normalised(monkeypatch):
+    from iocx.detectors import registry as det_registry
+
+    # value, start, end, category
+    def tuple_detector(text):
+        return [("xyz", 0, 3, "tuplecat")]
+
+    monkeypatch.setitem(det_registry._DETECTORS, "tuple", tuple_detector)
+
+    engine = Engine()
+    result = engine.extract_from_text("xyz")
+
+    assert result["iocs"]["tuplecat"] == ["xyz"]
+
+
+def test_detector_malformed_items_are_skipped(monkeypatch):
+    from iocx.detectors import registry as det_registry
+
+    # Includes:
+    # - valid tuple
+    # - malformed tuple (wrong length)
+    # - completely invalid type
+    def bad_items_detector(text):
+        return [
+            ("ok", 0, 2, "mixedcat"), # valid
+            ("bad", 0, 3), # invalid tuple → should be skipped
+            123, # invalid type → should be skipped
+        ]
+
+    monkeypatch.setitem(det_registry._DETECTORS, "mixed", bad_items_detector)
+
+    engine = Engine()
+    result = engine.extract_from_text("ok bad 123")
+
+    # Only the valid one should survive
+    assert result["iocs"]["mixedcat"] == ["ok"]
+
+
+def test_detector_plugin_exception_is_logged_and_skipped(caplog, exploding_detector):
+    """
+    Ensures that when a detector plugin raises an exception:
+    - the engine logs a warning
+    - the engine does not crash
+    - extraction still succeeds
+    - the detector category is not added to the IOC output
+    """
+    import logging
+    caplog.set_level(logging.WARNING, logger="iocx")
+
+    engine = Engine()
+
+    # Inject the exploding detector plugin
+    engine._plugin_registry.detectors = [exploding_detector]
+
+    result = engine.extract_from_text("hello world")
+
+    # 1. Warning must be logged
+    assert any(
+        "exploding-detector" in rec.message
+        and "failed" in rec.message
+        for rec in caplog.records
+    ), "Expected detector failure warning not logged"
+
+    # 2. Engine must continue running
+    assert "iocs" in result
+    assert isinstance(result["iocs"], dict)
+
+    # 3. The detector category must NOT appear in the IOC output
+    assert "exploding-detector" not in result["iocs"]
+
+
+def test_detector_tuple_normalised_to_detection(tuple_detector):
+    engine = Engine()
+    engine._plugin_registry.detectors = [tuple_detector]
+
+    result = engine.extract_from_text("abc")
+
+    # The tuple should be normalised into a Detection and grouped under its category
+    assert result["iocs"]["tuplecat"] == ["abc"]
+
+
+def test_detector_malformed_items_are_skipped(malformed_detector):
+    engine = Engine()
+    engine._plugin_registry.detectors = [malformed_detector]
+
+    result = engine.extract_from_text("hello")
+
+    # The malformed detector should produce no valid detections
+    assert "malformed-detector" not in result["iocs"]
+
+
+def test_detector_malformed_items_trigger_else_and_are_skipped(malformed_detector):
+    """
+    Ensures that malformed detector output items hit the `else: continue` block
+    and produce no valid detections.
+    """
+
+    engine = Engine()
+    engine._plugin_registry.detectors = [malformed_detector]
+
+    result = engine.extract_from_text("hello world")
+
+    # The malformed detector should produce no valid detections
+    assert "malformed-detector" not in result["iocs"]
+
+    # Engine should still return a valid IOC structure
+    assert isinstance(result["iocs"], dict)
