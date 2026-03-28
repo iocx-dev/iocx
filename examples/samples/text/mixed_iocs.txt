@@ -8,4 +8,4 @@ User reported suspicious activity:
 - Crypto: Pay BTC to 1BoatSLRHtKNngkdXEeobR76b53LETtpyT
 or ETH to 0x52908400098527886E0F7030069857D2E4169EE7
 reg add "HKLM\Software\BadStuff" /v detonate /t REG_DWORD /d 1 /f
-
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BadApp

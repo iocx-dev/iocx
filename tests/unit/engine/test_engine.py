@@ -313,12 +313,12 @@ def test_extract_file_and_text_paths(monkeypatch, mock_detectors):
 
     # Case 1: file path
     monkeypatch.setattr("iocx.engine.os.path.exists", lambda p: True)
-    monkeypatch.setattr(engine, "extract_from_file", lambda p: {"ok": "file"})
+    monkeypatch.setattr(engine, "extract_from_file", lambda p, **kw: {"ok": "file"})
     assert engine.extract("x") == {"ok": "file"}
 
     # Case 2: text path
     monkeypatch.setattr("iocx.engine.os.path.exists", lambda p: False)
-    monkeypatch.setattr(engine, "extract_from_text", lambda t: {"ok": "text"})
+    monkeypatch.setattr(engine, "extract_from_text", lambda t, **kw: {"ok": "text"})
     assert engine.extract("x") == {"ok": "text"}
 
 # -----------------------------------------------------------

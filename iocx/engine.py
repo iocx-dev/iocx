@@ -3,7 +3,7 @@ import os
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe
 from .parsers.string_extractor import extract_strings
@@ -61,7 +61,7 @@ class Engine:
         return result
 
     def extract_from_text(self, text: str) -> Dict[str, Any]:
-        raw = self._run_detectors("<text>", text)
+        raw, ctx = self._run_detectors("<text>", text)
         iocs = self._post_process(raw)
         return {"file": None, "iocs": iocs, "metadata": {}}
 
@@ -89,7 +89,7 @@ class Engine:
         strings.extend(metadata.get("resource_strings", []))
 
         text = "\n".join(strings)
-        raw = self._run_detectors(path, text)
+        raw, ctx = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
@@ -98,7 +98,7 @@ class Engine:
         with open(path, "r", errors="ignore") as f:
             text = f.read()
 
-        raw = self._run_detectors(path, text)
+        raw, ctx = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "text", "iocs": iocs, "metadata": {}}
@@ -110,7 +110,7 @@ class Engine:
         strings = self._get_strings(path)
         text = "\n".join(strings)
 
-        raw = self._run_detectors(path, text)
+        raw, ctx = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "unknown", "iocs": iocs, "metadata": {}}
@@ -126,9 +126,11 @@ class Engine:
             detections={},
         )
 
-    def _run_detectors(self, key: str, text: str) -> Dict[str, List[Detection]]:
+    def _run_detectors(self, key: str, text: str) -> Tuple[Dict[str, List[Detection]], PluginContext]:
         if self.config.enable_cache and key in self.cache.detections:
-            return self.cache.detections[key]
+            ctx = self._build_plugin_context(key, text)
+            ctx.detections = self.cache.detections[key]
+            return self.cache.detections[key], ctx
 
         results: Dict[str, List[Detection]] = {}
 
@@ -182,6 +184,19 @@ class Engine:
                 ctx.logger.warning(f"[iocx] detector plugin {plugin.metadata.id} failed: {e}")
                 continue
 
+            if isinstance(raw, dict):
+                # Preserve categories exactly as returned
+                for category, items in raw.items():
+                    normalised = []
+                    for item in items:
+                        if isinstance(item, Detection):
+                            normalised.append(item)
+                        elif isinstance(item, (list, tuple)) and len(item) == 4:
+                            value, start, end, category2 = item
+                            normalised.append(Detection(value, start, end, category2))
+                    results[category] = normalised
+                continue
+
             items = raw or []
             normalised: List[Detection] = []
 
@@ -208,7 +223,7 @@ class Engine:
         if self.config.enable_cache:
             self.cache.detections[key] = results
 
-        return results
+        return results, ctx
 
     # ---------- Post-processing ----------
 

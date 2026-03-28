@@ -16,7 +16,7 @@ class IOCXPlugin(Protocol):
         """
         ...
 
-    def enrich(self, detections: List[Detection], ctx: PluginContext) -> List[Detection]:
+    def enrich(self, text: str, ctx: PluginContext) -> None:
         """
         Optional: Enrich an IOC with additional context.
         """
