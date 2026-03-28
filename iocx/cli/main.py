@@ -75,6 +75,12 @@ def main():
     )
 
     detector_group.add_argument(
+        "--list-enrichers",
+        action="store_true",
+        help="List available enricher plugins."
+    )
+
+    detector_group.add_argument(
         "-m", "--min-length",
         type=int,
         default=4,
@@ -151,6 +157,27 @@ def main():
             return
 
         for plugin in transformers:
+            meta = plugin.metadata
+            print(f" {meta.id} (plugin: {meta.name} v{meta.version})")
+
+        return
+
+    # ---------------------------
+    # Handle --list-enrichers
+    # ---------------------------
+    if args.list_enrichers:
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        enrichers = plugin_registry.enrichers
+
+        print("Enricher Plugins:")
+        if not enrichers:
+            print(" (none)")
+            return
+
+        for plugin in enrichers:
             meta = plugin.metadata
             print(f" {meta.id} (plugin: {meta.name} v{meta.version})")
 

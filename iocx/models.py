@@ -16,3 +16,4 @@ class PluginContext:
     raw_text: str
     logger: Any
     config: Dict[str, Any]
+    detections: Dict[str, Any]

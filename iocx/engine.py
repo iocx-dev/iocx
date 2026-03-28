@@ -123,6 +123,7 @@ class Engine:
             raw_text=text,
             logger=self._logger(),
             config={},
+            detections={},
         )
 
     def _run_detectors(self, key: str, text: str) -> Dict[str, List[Detection]]:
@@ -195,6 +196,14 @@ class Engine:
 
             results[plugin.metadata.id] = normalised
 
+
+        ctx.detections = results
+
+        for plugin in self._plugin_registry.enrichers:
+            try:
+                plugin.enrich(text, ctx)
+            except Exception as e:
+                ctx.logger.warning(f"[iocx] enricher plugin {plugin.metadata.id} failed: {e}")
 
         if self.config.enable_cache:
             self.cache.detections[key] = results
