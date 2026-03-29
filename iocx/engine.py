@@ -131,6 +131,7 @@ class Engine:
             logger=self._logger(),
             config={},
             detections={},
+            metadata={},
         )
 
     def _run_detectors(self, key: str, text: str) -> Dict[str, List[Detection]]:
