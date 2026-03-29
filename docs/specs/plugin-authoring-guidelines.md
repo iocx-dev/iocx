@@ -24,6 +24,10 @@ IOCX supports two plugin types:
    - Run *after* transformers and built‑in detectors
    - Useful for adding new IOC categories or custom patterns
 
+3. **Enrichers**
+   - Add context, scoring, or intelligence to detections produced by the engine or other plugins
+   - Run *after* plugin detectors and built-in detectors
+
 Plugins are loaded automatically at runtime from the plugin registry.
 
 ---
@@ -157,7 +161,164 @@ def detect(text, ctx):
     return results
 ```
 
-# 6. Overlap Suppression & Ordering
+# 6. Enricher Plugins
+
+## 6.1 Purpose
+
+Enrichers are used to:
+
+- Score detections (e.g., suspicious registry keys)
+- Add rationale or flags to detections
+- Annotate IOCs with metadata (e.g., ASN info, PE heuristics)
+- Produce structured enrichment for downstream analysis
+- Populate ctx.metadata with enrichment context
+- Enrichers must not perform detection or extraction.
+
+## 6.2 Enricher Structure
+
+An enricher plugin must:
+
+- Inherit from IOCXPlugin
+- Provide a metadata object
+- Implement an enrich(text, ctx) method
+
+Example skeleton:
+
+```python
+from iocx.plugins.api import IOCXPlugin
+from iocx.plugins.metadata import PluginMetadata
+
+class Plugin(IOCXPlugin):
+    metadata = PluginMetadata(
+        id="vendor.enrich.example",
+        name="Example Enricher",
+        version="1.0.0",
+        description="Adds enrichment to detections",
+    )
+
+    def enrich(self, text, ctx):
+        # read ctx.detections
+        # write to ctx.metadata
+        pass
+```
+
+## 6.3 Enricher Responsibilities
+
+Enrichers may:
+
+- Read from ctx.detections
+- Read from ctx.raw_text
+- Write structured enrichment into ctx.metadata
+- Add metadata to individual Detection objects
+
+Enrichers must not:
+
+- Modify ctx.raw_text
+- Modify detection offsets
+- Add or remove detections
+- Perform network calls
+- Raise exceptions (must log and continue)
+
+## 6.4 Writing Enrichment
+
+Enrichers write output exclusively to:
+
+```python
+ctx.metadata
+```
+
+This is the canonical enrichment store.
+
+Example:
+
+```python
+ctx.metadata.setdefault("registry.keys", []).append({
+    "value": det.value,
+    "score": score,
+    "reasons": reasons,
+    "flags": flags,
+})
+```
+
+Enrichment must be:
+
+- Structured (dicts, lists)
+- Deterministic
+- Serializable to JSON
+- Human‑readable and machine‑readable
+
+# 6.5 Detection‑Level Metadata
+
+Enrichers may also annotate individual detections:
+
+```python
+det.metadata["score"] = score
+det.metadata["flags"] = flags
+```
+
+This metadata is internal and not shown in the CLI unless the enricher also writes to `ctx.metadata`.
+
+# 6.6 When to Use Enrichment
+
+Enrichment should be used only for:
+
+- Custom plugin logic
+- Scoring or classification
+- Contextual intelligence
+- Analysis‑ready metadata
+
+Base detectors must not produce enrichment.
+
+This preserves the engine’s separation of concerns:
+
+- Detectors → produce IOCs
+- Enrichers → add intelligence
+- Analysis → builds on enrichment
+
+# 6.7 Rationale & Verbosity
+
+Enrichers are encouraged to provide verbose rationale explaining why a score or flag was assigned.
+
+Example:
+
+```json
+{
+  "value": "HKCU\\...\\Run\\BadApp",
+  "score": 50,
+  "reasons": [
+    "Registry path contains persistence location: HKCU/HKLM Run key",
+    "Matched suspicious substring: 'run'"
+  ],
+  "flags": {
+    "persistence": true,
+    "suspicious_substrings": ["run"]
+  }
+}
+```
+
+This improves analyst understanding and supports downstream automation.
+
+# 6.8 Performance Expectations
+
+Enrichers should:
+
+- Avoid scanning the entire text repeatedly
+- Prefer operating on ctx.detections rather than raw text
+- Avoid expensive operations on large files
+- Keep enrichment lightweight and deterministic
+
+# 6.9 Testing Enrichers
+
+Tests should verify:
+
+- Correct enrichment output
+- Deterministic scoring
+- No modification of detections
+- No exceptions raised
+- JSON‑serializable output
+- Correct behaviour on empty detection sets
+
+# 7. Overlap Suppression & Ordering
 
 Plugins must understand IOCX’s deterministic suppression rules:
 
@@ -169,7 +330,7 @@ Plugins must understand IOCX’s deterministic suppression rules:
 
 See `overlap-suppression.md` for the full formal specification.
 
-# 7. Normalisation Rules
+# 8. Normalisation Rules
 
 After suppression, IOCX normalizes values:
 
@@ -179,7 +340,7 @@ After suppression, IOCX normalizes values:
 
 Plugins should avoid performing their own normalization unless necessary.
 
-# 8. Logging & Error Handling
+# 9. Logging & Error Handling
 
 Plugins must:
 
@@ -198,7 +359,7 @@ except Exception as e:
     return []
 ```
 
-# 9. Performance Guidelines
+# 10. Performance Guidelines
 
 Plugins should:
 
@@ -210,7 +371,7 @@ Plugins should:
 
 IOCX is optimized for ~200 MB/s throughput; plugins should not degrade this significantly.
 
-# 10. Testing Plugins
+# 11. Testing Plugins
 
 Recommended tests:
 
@@ -223,7 +384,7 @@ Recommended tests:
 
 Plugins should include a minimal test suite in the host project.
 
-# 11. Plugin Distribution
+# 12. Plugin Distribution
 
 Plugins may be:
 
@@ -237,7 +398,7 @@ Recommended naming convention for external packages:
 iocx-plugin-<name>
 ```
 
-# 12. Security Considerations
+# 13. Security Considerations
 
 Plugins must:
 
@@ -249,12 +410,13 @@ Plugins must:
 
 IOCX is a **static‑only** engine; plugins must preserve this guarantee.
 
-# 13. Summary
+# 14. Summary
 
 Plugins extend IOCX safely and predictably by following these rules:
 
 - Transformers modify text
 - Detectors emit structured matches
+- Enrichers do not create new detections and do not modify the input text
 - Offsets must be accurate
 - Errors must be contained
 - Behaviour must remain deterministic
