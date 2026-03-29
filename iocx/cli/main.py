@@ -50,6 +50,12 @@ def main():
         help="Output compact (minified) JSON."
     )
 
+    output_group.add_argument(
+        "-e", "--enrich",
+        action="store_true",
+        help="Write enrichment context to the JSON output."
+    )
+
     # ---------------------------
     # Engine Options
     # ---------------------------
@@ -207,6 +213,11 @@ def main():
         data = args.input
 
     result = engine.extract(data)
+
+    if args.enrich:
+        ctx = engine.plugin_context
+        result["enrichment"] = ctx.metadata
+
 
     # ---------------------------
     # Output

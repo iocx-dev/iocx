@@ -3,7 +3,7 @@ import os
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe
 from .parsers.string_extractor import extract_strings
@@ -33,6 +33,11 @@ class EngineCache:
 
 
 class Engine:
+
+    @property
+    def plugin_context(self):
+        return self._plugin_context
+
     def __init__(self, config: Optional[EngineConfig] = None):
         self.config = config or EngineConfig()
         self.cache = EngineCache()
@@ -40,6 +45,8 @@ class Engine:
         # load plugins once per engine instance
         self._plugin_loader = PluginLoader()
         self._plugin_registry = self._plugin_loader.load_all()
+
+        self._plugin_context: Optional[PluginContext] = None
 
     # ---------- Public API ----------
 
@@ -52,18 +59,16 @@ class Engine:
         filetype = detect_file_type(path) if self.config.enable_magic else FileType.UNKNOWN
 
         if filetype == FileType.PE:
-            result = self._pipeline_pe(path)
+            return self._pipeline_pe(path)
         elif filetype == FileType.TEXT:
-            result = self._pipeline_text_file(path)
+            return self._pipeline_text_file(path)
         else:
-            result = self._pipeline_unknown(path)
-
-        return result
+            return self._pipeline_unknown(path)
 
     def extract_from_text(self, text: str) -> Dict[str, Any]:
-        raw, ctx = self._run_detectors("<text>", text)
+        raw = self._run_detectors("<text>", text)
         iocs = self._post_process(raw)
-        return {"file": None, "iocs": iocs, "metadata": {}}
+        return {"file": None, "type": "text", "iocs": iocs, "metadata": {}}
 
     # ---------- Pipeline stages ----------
 
@@ -89,7 +94,7 @@ class Engine:
         strings.extend(metadata.get("resource_strings", []))
 
         text = "\n".join(strings)
-        raw, ctx = self._run_detectors(path, text)
+        raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
@@ -98,19 +103,21 @@ class Engine:
         with open(path, "r", errors="ignore") as f:
             text = f.read()
 
-        raw, ctx = self._run_detectors(path, text)
+        raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "text", "iocs": iocs, "metadata": {}}
 
     def _pipeline_unknown(self, path: str) -> Dict[str, Any]:
         if not self.config.fallback_to_strings:
+            # still store a context for consistency
+            self._plugin_context = self._build_plugin_context(path, "")
             return {"file": path, "type": "unknown", "iocs": {}, "metadata": {}}
 
         strings = self._get_strings(path)
         text = "\n".join(strings)
 
-        raw, ctx = self._run_detectors(path, text)
+        raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         return {"file": path, "type": "unknown", "iocs": iocs, "metadata": {}}
@@ -126,11 +133,12 @@ class Engine:
             detections={},
         )
 
-    def _run_detectors(self, key: str, text: str) -> Tuple[Dict[str, List[Detection]], PluginContext]:
+    def _run_detectors(self, key: str, text: str) -> Dict[str, List[Detection]]:
         if self.config.enable_cache and key in self.cache.detections:
             ctx = self._build_plugin_context(key, text)
             ctx.detections = self.cache.detections[key]
-            return self.cache.detections[key], ctx
+            self._plugin_context = ctx
+            return self.cache.detections[key]
 
         results: Dict[str, List[Detection]] = {}
 
@@ -223,7 +231,9 @@ class Engine:
         if self.config.enable_cache:
             self.cache.detections[key] = results
 
-        return results, ctx
+        self._plugin_context = ctx
+
+        return results
 
     # ---------- Post-processing ----------
 

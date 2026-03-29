@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
 
@@ -17,3 +17,4 @@ class PluginContext:
     logger: Any
     config: Dict[str, Any]
     detections: Dict[str, Any]
+    metadata: dict = field(default_factory=dict)
