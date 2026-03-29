@@ -40,6 +40,39 @@ def mock_detectors(monkeypatch):
     return fake_all_detectors()
 
 # ------------------------------------------------------------
+# context initialisation
+# ------------------------------------------------------------
+
+def test_plugin_context_initialisation():
+
+    engine = Engine()
+
+    # Run extraction on simple text input
+    engine.extract("hello world")
+
+    ctx = engine.plugin_context
+
+    # Context object exists
+    assert ctx is not None
+
+    # Raw text is preserved
+    assert ctx.raw_text == "hello world"
+
+    # <text> inputs should not have a file_path
+    assert ctx.file_path is None
+
+    # Detections always initialised as a dict
+    assert isinstance(ctx.detections, dict)
+
+    # All metadata values must be lists (empty before enrichment)
+    for key, value in ctx.metadata.items():
+        assert isinstance(value, list), f"metadata[{key}] must be a list"
+
+    # Logger must exist
+    assert hasattr(ctx, "logger")
+    assert ctx.logger is not None
+
+# ------------------------------------------------------------
 # cache clearing
 # ------------------------------------------------------------
 
