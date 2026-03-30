@@ -17,6 +17,8 @@ def test_full_pipeline_with_plugins(tmp_path, monkeypatch):
         * categories are merged correctly
         * output is valid JSON
     """
+    # Ensure plugins load from our temp HOME
+    monkeypatch.setenv("HOME", str(tmp_path))
 
     # ----------------------------------------------------------------------
     # 1. Create plugin directory
@@ -81,9 +83,6 @@ Visit http://example.com for details.
 Registry key: HKCU\\Software\\BadStuff
 This line will be transformed.
 """)
-
-    # Ensure plugins load from our temp HOME
-    monkeypatch.setenv("HOME", str(tmp_path))
 
     # ----------------------------------------------------------------------
     # 5. Run the full CLI
