@@ -18,6 +18,7 @@ class EngineConfig:
     enable_cache: bool = True
     enable_magic: bool = True
     fallback_to_strings: bool = True
+    enable_local_plugins: bool = False
 
 
 @dataclass
@@ -43,7 +44,9 @@ class Engine:
         self.cache = EngineCache()
 
         # load plugins once per engine instance
-        self._plugin_loader = PluginLoader()
+        self._plugin_loader = PluginLoader(
+            enable_local_plugins=self.config.enable_local_plugins
+        )
         self._plugin_registry = self._plugin_loader.load_all()
 
         self._plugin_context: Optional[PluginContext] = None

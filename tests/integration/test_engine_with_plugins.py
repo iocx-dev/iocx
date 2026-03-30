@@ -2,7 +2,7 @@ import types
 import pytest
 from pathlib import Path
 
-from iocx.engine import Engine
+from iocx.engine import Engine, EngineConfig
 from iocx.plugins.metadata import PluginMetadata
 
 
@@ -79,7 +79,7 @@ def test_engine_end_to_end_with_plugins(monkeypatch, tmp_path):
     # -----------------------------------------------------
     # 4. Run the full engine
     # -----------------------------------------------------
-    engine = Engine()
+    engine = Engine(config=EngineConfig(enable_local_plugins=True))
     registry = engine._plugin_registry
 
     result = engine.extract(input_file)

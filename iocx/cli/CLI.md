@@ -49,6 +49,7 @@ The CLI supports a focused set of flags designed to keep the interface simple wh
 |--------------------|----------------------------------------------------|
 | -o, --output FILE  | Write JSON output to a file instead of stdout.     |
 | -c, --compact      | Minify JSON output (indent=None).                  |
+| -e, --enrich       | Add detection enrichment data to the output        |
 
 ### Examples
 ```bash
@@ -65,9 +66,12 @@ iocx sample.txt -o results.json
 
 
 ## Detector Options
-| Flag             | Description                             |
-|------------------|-----------------------------------------|
-| --list-detectors | Print all available detectors and exit. |
+| Flag                | Description                                                            |
+|---------------------|------------------------------------------------------------------------|
+| --list-detectors    | Print all available detectors and exit.                                |
+| --list-transformers | Print all available transformers and exit.                             |
+| --list-enrichers    | Print all available enrichers and exit.                                |
+| -m, --min-length    | Minimum printable string length for the string extractor (default: 4). |
 
 ### Example:
 ```bash
@@ -77,9 +81,10 @@ iocx --list-detectors
 ```
 
 ## Misc
-| Flag             | Description                             |
-|------------------|-----------------------------------------|
-| --version        | Show the installed version of iocx.     |
+| Flag             | Description                                                                  |
+|------------------|------------------------------------------------------------------------------|
+| --version        | Show the installed version of iocx.                                          |
+| -d, --dev        | Intended for plugin developers. Loads plugins from the local environment     |
 
 
 ## Output Format
@@ -146,11 +151,14 @@ iocx --list-detectors
 |  0   | Success                            |
 |  1   | Invalid arguments or runtime error |
 
-## ioc --help example
+## iocx --help example
 ```text
-usage: iocx [-h] [-o OUTPUT] [-p] [--no-cache] [--list-detectors] [--version] input
+usage: iocx [-h] [-o OUTPUT] [-c] [-e] [--no-cache] [--list-detectors] [--list-transformers] [--list-enrichers] [-m N] [--version] [-d] [input]
 
 Static IOC extractor for binaries, logs, and text.
+
+options:
+  -h, --help            show this help message and exit
 
 Input:
   input                 File path or raw text. Use '-' to read from stdin.
@@ -158,18 +166,21 @@ Input:
 Output:
   -o OUTPUT, --output OUTPUT
                         Write JSON output to a file instead of stdout.
-  -c, --compact         Minified JSON output.
+  -c, --compact         Output compact (minified) JSON.
+  -e, --enrich          Write enrichment data to the JSON output.
 
 Engine Options:
   --no-cache            Disable engine caching.
 
 Detector Options:
   --list-detectors      List available detectors and exit.
+  --list-transformers   List available transformer plugins.
+  --list-enrichers      List available enricher plugins.
+  -m N, --min-length N  Minimum printable string length for the string extractor (default: 4).
 
 Misc:
   --version             Show version and exit.
-  -h, --help            Show this help message and exit.
-
+  -d, --dev             Enable local plugins.
 ```
 
 ## Design Philosophy

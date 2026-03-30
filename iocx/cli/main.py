@@ -53,7 +53,7 @@ def main():
     output_group.add_argument(
         "-e", "--enrich",
         action="store_true",
-        help="Write enrichment context to the JSON output."
+        help="Write enrichment data to the JSON output."
     )
 
     # ---------------------------
@@ -101,6 +101,12 @@ def main():
         "--version",
         action="store_true",
         help="Show version and exit."
+    )
+
+    misc_group.add_argument(
+        "-d", "--dev",
+        action="store_true",
+        help="Enable local plugins.",
     )
 
     args = parser.parse_args()
@@ -200,7 +206,8 @@ def main():
     # ---------------------------
     config = EngineConfig(
         enable_cache=not args.no_cache,
-        min_string_length=args.min_length
+        min_string_length=args.min_length,
+        enable_local_plugins=args.dev
     )
     engine = Engine(config)
 

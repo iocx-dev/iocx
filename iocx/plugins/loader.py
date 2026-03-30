@@ -9,13 +9,15 @@ ENTRYPOINT_GROUP = "iocx.plugins"
 
 
 class PluginLoader:
-    def __init__(self) -> None:
+    def __init__(self, enable_local_plugins: bool = False) -> None:
+        self.enable_local_plugins = enable_local_plugins
         self.registry = PluginRegistry()
         self.logger = logging.getLogger("iocx.plugins")
 
     def load_all(self) -> PluginRegistry:
         self._load_entrypoint_plugins()
-        self._load_local_plugins()
+        if self.enable_local_plugins:
+            self._load_local_plugins()
         return self.registry
 
     # -------------------------

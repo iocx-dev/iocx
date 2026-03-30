@@ -28,7 +28,7 @@ class Plugin(IOCXPlugin):
 
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    loader = PluginLoader()
+    loader = PluginLoader(enable_local_plugins=True)
     registry = loader.load_all()
 
     assert any(p.metadata.id == "test-plugin" for p in registry.detectors)

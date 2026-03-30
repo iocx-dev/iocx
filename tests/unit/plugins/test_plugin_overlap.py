@@ -1,4 +1,4 @@
-from iocx.engine import Engine
+from iocx.engine import Engine, EngineConfig
 
 def test_plugin_overlap_suppression(tmp_path, monkeypatch):
     plugin_dir = tmp_path / ".iocx" / "plugins"
@@ -30,7 +30,7 @@ class Plugin(IOCXPlugin):
 
     monkeypatch.setenv("HOME", str(tmp_path))
 
-    engine = Engine()
+    engine = Engine(config=EngineConfig(enable_local_plugins=True))
     result = engine.extract_from_text("dummy text")
 
     # Only the first detection survives
