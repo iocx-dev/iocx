@@ -201,6 +201,12 @@ def main():
     if not args.input:
         parser.error("input is required unless using --version or --list-detectors")
 
+    # ----------------------------
+    # Local plugins loading notification
+    # ----------------------------
+    if args.dev:
+        print("\x1b[33m[dev] Loading local plugins…\x1b[0m", file=sys.stderr)
+
     # ---------------------------
     # Configure engine
     # ---------------------------

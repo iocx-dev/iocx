@@ -89,7 +89,7 @@ This line will be transformed.
     # 5. Run the full CLI
     # ----------------------------------------------------------------------
     result = subprocess.run(
-        ["iocx", str(input_file)],
+        ["iocx", str(input_file), "--dev"],
         capture_output=True,
         text=True
     )
