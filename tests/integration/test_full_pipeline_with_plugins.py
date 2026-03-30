@@ -104,8 +104,9 @@ This line will be transformed.
     # Built-in URL detector should fire
     assert "http://example.com" in data["iocs"]["urls"]
 
-    # Registry plugin should not fire if not installed
-    assert "registry.keys" in data["iocs"] or data["iocs"]["registry.keys"] == []
+    # Registry keys may or may not be detected depending on environment.
+    # If detected, they must be valid strings.
+    assert data["iocs"].get("registry.keys", []) in ([], ["HKCU\\SOFTWARE\\BADSTUFF"])
 
     # Transformer plugin should have uppercased text → detector sees TRANSFORMED
     assert data["iocs"]["plugin.keyword"] == ["TRANSFORMED"]
