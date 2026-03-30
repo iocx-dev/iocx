@@ -1,4 +1,4 @@
-import json
+import json, sys
 import subprocess
 from pathlib import Path
 import pytest
@@ -88,7 +88,7 @@ This line will be transformed.
     # 5. Run the full CLI
     # ----------------------------------------------------------------------
     result = subprocess.run(
-        ["iocx", str(input_file), "--dev"],
+        [sys.executable, "-m", "iocx.cli.main", str(input_file), "--dev"],
         capture_output=True,
         text=True
     )
