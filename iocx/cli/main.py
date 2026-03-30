@@ -2,7 +2,6 @@ import argparse
 import json
 import sys
 from ..engine import Engine, EngineConfig
-from ..detectors.registry import all_detectors
 from importlib.metadata import version, PackageNotFoundError
 
 
@@ -51,6 +50,12 @@ def main():
         help="Output compact (minified) JSON."
     )
 
+    output_group.add_argument(
+        "-e", "--enrich",
+        action="store_true",
+        help="Write enrichment data to the JSON output."
+    )
+
     # ---------------------------
     # Engine Options
     # ---------------------------
@@ -70,6 +75,18 @@ def main():
     )
 
     detector_group.add_argument(
+        "--list-transformers",
+        action="store_true",
+        help="List available transformer plugins."
+    )
+
+    detector_group.add_argument(
+        "--list-enrichers",
+        action="store_true",
+        help="List available enricher plugins."
+    )
+
+    detector_group.add_argument(
         "-m", "--min-length",
         type=int,
         default=4,
@@ -86,6 +103,12 @@ def main():
         help="Show version and exit."
     )
 
+    misc_group.add_argument(
+        "-d", "--dev",
+        action="store_true",
+        help="Enable local plugins.",
+    )
+
     args = parser.parse_args()
 
     # ---------------------------
@@ -99,8 +122,77 @@ def main():
     # Handle --list-detectors
     # ---------------------------
     if args.list_detectors:
-        for name in all_detectors().keys():
-            print(name)
+        from iocx.detectors.registry import all_detectors
+
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        # Built‑in detectors
+        builtin = all_detectors()
+
+        # Plugin detectors
+        plugin_dets = []
+        for plugin in plugin_registry.detectors:
+            meta = plugin.metadata
+            plugin_dets.append({
+                "category": meta.id,
+                "plugin_id": meta.id,
+                "version": meta.version,
+                "name": meta.name,
+            })
+
+        print("Built‑in Detectors:")
+        for name in sorted(builtin.keys()):
+            print(f" {name}")
+
+        if plugin_dets:
+            print("\nPlugin Detectors:")
+            for det in plugin_dets:
+                print(f" {det['category']} (plugin: {det['plugin_id']} v{det['version']})")
+
+        return
+
+    # ---------------------------
+    # Handle --list-transformers
+    # ---------------------------
+    if args.list_transformers:
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        transformers = plugin_registry.transformers
+
+        print("Transformer Plugins:")
+        if not transformers:
+            print(" (none)")
+            return
+
+        for plugin in transformers:
+            meta = plugin.metadata
+            print(f" {meta.id} (plugin: {meta.name} v{meta.version})")
+
+        return
+
+    # ---------------------------
+    # Handle --list-enrichers
+    # ---------------------------
+    if args.list_enrichers:
+        # Instantiate engine so plugins load
+        engine = Engine()
+        plugin_registry = engine._plugin_registry
+
+        enrichers = plugin_registry.enrichers
+
+        print("Enricher Plugins:")
+        if not enrichers:
+            print(" (none)")
+            return
+
+        for plugin in enrichers:
+            meta = plugin.metadata
+            print(f" {meta.id} (plugin: {meta.name} v{meta.version})")
+
         return
 
     # ---------------------------
@@ -109,12 +201,19 @@ def main():
     if not args.input:
         parser.error("input is required unless using --version or --list-detectors")
 
+    # ----------------------------
+    # Local plugins loading notification
+    # ----------------------------
+    if args.dev:
+        print("\x1b[33m[dev] Loading local plugins…\x1b[0m", file=sys.stderr)
+
     # ---------------------------
     # Configure engine
     # ---------------------------
     config = EngineConfig(
         enable_cache=not args.no_cache,
-        min_string_length=args.min_length
+        min_string_length=args.min_length,
+        enable_local_plugins=args.dev
     )
     engine = Engine(config)
 
@@ -127,6 +226,11 @@ def main():
         data = args.input
 
     result = engine.extract(data)
+
+    if args.enrich:
+        ctx = engine.plugin_context
+        result["enrichment"] = ctx.metadata
+
 
     # ---------------------------
     # Output

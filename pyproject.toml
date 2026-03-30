@@ -1,17 +1,37 @@
 [project]
 name = "iocx"
-version = "0.3.0"
+version = "0.4.0"
 description = "Static IOC extraction engine for binaries, text, and logs."
 authors = [
     { name = "MalX Labs" }
 ]
-readme = "README.md"
+readme = { file = "README-pypi.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 license = { text = "MIT" }
 
+keywords = [
+    "ioc",
+    "threat-intel",
+    "malware-analysis",
+    "forensics",
+    "security",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries",
+]
+
 dependencies = [
-    "pefile",
-    "python-magic",
+    "pefile>=2024.8.26",
+    "python-magic>=0.4.27",
 ]
 
 [project.scripts]
@@ -19,8 +39,8 @@ iocx = "iocx.cli.main:main"
 
 [project.urls]
 Homepage = "https://iocx.dev"
-Repository = "https://github.com/malx-labs/malx-ioc-extractor"
-Issues = "https://github.com/malx-labs/malx-ioc-extractor/issues"
+Repository = "https://github.com/iocx-dev/iocx"
+Issues = "https://github.com/iocx-dev/iocx/issues"
 
 [build-system]
 requires = ["setuptools>=61.0"]

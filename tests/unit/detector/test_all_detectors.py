@@ -83,6 +83,25 @@ def test_all_detectors_smoke():
         assert isinstance(detections, list), f"{name} failed smoke test"
 
 
+def test_get_detector_returns_detector_and_none(monkeypatch, simple_detector):
+    """
+    Ensures get_detector():
+    - returns the detector when it exists
+    - returns None when it does not
+    """
+    import iocx.detectors.registry as registry
+
+    # Inject our simple detector into the registry
+    monkeypatch.setitem(registry._DETECTORS, "simple-detector", simple_detector)
+
+    # 1. Should return the detector instance
+    found = registry.get_detector("simple-detector")
+    assert found is simple_detector
+
+    # 2. Should return None for unknown names
+    assert registry.get_detector("does-not-exist") is None
+
+
 # ------------------------------------------------------------
 # 4. Engine consistency (normalised)
 # ------------------------------------------------------------

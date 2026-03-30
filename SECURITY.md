@@ -1,6 +1,6 @@
 # Security Policy
 
-Thank you for your interest in the security of malx-ioc-extractor.
+Thank you for your interest in the security of IOCX.
 We take security seriously and aim to provide a trustworthy, minimal‑dependency tool for static IOC extraction across binaries, text, and logs.
 
 This document explains how we handle security, how to report vulnerabilities, and what you can expect from us.
