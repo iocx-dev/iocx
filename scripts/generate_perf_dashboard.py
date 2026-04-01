@@ -20,21 +20,32 @@ def generate_dashboard(summaries):
         lines.append("_No data available yet._")
         return "\n".join(lines)
 
-    # Collect all metric names across all runs
-    metric_names = set()
-    for _, data in summaries:
-        metric_names.update(data["metrics"].keys())
-    metric_names = sorted(metric_names)
+    # Collect all metrics across all runs
+    all_metrics = {}
+    for ts, data in summaries:
+        for name, value in data["metrics"].items():
+            all_metrics.setdefault(name, {})[ts] = value
 
-    for metric in metric_names:
-        lines.append(f"\n## {metric}\n")
-        lines.append("| Timestamp | Time (s) |")
-        lines.append("|-----------|----------|")
+    # Group by category (first word)
+    grouped = {}
+    for full_name in all_metrics.keys():
+        category = full_name.split()[0]
+        grouped.setdefault(category, []).append(full_name)
 
-        for ts, data in summaries:
-            value = data["metrics"].get(metric)
-            if value is not None:
-                lines.append(f"| {ts} | {value:.6f} |")
+    # Render each category
+    for category in sorted(grouped.keys()):
+        lines.append(f"\n## {category}\n")
+
+        # For each metric inside the category
+        for metric in sorted(grouped[category]):
+            lines.append(f"\n### {metric}\n")
+            lines.append("| Timestamp | Time (s) |")
+            lines.append("|-----------|----------|")
+
+            for ts, data in summaries:
+                value = data["metrics"].get(metric)
+                if value is not None:
+                    lines.append(f"| {ts} | {value:.6f} |")
 
     return "\n".join(lines)
 
