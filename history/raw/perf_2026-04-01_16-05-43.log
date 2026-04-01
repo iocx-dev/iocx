@@ -1,0 +1,21 @@
+[perf] engine end-to-end 1MB: 0.0377s
+.[perf] crypto 1MB mixed-content: 0.0022s
+.[perf] pathological ETH-like blob: 0.0014s
+.[perf] crypto 300KB: 0.0007s
+[perf] crypto 600KB: 0.0014s
+[perf] crypto 1000KB: 0.0023s
+[perf] crypto 1500KB: 0.0034s
+.[perf] filepaths 1MB mixed-content: 0.0044s
+.[perf] pathological deep UNIX path: 0.0283s
+.[perf] filepaths 300KB: 0.0013s
+[perf] filepaths 600KB: 0.0027s
+[perf] filepaths 1000KB: 0.0047s
+[perf] filepaths 1500KB: 0.0069s
+.[perf] IP 1MB mixed-content: 0.0071s
+.[perf] pathological IPv6 blob: 0.0002s
+.[perf] IP 100KB: 0.0008s
+[perf] IP 300KB: 0.0021s
+[perf] IP 600KB: 0.0046s
+[perf] IP 1000KB: 0.0071s
+.
+10 passed in 0.42s
