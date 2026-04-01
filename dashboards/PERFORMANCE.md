@@ -12,6 +12,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.007100 |
 | 2026-04-01_16-07-01 | 0.007000 |
+| 2026-04-01_16-14-52 | 0.006900 |
 
 ### IP 100KB
 
@@ -19,6 +20,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.000800 |
 | 2026-04-01_16-07-01 | 0.000800 |
+| 2026-04-01_16-14-52 | 0.000800 |
 
 ### IP 1MB mixed-content
 
@@ -26,6 +28,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.007100 |
 | 2026-04-01_16-07-01 | 0.007100 |
+| 2026-04-01_16-14-52 | 0.007300 |
 
 ### IP 300KB
 
@@ -33,6 +36,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.002100 |
 | 2026-04-01_16-07-01 | 0.002300 |
+| 2026-04-01_16-14-52 | 0.002100 |
 
 ### IP 600KB
 
@@ -40,6 +44,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.004600 |
 | 2026-04-01_16-07-01 | 0.004300 |
+| 2026-04-01_16-14-52 | 0.004300 |
 
 ## crypto
 
@@ -50,6 +55,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.002300 |
 | 2026-04-01_16-07-01 | 0.002200 |
+| 2026-04-01_16-14-52 | 0.002300 |
 
 ### crypto 1500KB
 
@@ -57,6 +63,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.003400 |
 | 2026-04-01_16-07-01 | 0.003300 |
+| 2026-04-01_16-14-52 | 0.003500 |
 
 ### crypto 1MB mixed-content
 
@@ -64,6 +71,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.002200 |
 | 2026-04-01_16-07-01 | 0.002200 |
+| 2026-04-01_16-14-52 | 0.002200 |
 
 ### crypto 300KB
 
@@ -71,6 +79,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.000700 |
 | 2026-04-01_16-07-01 | 0.000600 |
+| 2026-04-01_16-14-52 | 0.000700 |
 
 ### crypto 600KB
 
@@ -78,6 +87,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.001400 |
 | 2026-04-01_16-07-01 | 0.001400 |
+| 2026-04-01_16-14-52 | 0.001400 |
 
 ## engine
 
@@ -88,6 +98,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.037700 |
 | 2026-04-01_16-07-01 | 0.037500 |
+| 2026-04-01_16-14-52 | 0.036900 |
 
 ## filepaths
 
@@ -99,6 +110,7 @@ Automatically generated from historic performance runs.
 | 2026-04-01_15-51-30 | 0.004700 |
 | 2026-04-01_16-05-43 | 0.004700 |
 | 2026-04-01_16-07-01 | 0.004500 |
+| 2026-04-01_16-14-52 | 0.004400 |
 
 ### filepaths 1500KB
 
@@ -107,6 +119,7 @@ Automatically generated from historic performance runs.
 | 2026-04-01_15-51-30 | 0.011700 |
 | 2026-04-01_16-05-43 | 0.006900 |
 | 2026-04-01_16-07-01 | 0.006900 |
+| 2026-04-01_16-14-52 | 0.006800 |
 
 ### filepaths 1MB mixed-content
 
@@ -114,6 +127,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.004400 |
 | 2026-04-01_16-07-01 | 0.004300 |
+| 2026-04-01_16-14-52 | 0.004400 |
 
 ### filepaths 300KB
 
@@ -122,6 +136,7 @@ Automatically generated from historic performance runs.
 | 2026-04-01_15-51-30 | 0.001400 |
 | 2026-04-01_16-05-43 | 0.001300 |
 | 2026-04-01_16-07-01 | 0.001400 |
+| 2026-04-01_16-14-52 | 0.001300 |
 
 ### filepaths 600KB
 
@@ -130,6 +145,7 @@ Automatically generated from historic performance runs.
 | 2026-04-01_15-51-30 | 0.002800 |
 | 2026-04-01_16-05-43 | 0.002700 |
 | 2026-04-01_16-07-01 | 0.002700 |
+| 2026-04-01_16-14-52 | 0.002700 |
 
 ## pathological
 
@@ -140,6 +156,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.001400 |
 | 2026-04-01_16-07-01 | 0.001400 |
+| 2026-04-01_16-14-52 | 0.001400 |
 
 ### pathological IPv6 blob
 
@@ -147,6 +164,7 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.000200 |
 | 2026-04-01_16-07-01 | 0.000100 |
+| 2026-04-01_16-14-52 | 0.000200 |
 
 ### pathological deep UNIX path
 
@@ -154,3 +172,4 @@ Automatically generated from historic performance runs.
 |-----------|----------|
 | 2026-04-01_16-05-43 | 0.028300 |
 | 2026-04-01_16-07-01 | 0.028100 |
+| 2026-04-01_16-14-52 | 0.029200 |
