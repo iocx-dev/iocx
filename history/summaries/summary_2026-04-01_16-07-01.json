@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "engine end-to-end 1MB": 0.0375,
+    "crypto 1MB mixed-content": 0.0022,
+    "pathological ETH-like blob": 0.0014,
+    "crypto 300KB": 0.0006,
+    "crypto 600KB": 0.0014,
+    "crypto 1000KB": 0.0022,
+    "crypto 1500KB": 0.0033,
+    "filepaths 1MB mixed-content": 0.0043,
+    "pathological deep UNIX path": 0.0281,
+    "filepaths 300KB": 0.0014,
+    "filepaths 600KB": 0.0027,
+    "filepaths 1000KB": 0.0045,
+    "filepaths 1500KB": 0.0069,
+    "IP 1MB mixed-content": 0.0071,
+    "pathological IPv6 blob": 0.0001,
+    "IP 100KB": 0.0008,
+    "IP 300KB": 0.0023,
+    "IP 600KB": 0.0043,
+    "IP 1000KB": 0.007
+  },
+  "pytest": {
+    "passed": 10,
+    "total": 10,
+    "collected": 10
+  }
+}
