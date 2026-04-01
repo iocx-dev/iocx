@@ -1,0 +1,9 @@
+{
+  "metrics": {},
+  "pytest": {
+    "passed": 10,
+    "total": 10,
+    "collected": 538,
+    "deselected": 528
+  }
+}
