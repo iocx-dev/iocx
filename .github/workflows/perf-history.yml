@@ -1,0 +1,12 @@
+name: Performance-history
+
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: No-op step
+        run: echo "This workflow intentionally does nothing on the main branch."
