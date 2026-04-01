@@ -1,0 +1,15 @@
+{
+  "metrics": {
+    "filepaths 300KB": 0.0014,
+    "filepaths 600KB": 0.0028,
+    "filepaths 1000KB": 0.0047,
+    "filepaths 1500KB": 0.0117
+  },
+  "pytest": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10,
+    "collected": 538,
+    "deselected": 528
+  }
+}

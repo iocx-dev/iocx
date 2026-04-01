@@ -1,0 +1,67 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/runner/work/iocx/iocx
+configfile: pytest.ini
+plugins: metadata-3.1.1, json-report-1.5.0
+collected 538 items / 528 deselected / 10 selected
+
+tests/performance/engine/test_engine_1mb_perf.py .                       [ 10%]
+tests/performance/extractors/crypto/test_crypto_perf.py ...              [ 40%]
+tests/performance/extractors/filepaths/test_filepaths_perf.py ..F        [ 70%]
+tests/performance/extractors/ips/test_ips_perf.py ...                    [100%]
+
+=================================== FAILURES ===================================
+_______________________ test_filepaths_scaling_behavior ________________________
+
+    @pytest.mark.performance
+    def test_filepaths_scaling_behavior():
+        """Ensure roughly linear scaling with input size."""
+    
+        # Warm-up run to stabilize regex engine
+        extract(build_large_input(200))
+    
+        sizes = [300, 600, 1000, 1500]  # KB
+        timings = []
+    
+        for size in sizes:
+            text = build_large_input(size)
+    
+            # median of 3 runs to reduce noise
+            runs = []
+            for _ in range(3):
+                start = time.perf_counter()
+                extract(text)
+                runs.append(time.perf_counter() - start)
+    
+            duration = sorted(runs)[1]  # median
+            timings.append(duration)
+            print(f"[perf] filepaths {size}KB: {duration:.4f}s")
+    
+        # Ensure no superlinear blow-up (allow 2.5× growth per doubling)
+        for i in range(1, len(timings)):
+>           assert timings[i] < timings[i-1] * 2.5, "Non-linear scaling detected"
+E           AssertionError: Non-linear scaling detected
+E           assert 0.01166664600000189 < (0.004658642999999074 * 2.5)
+
+tests/performance/extractors/filepaths/test_filepaths_perf.py:136: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[perf] filepaths 300KB: 0.0014s
+[perf] filepaths 600KB: 0.0028s
+[perf] filepaths 1000KB: 0.0047s
+[perf] filepaths 1500KB: 0.0117s
+=============================== warnings summary ===============================
+tests/robustness/extractors/filepaths/test_backtracking_safety.py:84
+  /home/runner/work/iocx/iocx/tests/robustness/extractors/filepaths/test_backtracking_safety.py:84: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(0.5)   # fail fast if catastrophic backtracking occurs
+
+tests/robustness/extractors/filepaths/test_filepaths_chaos.py:81
+  /home/runner/work/iocx/iocx/tests/robustness/extractors/filepaths/test_filepaths_chaos.py:81: DeprecationWarning: invalid escape sequence '\p'
+    "%NOTCLOSED\path.exe",                      # malformed
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+--------------------------------- JSON report ----------------------------------
+report saved to: perf.json
+=========================== short test summary info ============================
+FAILED tests/performance/extractors/filepaths/test_filepaths_perf.py::test_filepaths_scaling_behavior - AssertionError: Non-linear scaling detected
+assert 0.01166664600000189 < (0.004658642999999074 * 2.5)
+=========== 1 failed, 9 passed, 528 deselected, 2 warnings in 0.84s ============
