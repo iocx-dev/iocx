@@ -47,6 +47,7 @@ jobs:
           cp perf_summary.json performance-metrics/history/summaries/summary_$ts.json
       - name: Generate dashboard
         run: |
+          mkdir -p performance-metrics/dashboards
           python performance-metrics/scripts/generate_perf_dashboard.py performance-metrics/history/summaries > performance-metrics/dashboards/PERFORMANCE.md
       - name: Commit and push
         run: |
