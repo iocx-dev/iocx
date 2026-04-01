@@ -1,62 +1,69 @@
 name: Performance-history
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 3 * * 1
+    - cron: "0 3 * * 1"
+
 jobs:
   perf-history:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout main
         uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2
         with:
           ref: main
           fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@d09bd5e6005b175076f227b13d9730d56e9dcfcb
         with:
           python-version: "3.11"
+
       - name: Install dependencies
         run: |
           pip install pytest pytest-json-report
+
       - name: Run performance tests
         run: |
           pytest -m performance \
             --json-report \
             --json-report-file=perf.json \
             | tee perf.log
+
       - name: Checkout performance-metrics branch
         uses: actions/checkout@1e31de5234b9f8995739874a8ce0492dc87873e2
         with:
           ref: performance-metrics
           path: performance-metrics
           fetch-depth: 0
+
       - name: Extract performance metrics
-        run: >
+        run: |
           python performance-metrics/scripts/extract_perf.py perf.log perf.json perf_summary.json
+
       - name: Add new history entry
-        run: >
+        run: |
           ts=$(date +"%Y-%m-%d_%H-%M-%S")
-
           mkdir -p performance-metrics/history/raw
-
           mkdir -p performance-metrics/history/summaries
 
           cp perf.json performance-metrics/history/raw/perf_$ts.json
-
           cp perf.log performance-metrics/history/raw/perf_$ts.log
-
           cp perf_summary.json performance-metrics/history/summaries/summary_$ts.json
+
       - name: Generate dashboard
         run: |
           python performance-metrics/scripts/generate_perf_dashboard.py \
             performance-metrics/history/summaries \
             > performance-metrics/dashboards/PERFORMANCE.md
+
       - name: Commit and push
         run: |
           cd performance-metrics
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Update performance history"
+          git commit -m "Update performance history" || echo "No changes to commit"
           git push
