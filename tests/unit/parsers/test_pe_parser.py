@@ -1,7 +1,9 @@
 import pytest
 from types import SimpleNamespace
+
 from iocx.parsers.pe_parser import parse_pe, _walk_resources
 from iocx.parsers.string_extractor import extract_strings_from_bytes
+
 
 # ------------------------------------------------------------
 # Fake PE builder with full interface required by parse_pe()
@@ -31,13 +33,25 @@ def fake_pe(
     if imports is not None:
         class FakeImport:
             def __init__(self, dll):
-                self.dll = dll  # must be bytes
+                self.dll = dll # must be bytes
+
         pe.DIRECTORY_ENTRY_IMPORT = [FakeImport(i) for i in imports]
 
     # Fake sections
     class FakeSection:
         def __init__(self, name):
+            # Name is an 8-byte, null-padded field in real PE sections
             self.Name = name.encode() + b"\x00" * (8 - len(name))
+            # Minimal attributes used by parse_pe
+            self.SizeOfRawData = 0
+            self.Misc_VirtualSize = 0
+            self.Characteristics = 0
+
+        def get_data(self):
+            return b""
+
+        def get_entropy(self):
+            return 0.0
 
     pe.sections = [FakeSection(s) for s in (sections or [])]
 
@@ -62,6 +76,7 @@ def fake_pe(
 def patch_pefile(monkeypatch):
     def fake_loader(path, fast_load=True):
         raise RuntimeError("pefile.PE() should not be called in unit tests")
+
     import pefile
     monkeypatch.setattr(pefile, "PE", fake_loader)
     yield
@@ -93,6 +108,8 @@ def test_parse_pe_sections(monkeypatch):
 
     result = parse_pe("dummy.exe")
     assert result["sections"] == [".text", ".rdata"]
+    # section_analysis should also exist and mirror names
+    assert [s["name"] for s in result["section_analysis"]] == [".text", ".rdata"]
 
 
 def test_parse_pe_no_resources(monkeypatch):
@@ -123,7 +140,6 @@ def test_parse_pe_simple_resource(monkeypatch):
         resources=FakeDir(),
         get_data=lambda rva, size: b"Hello\x00World",
     )
-
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
     result = parse_pe("dummy.exe")
@@ -150,7 +166,6 @@ def test_parse_pe_bad_resource(monkeypatch):
         resources=FakeDir(),
         get_data=lambda *a, **k: (_ for _ in ()).throw(Exception("bad RVA")),
     )
-
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
     result = parse_pe("dummy.exe")
@@ -160,7 +175,7 @@ def test_parse_pe_bad_resource(monkeypatch):
 def test_parse_pe_large_resource(monkeypatch):
     class FakeDataStruct:
         OffsetToData = 0
-        Size = 99999999  # too large
+        Size = 99999999 # too large
 
     class FakeData:
         struct = FakeDataStruct()
@@ -190,7 +205,7 @@ def test_walk_resources_cycle():
     a = FakeDir()
     b = FakeDir()
     a.entries = [b]
-    b.entries = [a]  # cycle
+    b.entries = [a] # cycle
 
     class FakeData(bytes):
         @property

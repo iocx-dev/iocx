@@ -10,7 +10,7 @@ from .parsers.string_extractor import extract_strings
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
-
+from .analysis.obfuscation import analyse_obfuscation
 
 @dataclass
 class EngineConfig:
@@ -105,6 +105,7 @@ class Engine:
         strings.extend(metadata.get("resource_strings", []))
 
         text = "\n".join(strings)
+        analysis = analyse_obfuscation(metadata, text)
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 

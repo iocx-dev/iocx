@@ -44,7 +44,29 @@ def parse_pe(path):
                 imports.append(entry.dll.decode(errors="ignore"))
 
         # PE section names are fixed‑length, null‑padded byte strings, so stripping nulls is necessary
-        sections = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
+        section_names = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
+
+        section_analysis = []
+        for s in pe.sections:
+            name = s.Name.decode(errors="ignore").strip("\x00")
+            raw_size = s.SizeOfRawData
+            virt_size = s.Misc_VirtualSize
+            characteristics = s.Characteristics
+
+            # Safe entropy calculation
+            try:
+                sec_data = s.get_data()
+                entropy = s.get_entropy()
+            except Exception:
+                entropy = None
+
+            section_analysis.append({
+                "name": name,
+                "raw_size": raw_size,
+                "virtual_size": virt_size,
+                "characteristics": characteristics,
+                "entropy": entropy,
+            })
 
         # Extract strings from resource directory
         resource_strings = []
@@ -57,7 +79,8 @@ def parse_pe(path):
         return {
             "file_type": "PE",
             "imports": imports,
-            "sections": sections,
+            "sections": section_names,
+            "section_analysis": section_analysis,
             "resource_strings": resource_strings,
         }
 
