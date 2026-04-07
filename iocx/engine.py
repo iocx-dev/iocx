@@ -39,6 +39,10 @@ class Engine:
     def plugin_context(self):
         return self._plugin_context
 
+    @property
+    def depth(self):
+        return self.depth_stack[-1]
+
     def __init__(self, config: Optional[EngineConfig] = None):
         self.config = config or EngineConfig()
         self.cache = EngineCache()
@@ -50,6 +54,8 @@ class Engine:
         self._plugin_registry = self._plugin_loader.load_all()
 
         self._plugin_context: Optional[PluginContext] = None
+
+        self.depth_stack = [0]
 
     # ---------- Public API ----------
 
@@ -65,6 +71,8 @@ class Engine:
             return self._pipeline_pe(path)
         elif filetype == FileType.TEXT:
             return self._pipeline_text_file(path)
+        elif filetype in (FileType.ZIP, FileType.TAR, FileType.SEVEN_Z):
+            return self._pipeline_archive(path)
         else:
             return self._pipeline_unknown(path)
 
@@ -125,6 +133,12 @@ class Engine:
 
         return {"file": path, "type": "unknown", "iocs": iocs, "metadata": {}}
 
+    def _pipeline_archive(self, path: str) -> Dict[str, Any]:
+        raw = self._run_detectors(path, "")
+        iocs = self._post_process(raw)
+
+        return {"file": path, "type": "archive", "iocs": iocs, "metadata": {}}
+
     # ---------- Detector execution ----------
 
     def _build_plugin_context(self, key: str, text: str) -> PluginContext:
@@ -134,6 +148,7 @@ class Engine:
             logger=self._logger(),
             config={},
             detections={},
+            engine=self,
             metadata={},
         )
 
@@ -303,3 +318,31 @@ class Engine:
 
     def _logger(self):
         return logging.getLogger("iocx")
+
+
+    def analyze_file(self, path: str) -> List[Detection]:
+        # Enter recursion
+        self.depth_stack.append(self.depth + 1)
+
+        try:
+            ctx = self._build_plugin_context(path, "")
+            result = self.extract_from_file(path)
+        finally:
+            # Leave recursion
+            self.depth_stack.pop()
+
+        detections: List[Detection] = []
+
+        # Convert engine IOC output into Detection objects
+        for category, values in result["iocs"].items():
+            for value in values:
+                detections.append(
+                    Detection(
+                        category=category,
+                        value=value,
+                        start=0,
+                        end=0,
+                    )
+                )
+
+        return detections

@@ -5,6 +5,9 @@ class FileType:
     PE = "pe"
     ELF = "elf"
     MACHO = "macho"
+    ZIP = "zip"
+    TAR = "tar"
+    SEVEN_Z = "7z"
     UNKNOWN = "unknown"
 
 
@@ -36,5 +39,15 @@ def detect_file_type(path: str) -> str:
 
     if mime == "application/x-mach-binary":
         return FileType.MACHO
+
+     # --- Archive formats ---
+    if mime in ("application/zip", "application/x-zip-compressed"):
+        return FileType.ZIP
+
+    if mime in ("application/x-tar", "application/x-gtar"):
+        return FileType.TAR
+
+    if mime in ("application/x-7z-compressed", "application/x-7z"):
+        return FileType.SEVEN_Z
 
     return FileType.UNKNOWN

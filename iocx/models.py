@@ -17,4 +17,5 @@ class PluginContext:
     logger: Any
     config: Dict[str, Any]
     detections: Dict[str, Any]
-    metadata: dict = field(default_factory=dict)
+    engine: Any
+    metadata: Dict[str, Any] = field(default_factory=dict)
