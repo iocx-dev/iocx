@@ -1,0 +1,6 @@
+[run]
+omit =
+    */.iocx/*
+    */site-packages/*
+    */distutils/*
+    */tests/*
