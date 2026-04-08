@@ -56,6 +56,12 @@ def main():
         help="Write enrichment data to the JSON output."
     )
 
+    output_group.add_argument(
+        "-a", "--analyse", "--analyze",
+        action="store_true",
+        help="Enable deep PE analysis (sections, entropy, layout, obfuscation hints)."
+    )
+
     # ---------------------------
     # Engine Options
     # ---------------------------
@@ -213,7 +219,8 @@ def main():
     config = EngineConfig(
         enable_cache=not args.no_cache,
         min_string_length=args.min_length,
-        enable_local_plugins=args.dev
+        enable_local_plugins=args.dev,
+        perform_analysis=args.analyse
     )
     engine = Engine(config)
 

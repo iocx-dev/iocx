@@ -276,41 +276,49 @@ def _detect_string_obfuscation(strings: List[str]) -> List[Detection]:
     return detections
 
 
-def analyse_obfuscation(metadata: Dict[str, Any], strings: List[str]) -> List[Detection]:
+def analyse_obfuscation(
+    sections: List[Dict[str, Any]],
+    strings: List[str]
+) -> List[Dict[str, Any]]:
     """
-    Analyse PE metadata and extracted strings for static obfuscation / packing hints.
+    Analyse PE section structure + strings for static obfuscation / packing hints.
 
     Args:
-        metadata: dict produced by the PE pipeline, expected to contain at least:
-                  {
-                      "section_analysis": [
-                          {
-                              "name": str,
-                              "raw_size": int,
-                              "virtual_size": int,
-                              "virtual_address": int,
-                              "characteristics": int,
-                              "data": bytes (optional, for entropy)
-                          },
-                          ...
-                      ]
-                  }
-        strings: list of extracted strings (ASCII/Unicode) from the file.
+        sections: structured section analysis from analyse_pe_sections()
+        strings: extracted ASCII/Unicode strings
 
     Returns:
-        List[Detection]: obfuscation_hint detections with structured metadata.
+        List of obfuscation_hint detections.
     """
-    # Prefer new structured metadata
-    sections = metadata.get("section_analysis") or []
 
-    # Fallback to old format for backward compatibility
-    if not sections:
-        sections = [{"name": s} for s in metadata.get("sections", [])]
+    # Ensure sections is always a list
+    sections = sections or []
 
     detections: List[Detection] = []
+
+    # Section-based heuristics
     detections.extend(_detect_suspicious_section_names(sections))
-    detections.extend(_detect_high_entropy_sections(sections))
     detections.extend(_detect_abnormal_layout(sections))
+
+    # High-entropy detection uses the precomputed entropy
+    for sec in sections:
+        entropy = sec.get("entropy")
+        if entropy is not None and entropy >= ENTROPY_THRESHOLD:
+            detections.append(
+                Detection(
+                    category="obfuscation_hint",
+                    value="high_entropy_section",
+                    metadata={
+                        "section": sec.get("name"),
+                        "entropy": entropy,
+                        "threshold": ENTROPY_THRESHOLD,
+                    },
+                    start=0,
+                    end=0,
+                )
+            )
+
+    # String-based heuristics
     detections.extend(_detect_string_obfuscation(strings))
 
     return detections

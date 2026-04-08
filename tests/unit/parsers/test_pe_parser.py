@@ -90,34 +90,34 @@ def test_parse_pe_no_imports(monkeypatch):
     pe = fake_pe(imports=None, sections=[".text"])
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert result["imports"] == []
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert metadata["imports"] == []
 
 
 def test_parse_pe_with_imports(monkeypatch):
     pe = fake_pe(imports=[b"kernel32.dll", b"ws2_32.dll"], sections=[".text"])
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert "kernel32.dll" in result["imports"]
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert "kernel32.dll" in metadata["imports"]
+    assert "ws2_32.dll" in metadata["imports"]
 
 
 def test_parse_pe_sections(monkeypatch):
     pe = fake_pe(imports=None, sections=[".text", ".rdata"])
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert result["sections"] == [".text", ".rdata"]
-    # section_analysis should also exist and mirror names
-    assert [s["name"] for s in result["section_analysis"]] == [".text", ".rdata"]
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert metadata["sections"] == [".text", ".rdata"]
+    assert "section_analysis" not in metadata
 
 
 def test_parse_pe_no_resources(monkeypatch):
     pe = fake_pe(imports=None, sections=[".text"], resources=None)
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert result["resource_strings"] == []
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert metadata["resource_strings"] == []
 
 
 def test_parse_pe_simple_resource(monkeypatch):
@@ -142,8 +142,8 @@ def test_parse_pe_simple_resource(monkeypatch):
     )
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert "Hello" in result["resource_strings"]
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert "Hello" in metadata["resource_strings"]
 
 
 def test_parse_pe_bad_resource(monkeypatch):
@@ -168,8 +168,8 @@ def test_parse_pe_bad_resource(monkeypatch):
     )
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert result["resource_strings"] == []
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert metadata["resource_strings"] == []
 
 
 def test_parse_pe_large_resource(monkeypatch):
@@ -189,8 +189,8 @@ def test_parse_pe_large_resource(monkeypatch):
     pe = fake_pe(imports=None, sections=[".text"], resources=FakeDir())
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
-    result = parse_pe("dummy.exe")
-    assert result["resource_strings"] == []
+    pe_obj, metadata = parse_pe("dummy.exe")
+    assert metadata["resource_strings"] == []
 
 
 # ------------------------------------------------------------

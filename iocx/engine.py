@@ -1,11 +1,11 @@
 from __future__ import annotations
 import os
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
-from .parsers.pe_parser import parse_pe
+from .parsers.pe_parser import parse_pe, analyse_pe_sections
 from .parsers.string_extractor import extract_strings
 from .detectors import all_detectors
 from .models import Detection, PluginContext
@@ -19,6 +19,7 @@ class EngineConfig:
     enable_magic: bool = True
     fallback_to_strings: bool = True
     enable_local_plugins: bool = False
+    perform_analysis: bool = False
 
 
 @dataclass
@@ -57,6 +58,8 @@ class Engine:
 
         self.depth_stack = [0]
 
+        self._perform_analysis = self.config.perform_analysis
+
     # ---------- Public API ----------
 
     def extract(self, path_or_text: str) -> Dict[str, Any]:
@@ -83,7 +86,7 @@ class Engine:
 
     # ---------- Pipeline stages ----------
 
-    def _get_pe_metadata(self, path: str) -> Dict[str, Any]:
+    def _get_pe_metadata(self, path: str):
         if not self.config.enable_cache:
             return parse_pe(path)
         if path not in self.cache.pe_metadata:
@@ -100,16 +103,31 @@ class Engine:
         return self.cache.strings[path]
 
     def _pipeline_pe(self, path: str) -> Dict[str, Any]:
-        metadata = self._get_pe_metadata(path)
+        pe, metadata = self._get_pe_metadata(path)
         strings = self._get_strings(path)
         strings.extend(metadata.get("resource_strings", []))
-
         text = "\n".join(strings)
-        analysis = analyse_obfuscation(metadata, text)
+
+        if self._perform_analysis:
+            section_analysis = analyse_pe_sections(pe)
+            obf = analyse_obfuscation(section_analysis, text)
+        else:
+            section_analysis = []
+            obf = []
+
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
-        return {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
+        result = {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
+
+        if self._perform_analysis:
+            result["analysis"] = {
+                "sections": section_analysis,
+                "obfuscation": [asdict(d) for d in obf]
+            }
+
+        return result
+
 
     def _pipeline_text_file(self, path: str) -> Dict[str, Any]:
         with open(path, "r", errors="ignore") as f:

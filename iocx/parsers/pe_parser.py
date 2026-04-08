@@ -1,5 +1,7 @@
 import pefile
 from .string_extractor import extract_strings_from_bytes
+from ..analysis.obfuscation import _shannon_entropy
+from typing import List, Dict, Any
 
 def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
     if visited is None:
@@ -44,29 +46,7 @@ def parse_pe(path):
                 imports.append(entry.dll.decode(errors="ignore"))
 
         # PE section names are fixed‑length, null‑padded byte strings, so stripping nulls is necessary
-        section_names = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
-
-        section_analysis = []
-        for s in pe.sections:
-            name = s.Name.decode(errors="ignore").strip("\x00")
-            raw_size = s.SizeOfRawData
-            virt_size = s.Misc_VirtualSize
-            characteristics = s.Characteristics
-
-            # Safe entropy calculation
-            try:
-                sec_data = s.get_data()
-                entropy = s.get_entropy()
-            except Exception:
-                entropy = None
-
-            section_analysis.append({
-                "name": name,
-                "raw_size": raw_size,
-                "virtual_size": virt_size,
-                "characteristics": characteristics,
-                "entropy": entropy,
-            })
+        sections = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
 
         # Extract strings from resource directory
         resource_strings = []
@@ -76,13 +56,25 @@ def parse_pe(path):
         # Deduplicate resource strings
         resource_strings = list(dict.fromkeys(resource_strings))
 
-        return {
+        return pe, {
             "file_type": "PE",
             "imports": imports,
-            "sections": section_names,
-            "section_analysis": section_analysis,
+            "sections": sections,
             "resource_strings": resource_strings,
         }
 
     except pefile.PEFormatError:
         return {}
+
+
+def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
+    results = []
+    for s in pe.sections:
+        results.append({
+            "name": s.Name.decode(errors="ignore").rstrip("\x00"),
+            "raw_size": s.SizeOfRawData,
+            "virtual_size": s.Misc_VirtualSize,
+            "characteristics": s.Characteristics,
+            "entropy": _shannon_entropy(s.get_data() or b""),
+        })
+    return results
