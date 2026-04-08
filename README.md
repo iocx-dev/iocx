@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-97%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-313_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-327_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
@@ -15,6 +15,15 @@
   <img src="https://img.shields.io/badge/v0.2.0_throughput-~200MB%2Fs-brightgreen" alt="Throughput">
   <img src="https://img.shields.io/badge/v0.2.0_pathological_IPv6-0.0005s-brightgreen" alt="Pathological IPv6 Timing">
 </p>
+
+# Official IOCX Project
+
+This is the **original IOCX engine** for static IOC extraction and PE analysis.
+- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
+- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
+- Website: [https://iocx.dev/](https://iocx.dev/)
+
+Any other repositories using the name "iocx" are **not affiliated** with this project.
 
 # IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
@@ -221,6 +230,59 @@ All measurements from the latest performance suite:
 - **Worst‑case crypto blob:** ~1 ms
 - **Linear scaling:** almost perfect from 100 KB → 1 MB
 </details>
+
+## Project Identity & Naming
+
+IOCX is the name of the official static IOC extraction engine published on:
+
+- **PyPI**: https://pypi.org/project/iocx/
+- **GitHub**: https://github.com/iocx-dev/iocx
+
+The IOCX name, branding, and project identity refer **exclusively** to this project and its associated packages, documentation, and releases.
+
+To protect users from confusion and maintain a healthy ecosystem:
+
+### What third‑party projects may NOT do
+
+- Use `iocx` as the name of their repository
+- Publish tools named “iocx” that are not this project
+- Present themselves as the creators or maintainers of IOCX
+- Use the PyPI badge for the official `iocx` package
+- Imply official affiliation or endorsement without permission
+
+These actions mislead users and violate the identity of the project.
+
+### Allowed & encouraged
+
+Third‑party tools, plugins, and integrations are welcome.
+To avoid confusion, they should follow this naming pattern:
+
+- `iocx-<plugin-name>`
+- `iocx-plugin-<feature>`
+- `iocx-extension-<name>`
+
+Examples:
+
+- `iocx-osint-enricher`
+- `iocx-detector-custom`
+
+### Why this matters
+
+IOCX is used in DFIR, SOC automation, CI/CD pipelines, and threat‑intel workflows.
+Clear naming ensures:
+
+- Users know which tool is the **official** IOCX engine
+- Third‑party tools are discoverable without causing confusion
+- The ecosystem grows in a structured, healthy way
+
+If you are building something that integrates with IOCX and want guidance on naming or attribution, feel free to open an issue
+
+## Official IOCX Repositories
+
+- Core Engine: https://github.com/iocx-dev/iocx
+- Plugins Meta‑Repo: https://github.com/iocx-dev/iocx-plugins
+- Documentation: https://github.com/iocx-dev/iocx/tree/main/docs/specs
+- PyPI Package: https://pypi.org/project/iocx/
 
 ## Features
 
@@ -540,3 +602,6 @@ Please follow the instructions in SECURITY.md.
 ## License
 
 Licensed under the MIT License. See LICENSE for details.
+
+
+*The IOCX name and project identity refer exclusively to the IOCX engine maintained under the iocx-dev organisation*

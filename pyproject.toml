@@ -1,6 +1,6 @@
 [project]
 name = "iocx"
-version = "0.4.0"
+version = "0.5.0"
 description = "Static IOC extraction engine for binaries, text, and logs."
 authors = [
     { name = "MalX Labs" }
