@@ -16,6 +16,15 @@
   <img src="https://img.shields.io/badge/v0.2.0_pathological_IPv6-0.0005s-brightgreen" alt="Pathological IPv6 Timing">
 </p>
 
+# Official IOCX Project
+
+This is the **original IOCX engine** for static IOC extraction and PE analysis.
+- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
+- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
+- Website: [https://iocx.dev/](https://iocx.dev/)
+
+Any other repositories using the name "iocx" are **not affiliated** with this project.
+
 # IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
 **Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
