@@ -106,7 +106,7 @@ def detect(self, text: str, ctx: PluginContext) -> List[Detection]:
 
 - Add context to previously extracted IOCs.
 - Does not return anything.
-- Should modify ctx or IOC objects in place.
+- Should modify `ctx` or IOC objects in place.
 
 Example:
 
@@ -220,9 +220,9 @@ class ExamplePlugin:
 ## 7. Best Practices
 
 - Keep detectors pure and deterministic.
-- Avoid expensive operations inside detect().
-- Use transform() for normalisation.
-- Use enrich() for metadata, not detection.
+- Avoid expensive operations inside `detect()`.
+- Use `transform()` for normalisation.
+- Use `enrich()` for metadata, not detection.
 - Validate plugin metadata before publishing.
 - Follow semantic versioning for plugin releases.
 
