@@ -11,6 +11,7 @@ from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
 from .analysis.obfuscation import analyse_obfuscation
+from .analysis.extended import analyse_extended
 
 @dataclass
 class EngineConfig:
@@ -19,7 +20,7 @@ class EngineConfig:
     enable_magic: bool = True
     fallback_to_strings: bool = True
     enable_local_plugins: bool = False
-    perform_analysis: bool = False
+    analysis_level: str = None
 
 
 @dataclass
@@ -58,7 +59,7 @@ class Engine:
 
         self.depth_stack = [0]
 
-        self._perform_analysis = self.config.perform_analysis
+        self._analysis_level = self.config.analysis_level
 
     # ---------- Public API ----------
 
@@ -108,23 +109,41 @@ class Engine:
         strings.extend(metadata.get("resource_strings", []))
         text = "\n".join(strings)
 
-        if self._perform_analysis:
+        analysis_level = self._analysis_level
+        section_analysis = []
+        obf = []
+        extended = None
+
+        # BASIC: section layout + entropy
+        if analysis_level in ("basic", "deep", "full"):
             section_analysis = analyse_pe_sections(pe)
+
+        # DEEP: obfuscation heuristics
+        if analysis_level in ("deep", "full"):
             obf = analyse_obfuscation(section_analysis, text)
-        else:
-            section_analysis = []
-            obf = []
+
+        # FULL: future expansion
+        if analysis_level == "full":
+            extended = analyse_extended(pe, metadata, text)
 
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
         result = {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
 
-        if self._perform_analysis:
-            result["analysis"] = {
-                "sections": section_analysis,
-                "obfuscation": [asdict(d) for d in obf]
-            }
+        analysis = {}
+
+        if analysis_level in ("basic", "deep", "full"):
+            analysis["sections"] = section_analysis
+
+        if analysis_level in ("deep", "full"):
+            analysis["obfuscation"] = [asdict(d) for d in obf]
+
+        if analysis_level == "full" and extended is not None:
+            analysis["extended"] = extended
+
+        if analysis:
+            result["analysis"] = analysis
 
         return result
 

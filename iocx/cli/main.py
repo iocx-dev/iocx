@@ -58,8 +58,10 @@ def main():
 
     output_group.add_argument(
         "-a", "--analyse", "--analyze",
-        action="store_true",
-        help="Enable deep PE analysis (sections, entropy, layout, obfuscation hints)."
+        nargs="?",
+        const="deep",
+        choices=["basic", "deep", "full"],
+        help="Enable PE analysis (basic, deep, full; default: deep)."
     )
 
     # ---------------------------
@@ -220,7 +222,7 @@ def main():
         enable_cache=not args.no_cache,
         min_string_length=args.min_length,
         enable_local_plugins=args.dev,
-        perform_analysis=args.analyse
+        analysis_level=args.analyse
     )
     engine = Engine(config)
 
