@@ -93,6 +93,15 @@ IOCX is **static extraction only**, by design.
 - Clean, stable JSON schema with optional analysis block
 - No‑flag mode remains fast and minimal for pipeline use
 
+### v0.4.0 — Plugin Architecture, Custom Detectors, Cleaner Internals
+
+- Introduced the plugin‑ready rule engine, enabling custom IOC detectors and parsers
+- Unified internal detection flow under a consistent, extensible interface
+- Added support for user‑defined regex detectors and lightweight parsing modules
+- Improved separation between core engine, detectors, and output formatting
+- Reduced coupling across modules to support long‑term extensibility
+- Maintained the same fast, deterministic performance profile
+
 ### v0.3.0 — Stronger Architecture, New Crypto IOC Detection
 
 - Ethereum & Bitcoin wallet detection
