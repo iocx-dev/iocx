@@ -5,7 +5,7 @@ def analyse_extended(pe, metadata, strings):
     anti-debug heuristics, import anomaly scoring, etc.
     """
     return {
-        "note": "Extended analysis not yet implemented",
+        "note": "Extended analysis is reserved for future advanced heuristics and is not yet implemented",
         "planned_features": [
             "packer_detection",
             "tls_callbacks",
