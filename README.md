@@ -20,7 +20,7 @@
 
 **Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
 
-IOCX is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) using **pure static analysis**. No execution. No sandboxing. No risk.
+IOCX is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) and structural metadata using **pure static analysis**. No execution. No sandboxing. No risk.
 
 Built for:
 
@@ -30,17 +30,18 @@ Built for:
 - CI/CD security checks
 - Large‑scale batch processing
 
-This project is the foundation of the MalX Labs ecosystem for scalable, modern threat‑analysis tooling.
+IOCX is a core component of the MalX Labs ecosystem for scalable, modern threat‑analysis tooling.
 
 ## Why IOCX?
 
-IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes **binary‑aware static analysis**, a **plugin-friendly rule system**, and a **stable JSON schema**.
+IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes **binary‑aware static analysis**, a **plugin-friendly rule system**, and a **stable JSON schema** suitable for pipelines and long-term integrations.
 
 ### Key advantages
 
 - **Static‑only design** — never executes untrusted code
-- **Binary parsing** — extracts IOCs from Windows PE files in addition to raw text
-- **Deterministic behaviour** — stable output and predictable performance, ideal for pipelines
+- **Binary parsing** — PE-aware extraction with section analysis, entropy, and obfuscation hints
+- **Analysis level** — basic, deep, and full (future-ready) for performance-tuned workflows
+- **Deterministic behaviour** — stable output and predictable performance
 - **Extensible rule engine** — custom detectors, parsers, and plugins
 - **Consistent JSON schema** — clean integration with SIEM/SOAR
 - **Low dependency footprint** — safe for enterprise environments
@@ -82,6 +83,15 @@ IOCX is **static extraction only**, by design.
 - Extend with custom detectors for internal patterns
 
 ## Version Highlights
+
+### v0.5.0 — Analysis Levels, PE Section Analysis, Obfuscation Hints
+
+- New analysis‑level system: basic, deep (default), and full (future‑ready)
+- PE structural analysis: section layout, raw/virtual sizes, entropy
+- Obfuscation heuristics: abnormal section patterns, virtual‑only sections, entropy anomalies
+- Extended analysis stub for future packer/TLS/anti‑debug modules
+- Clean, stable JSON schema with optional analysis block
+- No‑flag mode remains fast and minimal for pipeline use
 
 ### v0.3.0 — Stronger Architecture, New Crypto IOC Detection
 
@@ -207,32 +217,34 @@ All measurements from the latest performance suite:
 
 ### IOC Extraction
 
-- Windows PE files (.exe, .dll)
-- Raw text
-- Extracted strings from binaries
-- Caching for increased performance
-
-### Detections
-
 - URLs
 - Domains
 - IPv4 / IPv6 addresses
-- File paths
+- File paths (Windows, Linux, UNC, env-vars)
 - Hashes (MD5 / SHA1 / SHA256 / SHA512 / Generic Hex)
 - Email addresses
-- Base64
+- Base64 strings
 - Crypto wallets (Ethereum / Bitcoin)
 
-### Static PE Parsing
+### Binary-aware Static Analysis
 
-- Imports
-- Sections
-- Resources
-- Metadata
+- Windows PE files (`.exe`, `.dll`)
+- Extracted strings from binaries
+- Imports, sections, resources, metadata
+- **Analysis levels:**
+  - `basic` - section layout + entropy
+  - `deep` - adds obfuscation heuristics
+  - `full` - extended analysis stub (*future-ready*)
+
+### Performance & Caching
+
+- Fast startup and throughput
+- Optional caching for repeated scans
+- Suitable for CI/CD and large batch workflows
 
 ### Developer‑Friendly
 
-- Clean JSON output
+- Clean, stable JSON output
 - CLI + Python API
 - Modular, extensible rule system
 - Minimal dependency footprint
@@ -241,51 +253,52 @@ All measurements from the latest performance suite:
 
 - Zero malware execution
 - Safe for untrusted input
-- Deterministic behaviour
+- Deterministic behaviour for pipelines
 
 ### Why Static Only?
 
-Static analysis ensures safety, determinism, and CI‑friendly operation. No sandboxing, no execution, and no risk of triggering malware behaviour.
+Static analysis ensures **safety**, **determinism**, and **CI‑friendly operation**. No sandboxing, no execution, and no risk of triggering malware behaviour.
 
 ## Quickstart
 
 ### Install
 ```bash
-
 pip install iocx
-
 ```
 
 ### Extract IOCs from a file
 ```bash
-
 iocx suspicious.exe
-
 ```
 
 ### Extract from text
 ```bash
-
 echo "Visit http://bad.example.com" | iocx -
-
 ```
 
 ### Extract from a log file
 ```bash
-
 iocx alerts.log
+```
 
+### Enable PE analysis
+```bash
+iocx suspicious.exe -a
+```
+Or choose a specific level:
+```bash
+iocx suspicious.exe -a basic
+iocx suspicious.exe -a deep
+iocx suspicious.exe -a full
 ```
 
 ### Python API
 ```python
-
 from iocx.engine import Engine
 
 engine = Engine()
 results = engine.extract("suspicious.exe")
 print(results)
-
 ```
 <details>
 <summary><strong>Show Example JSON Output</strong></summary>
@@ -293,23 +306,51 @@ print(results)
 <br>
 
 ```json
-
 {
   "file": "suspicious.exe",
   "type": "PE",
   "iocs": {
-    "urls": ["http://malicious.example.com"],
-    "domains": ["malicious.example.com"],
-    "ips": ["45.77.12.34"],
-    "hashes": ["d41d8cd98f00b204e9800998ecf8427e"],
-    "emails": ["attacker@example.com"],
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
     "filepaths": [
-      "c:\\windows\\system32\\cmd.exe",
-      "d:\\temp\\payload.bin"
+      "C:\\Windows\\System32\\cmd.exe",
+      "D:\\Temp\\payload.bin",
+      "E:/Users/Bob/AppData/Roaming/evil.dll",
+      "F:\\Program Files\\SomeApp\\bin\\run.exe",
+      "C:\\Users\\Alice\\Desktop\\notes.txt",
+      "Z:\\Archive\\2024\\logs\\system.log",
+      "\\\\SERVER01\\share\\dropper.exe",
+      "\\\\192.168.1.44\\c$\\Windows\\Temp\\run.ps1",
+      "\\\\FILESRV\\public\\docs\\report.pdf",
+      "\\\\NAS01\\data\\backups\\2024\\config.json",
+      "/usr/bin/python3.11",
+      "/etc/passwd",
+      "/var/lib/docker/overlay2/abc123/config.v2.json",
+      "/tmp/x1/x2/x3/x4/x5/script.sh",
+      "/opt/tools/bin/runner",
+      "/home/alice/.config/evil.sh",
+      ".\\payload.exe",
+      "..\\lib\\config.json",
+      "./run.sh",
+      "../bin/loader.so",
+      ".\\scripts\\install.ps1",
+      "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\evil.lnk",
+      "%TEMP%\\payload.exe",
+      "%USERPROFILE%\\Downloads\\file.txt",
+      "$HOME/.config/evil.sh",
+      "$HOME/bin/run.sh",
+      "$TMPDIR/cache/tmp123.bin",
+      "C:\\Windows\\Temp\\payload.bin",
+      "/home/alice/.config/evil"
     ],
-    "base64": []
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
   },
-  "metadata" : {
+  "metadata": {
     "file_type": "PE",
     "imports": [
       "KERNEL32.dll",
@@ -325,12 +366,107 @@ print(results)
       ".idata",
       ".CRT",
       ".tls",
+      ".rsrc",
       ".reloc"
     ],
     "resource_strings": [
       "C:\\Windows\\System32\\cmd.exe",
       "\\\\SERVER01\\share\\dropper.exe",
       "/home/alice/.config/evil.sh@%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\evil.lnk"
+    ]
+  },
+  "analysis": {
+    "sections": [
+      {
+        "name": ".text",
+        "raw_size": 7168,
+        "virtual_size": 6712,
+        "characteristics": 1610612832,
+        "entropy": 5.790750971742716
+      },
+      {
+        "name": ".data",
+        "raw_size": 512,
+        "virtual_size": 464,
+        "characteristics": 3221225536,
+        "entropy": 2.094202310841767
+      },
+      {
+        "name": ".rdata",
+        "raw_size": 3584,
+        "virtual_size": 3408,
+        "characteristics": 1073741888,
+        "entropy": 4.545752258688727
+      },
+      {
+        "name": ".pdata",
+        "raw_size": 1024,
+        "virtual_size": 540,
+        "characteristics": 1073741888,
+        "entropy": 2.327719716055491
+      },
+      {
+        "name": ".xdata",
+        "raw_size": 512,
+        "virtual_size": 488,
+        "characteristics": 1073741888,
+        "entropy": 4.1370410751038245
+      },
+      {
+        "name": ".bss",
+        "raw_size": 0,
+        "virtual_size": 384,
+        "characteristics": 3221225600,
+        "entropy": 0.0
+      },
+      {
+        "name": ".idata",
+        "raw_size": 1536,
+        "virtual_size": 1472,
+        "characteristics": 3221225536,
+        "entropy": 3.7542599473501452
+      },
+      {
+        "name": ".CRT",
+        "raw_size": 512,
+        "virtual_size": 96,
+        "characteristics": 3221225536,
+        "entropy": 0.2718922950073886
+      },
+      {
+        "name": ".tls",
+        "raw_size": 512,
+        "virtual_size": 16,
+        "characteristics": 3221225536,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rsrc",
+        "raw_size": 512,
+        "virtual_size": 416,
+        "characteristics": 1073741888,
+        "entropy": 2.6481096709923975
+      },
+      {
+        "name": ".reloc",
+        "raw_size": 512,
+        "virtual_size": 188,
+        "characteristics": 1107296320,
+        "entropy": 2.2248162937403557
+      }
+    ],
+    "obfuscation": [
+      {
+        "value": "abnormal_section_layout_virtual_only",
+        "start": 0,
+        "end": 0,
+        "category": "obfuscation_hint",
+        "metadata": {
+          "section": ".bss",
+          "raw_size": 0,
+          "virtual_size": 384
+        }
+      }
     ]
   }
 }
@@ -352,6 +488,7 @@ iocx/
     ├── parsers/     # PE parsing, string extraction
     ├── plugins/     # Plugin API and registry
     ├── cli/         # Command-line interface
+    ├── analysis/    # PE static-analysis modules
 
 ```
 
