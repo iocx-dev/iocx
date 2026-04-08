@@ -10,7 +10,7 @@ All plugins implement the `IOCXPlugin` protocol and expose a metadata object des
 
 Plugins are automatically registered into the engine’s `PluginRegistry` based on their declared capabilities.
 
-1. Plugin Interface
+## 1. Plugin Interface
 
 All plugins must implement the `IOCXPlugin` protocol:
 
@@ -35,13 +35,13 @@ class IOCXPlugin(Protocol):
 
 Plugins may implement any subset of:
 
-- detect() → return a list of Detection
+- detect() → return a list of `Detection`
 - enrich() → modify IOC context (in-place)
 - transform() → return transformed text
 
 If a method is not implemented, the plugin simply does not participate in that stage of the pipeline.
 
-2. Plugin Metadata
+## 2. Plugin Metadata
 
 Every plugin must define a `PluginMetadata` instance:
 
@@ -83,9 +83,9 @@ metadata = PluginMetadata(
 )
 ```
 
-3. Plugin Methods
+## 3. Plugin Methods
 
-3.1 detect(text, ctx) -> List[Detection]
+### 3.1 detect(text, ctx) -> List[Detection]
 
 - Extract IOCs from raw text.
 - Should return a list of Detection objects.
@@ -102,7 +102,7 @@ def detect(self, text: str, ctx: PluginContext) -> List[Detection]:
     return results
 ```
 
-3.2 enrich(text, ctx) -> None
+### 3.2 enrich(text, ctx) -> None
 
 - Add context to previously extracted IOCs.
 - Does not return anything.
@@ -117,7 +117,7 @@ def enrich(self, text: str, ctx: PluginContext) -> None:
             ioc.metadata["source"] = "basic-enricher"
 ```
 
-3.3 transform(text, ctx) -> str
+### 3.3 transform(text, ctx) -> str
 
 - Modify text before detection.
 - Must return the transformed text.
@@ -130,7 +130,7 @@ def transform(self, text: str, ctx: PluginContext) -> str:
     return text.lower()
 ```
 
-4. Plugin Registration
+## 4. Plugin Registration
 
 Plugins are registered via the `PluginRegistry`:
 
@@ -163,11 +163,11 @@ Registration rules:
 - Missing or invalid metadata → plugin is ignored.
 - Order of registration determines execution order.
 
-5. Execution Pipeline
+## 5. Execution Pipeline
 
 The engine processes plugins in three phases:
 
-1. Transformers
+### 1. Transformers
 
 Executed first, in registration order:
 
@@ -175,7 +175,7 @@ Executed first, in registration order:
 text → transform → transform → transform → detectors
 ```
 
-2. Detectors
+### 2. Detectors
 
 Each detector receives the transformed text:
 
@@ -185,7 +185,7 @@ detector1 → detector2 → detector3
 
 Each returns a list of Detection.
 
-3. Enrichers
+### 3. Enrichers
 
 Executed last, modifying IOC context:
 
@@ -193,7 +193,7 @@ Executed last, modifying IOC context:
 enricher1 → enricher2 → enricher3
 ```
 
-6. Minimal Example Plugin
+## 6. Minimal Example Plugin
 
 ```python
 from iocx.api import IOCXPlugin
@@ -217,7 +217,7 @@ class ExamplePlugin:
         return []
 ```
 
-7. Best Practices
+## 7. Best Practices
 
 - Keep detectors pure and deterministic.
 - Avoid expensive operations inside detect().
@@ -226,7 +226,7 @@ class ExamplePlugin:
 - Validate plugin metadata before publishing.
 - Follow semantic versioning for plugin releases.
 
-8. Compatibility Guarantees
+## 8. Compatibility Guarantees
 
 Plugins should declare:
 
