@@ -238,14 +238,14 @@ These actions mislead users and violate the identity of the project.
 Third‑party tools, plugins, and integrations are welcome.
 To avoid confusion, they should follow this naming pattern:
 
-- iocx-<plugin-name>
-- iocx-plugin-<feature>
-- iocx-extension-<name>
+- `iocx-<plugin-name>`
+- `iocx-plugin-<feature>`
+- `iocx-extension-<name>`
 
 Examples:
 
-- iocx-osint-enricher
-- iocx-detector-custom
+- `iocx-osint-enricher`
+- `iocx-detector-custom`
 
 ### Why this matters
 
