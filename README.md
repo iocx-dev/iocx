@@ -212,6 +212,52 @@ All measurements from the latest performance suite:
 - **Linear scaling:** almost perfect from 100 KB → 1 MB
 </details>
 
+## Project Identity & Naming
+
+IOCX is the name of the official static IOC extraction engine published on:
+
+- **PyPI**: https://pypi.org/project/iocx/
+- **GitHub**: https://github.com/iocx-dev/iocx
+
+The IOCX name, branding, and project identity refer **exclusively** to this project and its associated packages, documentation, and releases.
+
+To protect users from confusion and maintain a healthy ecosystem:
+
+### What third‑party projects may NOT do
+
+- Use `iocx` as the name of their repository
+- Publish tools named “iocx” that are not this project
+- Present themselves as the creators or maintainers of IOCX
+- Use the PyPI badge for the official `iocx` package
+- Imply official affiliation or endorsement without permission
+
+These actions mislead users and violate the identity of the project.
+
+### Allowed & encouraged
+
+Third‑party tools, plugins, and integrations are welcome.
+To avoid confusion, they should follow this naming pattern:
+
+- iocx-<plugin-name>
+- iocx-plugin-<feature>
+- iocx-extension-<name>
+
+Examples:
+
+- iocx-osint-enricher
+- iocx-detector-custom
+
+### Why this matters
+
+IOCX is used in DFIR, SOC automation, CI/CD pipelines, and threat‑intel workflows.
+Clear naming ensures:
+
+- Users know which tool is the **official** IOCX engine
+- Third‑party tools are discoverable without causing confusion
+- The ecosystem grows in a structured, healthy way
+
+If you are building something that integrates with IOCX and want guidance on naming or attribution, feel free to open an issue
+
 ## Features
 
 ### IOC Extraction
