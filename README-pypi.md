@@ -7,9 +7,9 @@ This is the **official IOCX engine** for static IOC extraction and PE analysis.
 - **PyPI:** https://pypi.org/project/iocx/
 - **GitHub:** https://github.com/iocx-dev/iocx
 - **Organisation:** https://github.com/iocx-dev
-- **Website:** https://iocx.dev/
+- **Website:** https://iocx.dev
 
-IOCX is **not** an OSINT reputation checker, HTML report generator, or IP/domain scoring tool.
+IOCX is **not** an OSINT reputation checker, HTML report generator, or IP/domain scoring tool.  
 It is a **static analysis engine** focused on extracting Indicators of Compromise (IOCs) from binaries and text.
 
 ---
