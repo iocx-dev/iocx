@@ -1,16 +1,17 @@
 from __future__ import annotations
 import os
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
-from .parsers.pe_parser import parse_pe
+from .parsers.pe_parser import parse_pe, analyse_pe_sections
 from .parsers.string_extractor import extract_strings
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
-
+from .analysis.obfuscation import analyse_obfuscation
+from .analysis.extended import analyse_extended
 
 @dataclass
 class EngineConfig:
@@ -19,6 +20,7 @@ class EngineConfig:
     enable_magic: bool = True
     fallback_to_strings: bool = True
     enable_local_plugins: bool = False
+    analysis_level: str = None
 
 
 @dataclass
@@ -57,6 +59,8 @@ class Engine:
 
         self.depth_stack = [0]
 
+        self._analysis_level = self.config.analysis_level
+
     # ---------- Public API ----------
 
     def extract(self, path_or_text: str) -> Dict[str, Any]:
@@ -83,7 +87,7 @@ class Engine:
 
     # ---------- Pipeline stages ----------
 
-    def _get_pe_metadata(self, path: str) -> Dict[str, Any]:
+    def _get_pe_metadata(self, path: str):
         if not self.config.enable_cache:
             return parse_pe(path)
         if path not in self.cache.pe_metadata:
@@ -100,15 +104,49 @@ class Engine:
         return self.cache.strings[path]
 
     def _pipeline_pe(self, path: str) -> Dict[str, Any]:
-        metadata = self._get_pe_metadata(path)
+        pe, metadata = self._get_pe_metadata(path)
         strings = self._get_strings(path)
         strings.extend(metadata.get("resource_strings", []))
-
         text = "\n".join(strings)
+
+        analysis_level = self._analysis_level
+        section_analysis = []
+        obf = []
+        extended = None
+
+        # BASIC: section layout + entropy
+        if analysis_level in ("basic", "deep", "full"):
+            section_analysis = analyse_pe_sections(pe)
+
+        # DEEP: obfuscation heuristics
+        if analysis_level in ("deep", "full"):
+            obf = analyse_obfuscation(section_analysis, text)
+
+        # FULL: future expansion
+        if analysis_level == "full":
+            extended = analyse_extended(pe, metadata, text)
+
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
 
-        return {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
+        result = {"file": path, "type": "PE", "iocs": iocs, "metadata": metadata}
+
+        analysis = {}
+
+        if analysis_level in ("basic", "deep", "full"):
+            analysis["sections"] = section_analysis
+
+        if analysis_level in ("deep", "full"):
+            analysis["obfuscation"] = [asdict(d) for d in obf]
+
+        if analysis_level == "full" and extended is not None:
+            analysis["extended"] = extended
+
+        if analysis:
+            result["analysis"] = analysis
+
+        return result
+
 
     def _pipeline_text_file(self, path: str) -> Dict[str, Any]:
         with open(path, "r", errors="ignore") as f:

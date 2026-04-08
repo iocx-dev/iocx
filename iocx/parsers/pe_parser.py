@@ -1,5 +1,7 @@
 import pefile
 from .string_extractor import extract_strings_from_bytes
+from ..analysis.obfuscation import _shannon_entropy
+from typing import List, Dict, Any
 
 def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
     if visited is None:
@@ -54,7 +56,7 @@ def parse_pe(path):
         # Deduplicate resource strings
         resource_strings = list(dict.fromkeys(resource_strings))
 
-        return {
+        return pe, {
             "file_type": "PE",
             "imports": imports,
             "sections": sections,
@@ -63,3 +65,16 @@ def parse_pe(path):
 
     except pefile.PEFormatError:
         return {}
+
+
+def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
+    results = []
+    for s in pe.sections:
+        results.append({
+            "name": s.Name.decode(errors="ignore").rstrip("\x00"),
+            "raw_size": s.SizeOfRawData,
+            "virtual_size": s.Misc_VirtualSize,
+            "characteristics": s.Characteristics,
+            "entropy": _shannon_entropy(s.get_data() or b""),
+        })
+    return results

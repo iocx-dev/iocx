@@ -145,22 +145,39 @@ def test_pipeline_pe(monkeypatch, mock_detectors, tmp_path):
 
     engine = Engine()
 
+    # Force file type detection
     monkeypatch.setattr("iocx.engine.detect_file_type", lambda p: FileType.PE)
 
-    monkeypatch.setattr("iocx.engine.parse_pe", lambda p: {
+    # parse_pe now returns (pe_obj, metadata)
+    fake_metadata = {
         "file_type": "PE",
         "imports": ["KERNEL32.dll"],
         "sections": [".text"],
         "resource_strings": ["RSRC_STRING"],
-    })
+    }
+    monkeypatch.setattr(
+        "iocx.engine.parse_pe",
+        lambda p: (object(), fake_metadata)
+    )
 
-    monkeypatch.setattr("iocx.engine.extract_strings", lambda p, min_length: ["STR1", "STR2"])
+    # extract_strings returns list of strings
+    monkeypatch.setattr(
+        "iocx.engine.extract_strings",
+        lambda p, min_length: ["STR1", "STR2"]
+    )
 
     result = engine.extract_from_file(str(path))
 
+    # --- Assertions ---
     assert result["type"] == "PE"
     assert result["file"] == str(path)
+
+    # metadata is passed through unchanged
     assert result["metadata"]["file_type"] == "PE"
+    assert result["metadata"]["imports"] == ["KERNEL32.dll"]
+    assert result["metadata"]["sections"] == [".text"]
+    assert result["metadata"]["resource_strings"] == ["RSRC_STRING"]
+
     # detectors are mocked, but we know urls/ips are present
     assert result["iocs"]["ips"] == ["1.2.3.4"]
     assert result["iocs"]["urls"] == ["http://a", "http://b"]
@@ -247,7 +264,8 @@ def test_cache_used(monkeypatch, mock_detectors, tmp_path):
 
     def fake_pe(p):
         calls["pe"] += 1
-        return {"resource_strings": []}
+        # parse_pe must return (pe_obj, metadata)
+        return object(), {"resource_strings": []}
 
     def fake_strings(p, min_length):
         calls["strings"] += 1
@@ -275,7 +293,7 @@ def test_cache_disabled(monkeypatch, mock_detectors, tmp_path):
 
     def fake_pe(p):
         calls["pe"] += 1
-        return {}
+        return object(), {}
 
     def fake_strings(p, min_length):
         calls["strings"] += 1
