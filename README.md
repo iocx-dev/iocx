@@ -453,8 +453,9 @@ See CONTRIBUTING.md for full guidelines.
 If you discover a security issue, do not open a GitHub issue.
 Please follow the instructions in SECURITY.md.
 
-*The IOCX name and project identity refer exclusively to the IOCX engine maintained under the iocx-dev organisation*
-
 ## License
 
 Licensed under the MIT License. See LICENSE for details.
+
+
+*The IOCX name and project identity refer exclusively to the IOCX engine maintained under the iocx-dev organisation*
