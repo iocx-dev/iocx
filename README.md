@@ -258,6 +258,13 @@ Clear naming ensures:
 
 If you are building something that integrates with IOCX and want guidance on naming or attribution, feel free to open an issue
 
+## Official IOCX Repositories
+
+- Core Engine: https://github.com/iocx-dev/iocx
+- Plugins Meta‑Repo: https://github.com/iocx-dev/iocx-plugins
+- Documentation: https://github.com/iocx-dev/iocx/tree/main/docs/specs
+- PyPI Package: https://pypi.org/project/iocx/
+
 ## Features
 
 ### IOC Extraction
