@@ -313,3 +313,21 @@ def test_load_local_plugins_returns_when_directory_missing(monkeypatch):
     assert loader.registry.detectors == []
     assert loader.registry.enrichers == []
     assert loader.registry.transformers == []
+
+
+def test_plugin_registry_register_no_metadata():
+    from iocx.plugins.registry import PluginRegistry
+    registry = PluginRegistry()
+
+    class PluginWithoutMetadata:
+        pass
+
+    plugin = PluginWithoutMetadata()
+
+    # Should hit: if caps is None: return
+    registry.register(plugin)
+
+    # Nothing should be added
+    assert registry.detectors == []
+    assert registry.enrichers == []
+    assert registry.transformers == []
