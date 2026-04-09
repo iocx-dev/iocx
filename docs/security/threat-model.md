@@ -2,19 +2,19 @@
 flowchart TD
 
     subgraph User Environment
-        U[User / Analyst]
+        U[User or Analyst]
         CLI[IOCX CLI]
     end
 
     subgraph IOCX Engine
-        DET[Detectors<br/>Transformers<br/>Enrichers]
-        PE[PE Parser (pefile)]
-        MAGIC[File Type Detection (python-magic)]
+        DET[Detectors, Transformers, Enrichers]
+        PE[PE Parser]
+        MAGIC[File Type Detection]
         CACHE[Local Cache]
     end
 
     subgraph Untrusted Input
-        F[Untrusted File<br/>(binary, text, logs)]
+        F[Untrusted File]
     end
 
     U --> CLI
@@ -52,7 +52,7 @@ flowchart TD
     end
 
     subgraph Engine
-        DET[Detectors / Transformers]
+        DET[Detectors, Transformers]
         PE[PE Parser]
         MAGIC[File Type Detection]
         CACHE[Local Cache]
