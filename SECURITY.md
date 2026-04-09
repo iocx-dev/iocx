@@ -3,26 +3,26 @@
 Thank you for your interest in the security of IOCX.
 We take security seriously and aim to provide a trustworthy, minimal‑dependency tool for static IOC extraction across binaries, text, and logs.
 
-This document explains how we handle security, how to report vulnerabilities, and what you can expect from us.
+This document describes our security posture, how we handle vulnerabilities, and how to report issues responsibly.
 
 ## Supported Versions
 
-We currently support and maintain the latest release of this project.
+We currently support and maintain only the latest released version of IOCX.
 
-| Version        | Supported        |
+| Version        | Status           |
 |----------------|------------------|
-| Latest release | Active           |
-| Older versions | Not supported    |
+| Latest release | Supported        |
+| Older versions | Unsupported      |
 
-Security fixes are applied only to the most recent version.
+Security fixes are applied exclusively to the most recent version.
 
 ## Security Posture
 
-The project is designed with security and simplicity in mind.
+IOCX is designed with security and simplicity in mind. The tool processes untrusted input by design, so the architecture prioritises isolation, defensive parsing, and minimal attack surface.
 
 ### Minimal Runtime Dependencies
 
-To reduce attack surface, the project intentionally uses only two runtime dependencies:
+To reduce supply‑chain risk and minimise the attack surface, IOCX intentionally uses only two runtime dependencies:
 
 - pefile - PE parsing
 - python-magic - file‑type detection
@@ -31,35 +31,52 @@ No additional libraries are required for core functionality.
 
 ### Automated Security Scanning
 
-Every commit and pull request triggers automated checks:
+All commits and pull requests undergo automated security checks:
 
 - pip‑audit — dependency vulnerability scanning
 - Bandit — static analysis of Python code
 - Pytest — full test suite execution
 
-These checks run in CI to prevent regressions and catch issues early.
+These checks run in CI to catch regressions early.
 
 ### Safe Handling of Untrusted Input
 
-The tool is designed to process potentially malicious files. To reduce risk:
+IOCX is designed to process potentially malicious files safely. To reduce risk:
 
 - No dynamic code execution
 - No deserialization of untrusted data
 - No network access
 - Strict parsing of binary formats
 - Defensive exception handling in extractors and parsers
+- No mutation of input files
 
 ### No Elevated Privileges Required
 
-The tool runs entirely in user space and does not require:
+IOCX runs entirely in user space and does not require:
 
 - root/admin privileges
 - kernel extensions
 - system‑level hooks
 
+This reduces the impact of potential vulnerabilities.
+
+## Threat Model (Scope & Limitations)
+
+IOCX is a static extraction tool, not a sandbox or malware analysis framework.
+
+The following are out of scope:
+
+- Detecting or preventing active exploitation
+- Executing or emulating malware
+- Analysing runtime behaviour
+- Guaranteeing correctness of third‑party plugins
+- Protecting against malicious Python environments or compromised dependencies
+
+Users should run IOCX in a controlled environment when analysing untrusted binaries.
+
 ## Reporting a Vulnerability
 
-If you discover a security issue, we appreciate responsible disclosure.
+We appreciate responsible disclosure and welcome reports from the community.
 
 ### How to report
 
@@ -67,16 +84,16 @@ Please email: security@malx.io
 
 Include:
 
-- Description of the issue
+- A clear description of the issue
 - Steps to reproduce
 - Potential impact
-- Any suggested fixes
+- Any suggested fixes or patches
 
 We aim to acknowledge reports within 72 hours.
 
-### Please do not open public GitHub issues for security problems
+### Do Not Open Public GitHub Issues
 
-This helps protect users while we investigate and patch the issue.
+Please avoid filing public issues for security problems. This protects users while we investigate and patch the issue.
 
 ## Vulnerability Disclosure Process
 
@@ -85,14 +102,15 @@ This helps protect users while we investigate and patch the issue.
 3. We develop and test a fix.
 4. We release a patched version.
 5. We publish a security advisory (if applicable).
-6. We credit the reporter.
+6. We credit the reporter (unless anonymity is requested).
 
 ## Responsible Disclosure
 
-We ask that you:
+We ask that reporters:
 
-- Give us reasonable time to fix the issue before public disclosure
+- Allow reasonable time for us to develop a fix
 - Avoid exploiting the vulnerability beyond what is necessary for proof‑of‑concept
 - Avoid accessing or modifying user data
+- Refrain from public disclosure until a fix is released
 
-We appreciate your help in keeping the project secure.
+We appreciate your help in keeping IOCX secure.
