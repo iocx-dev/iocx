@@ -1,38 +1,41 @@
 # Contributing to IOCX
 
-Thank you for your interest in contributing to IOCX. This project is part of the MalX Labs ecosystem — a collection of modern, developer‑friendly security tools focused on safe, scalable analysis.
+Thank you for your interest in contributing to IOCX.
+IOCX is part of the MalX Labs ecosystem — a family of modern, deterministic, developer‑friendly security tools designed for safe analysis of untrusted data.
 
-We welcome improvements of all kinds: bug fixes, new extractors, static‑analysis enhancements, documentation updates, and thoughtful discussions. This guide explains how to contribute effectively while keeping the project consistent, deterministic, and maintainable.
+We welcome contributions of all kinds: bug fixes, static‑analysis improvements, new extractors, documentation updates, and thoughtful design discussions.
+This guide explains how to contribute effectively while keeping IOCX predictable, secure, and maintainable.
 
 ## Project Philosophy
 
 IOCX is intentionally:
 
-- Minimal — very small dependency footprint
+- Minimal — extremely small dependency footprint
 - Secure — safe handling of untrusted input
-- Predictable — deterministic behaviour, no network access
-- Extensible — new extractors and static‑analysis modules can be added cleanly
+- Deterministic — no network access, no non-deterministic behaviour
+- Extensible — new static‑analysis modules can be added cleanly
 
 All contributions must align with these principles.
 
 ## Core vs Plugins
 
-IOCX is built around a clear separation between core functionality and plugin‑based extensions. This boundary keeps the project focused and deterministic while allowing contributors to extend it safely.
+IOCX has a strict boundary between core functionality and plugin‑based extensions.
+This keeps the core predictable and universally safe while allowing users to extend IOCX for their own environments.
 
 ### What Belongs in the Core
 
-Core functionality is:
+Core functionality must be:
 
 - derived entirely from the input file or text
 - deterministic and reproducible
-- universally useful to all users
+- universally useful
 - lightweight and dependency‑minimal
-- fundamental to static IOC extraction and analysis
+- fundamental to static IOC extraction
 
 Examples:
 
 - PE metadata extraction
-- entropy scoring
+- entropy calculations
 - section/structure heuristics
 - import/API heuristics
 - phishing/lure string heuristics
@@ -45,45 +48,61 @@ If the information comes from the file itself, it belongs in the core.
 
 Plugins are for functionality that is:
 
-- optional
-- environment‑specific
-- user‑provided or user‑maintained
+- optional or environment‑specific
 - based on external data
-- not universally applicable
-- likely to evolve independently of the core
+- organisation‑specific
+- user-maintained
+- likely to evolve independently
 
 Examples:
 
 - offline reputation matching (local hash/domain/IP lists)
 - organisation‑specific heuristics
-- custom keyword or lure lists
+- custom lure or keyword lists
 - internal threat‑intel integrations
 
 If the information comes from the user’s environment, it belongs in a plugin.
 
-This separation ensures IOCX remains clean, predictable, and safe to run anywhere, while still enabling powerful extensions.
+This separation keeps IOCX clean, predictable, and safe to run anywhere.
 
 ## How to Contribute
 
 ### Fix bugs
 
-Open an issue or submit a PR with a clear description and reproduction steps.
+Open an issue or submit a PR with:
+
+- a clear description
+- reproduction steps
+- expected vs actual behaviour
 
 ### Add new IOC extractors
 
-Regex‑based extractors live under `detectors/extractors/`.
+Regex‑based extractors live under:
+
+```
+detectors/extractors/
+```
 
 Please include:
 
 - a clear, well-scoped regex
 - validation logic
 - test cases
-- test cases
 - example inputs
+
+Extractors must be:
+
+- deterministic
+- side‑effect‑free
+- safe for untrusted input
 
 ### Improve PE parsing
 
-Enhancements to metadata extraction, imports, sections, or resources are welcome — provided they remain deterministic and static.
+Enhancements to metadata extraction, imports, sections, or resources are welcome — provided they remain:
+
+- static
+- deterministic
+- dependency-minimal
 
 ### Add synthetic test samples
 
@@ -92,7 +111,7 @@ See the “Testing” section below.
 
 ### Improve documentation
 
-Better examples, diagrams, or explanations are always appreciated.
+Better examples, diagrams, and explanations are always appreciated.
 
 ### Contribution Process
 
@@ -130,8 +149,6 @@ pip-audit --skip-editable
 ```
 
 6. Open a Pull Request
-
-When your changes are ready:
 
 - Target the main branch
 - Describe what you changed and why
@@ -174,16 +191,18 @@ We use pytest.
 
 ## Adding New Extractors
 
+Extractors live in:
+
 ```plaintext
 iocx/detectors/extractors/
 ```
 
-To add a new extractor:
+To add one:
 
 - Create a new file in that directory
 - Follow existing patterns
 - Ensure it registers itself on import
-- Add tests under tests/unit/extractors/
+- Add tests under `tests/unit/extractors/`
 
 Extractors must be:
 
