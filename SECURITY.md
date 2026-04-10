@@ -74,6 +74,8 @@ The following are out of scope:
 
 Users should run IOCX in a controlled environment when analysing untrusted binaries.
 
+Refer to the [threat model overview](/docs/security/threat-model.md) for Data Flow and STRIDE‑Oriented Threat Interaction Diagrams.
+
 ## Reporting a Vulnerability
 
 We appreciate responsible disclosure and welcome reports from the community.
