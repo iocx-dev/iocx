@@ -65,12 +65,12 @@ Key points:
 ```mermaid
 flowchart TD
 
-    subgraph External Actors
+    subgraph External_Actors
         A[Attacker]
         U[User]
     end
 
-    subgraph IOCX CLI
+    subgraph IOCX_CLI
         CLI[CLI Frontend]
     end
 
@@ -88,7 +88,7 @@ flowchart TD
 
     %% Data Flows
     U --> CLI
-    CLI --> F
+    F --> CLI
     F --> MAGIC
     F --> PE
     MAGIC --> DET
