@@ -279,12 +279,6 @@ class Engine:
 
         ctx.detections = results
 
-        for plugin in self._plugin_registry.enrichers:
-            try:
-                plugin.enrich(text, ctx)
-            except Exception as e:
-                ctx.logger.warning(f"[iocx] enricher plugin {plugin.metadata.id} failed: {e}")
-
         if self.config.enable_cache:
             self.cache.detections[key] = results
 
@@ -312,7 +306,7 @@ class Engine:
                 survivors.append(det)
                 last_end = det.end
 
-        # Normalise
+        # 4. Normalise
         CASE_INSENSITIVE = {"domains", "emails", "hashes"}
 
         for det in survivors:
@@ -321,14 +315,20 @@ class Engine:
                 v = v.lower()
             det.value = v
 
-        # 5. Group by category
-        grouped: Dict[str, List[str]] = {}
+        # 5. Group by category (keep Detection objects)
+        grouped = {}
         for det in survivors:
-            grouped.setdefault(det.category, []).append(det.value)
+            grouped.setdefault(det.category, []).append(det)
 
         # 6. Dedupe once per category (order‑preserving)
-        for key, vals in grouped.items():
-            grouped[key] = list(dict.fromkeys(vals))
+        for key, dets in grouped.items():
+            seen = set()
+            uniq = []
+            for det in dets:
+                if det.value not in seen:
+                    seen.add(det.value)
+                    uniq.append(det)
+            grouped[key] = uniq
 
         # 7. Ensure all categories exist
         baseline = {
@@ -344,7 +344,33 @@ class Engine:
         }
         baseline.update(grouped)
 
-        return baseline
+        # 8. Run enrichers
+        ctx = self._build_plugin_context("<merged>", "")
+        ctx.detections = baseline
+
+        # ensure metadata exists
+        for dets in ctx.detections.values():
+            for det in dets:
+                if det.metadata is None:
+                    det.metadata = {}
+
+        for plugin in self._plugin_registry.enrichers:
+            try:
+                plugin.enrich("", ctx)
+            except Exception as e:
+                ctx.logger.warning(f"[iocx] enricher plugin {plugin.metadata.id} failed: {e}")
+
+        # Save enrichment metadata for pipeline to attach
+        if self._plugin_context is None:
+            self._plugin_context = self._build_plugin_context("<post>", "")
+
+        self._plugin_context.metadata = ctx.metadata
+
+        # 9. Convert Detection objects → strings
+        final = {cat: [det.value for det in dets] for cat, dets in ctx.detections.items()}
+
+        return final
+
 
     # ---------- Helpers ----------
 
