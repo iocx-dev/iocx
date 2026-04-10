@@ -249,6 +249,127 @@ def test_pipeline_unknown_no_fallback(monkeypatch, mock_detectors, tmp_path):
 
 
 # ------------------------------------------------------------
+# Archive pipeline
+# ------------------------------------------------------------
+
+def test_extract_from_file_archive_branch(monkeypatch):
+    engine = Engine()
+    engine.config.enable_magic = True
+
+    # Force detect_file_type() to return ZIP
+    monkeypatch.setitem(
+        engine.extract_from_file.__globals__,
+        "detect_file_type",
+        lambda path: FileType.ZIP,
+    )
+
+    # Stub _pipeline_archive so we can detect it was called
+    monkeypatch.setattr(
+        engine,
+        "_pipeline_archive",
+        lambda path: {"file": path, "type": "archive", "iocs": {}, "metadata": {}},
+    )
+
+    result = engine.extract_from_file("dummy.zip")
+
+    # Ensure the archive pipeline was used
+    assert result["type"] == "archive"
+    assert result["file"] == "dummy.zip"
+
+
+def test_pipeline_archive_basic():
+
+    engine = Engine()
+
+    # Stub out internal detector pipeline
+    engine._run_detectors = lambda path, _: {
+        "iocs": {"url": ["http://example.com"]}
+    }
+
+    # Stub post-processing
+    engine._post_process = lambda raw: raw["iocs"]
+
+    result = engine._pipeline_archive("archive.zip")
+
+    # Structure checks
+    assert result["file"] == "archive.zip"
+    assert result["type"] == "archive"
+    assert result["metadata"] == {}
+
+    # IOC propagation check
+    assert "url" in result["iocs"]
+    assert result["iocs"]["url"] == ["http://example.com"]
+
+
+def test_pipeline_pe_full_analysis(monkeypatch):
+    # --- Patch module-level helpers used inside _pipeline_pe ---
+    from dataclasses import dataclass
+
+    engine = Engine()
+    engine._analysis_level = "full" # force all branches
+
+    # Fake section analysis
+    def fake_sections(pe):
+        return [{"name": ".text", "entropy": 6.5}]
+    monkeypatch.setitem(engine._pipeline_pe.__globals__, "analyse_pe_sections", fake_sections)
+
+    # Fake obfuscation analysis (must return dataclass instances!)
+    @dataclass
+    class FakeObf:
+        kind: str = "xor"
+        score: float = 0.9
+
+    def fake_obf(sections, text):
+        return [FakeObf()]
+    monkeypatch.setitem(engine._pipeline_pe.__globals__, "analyse_obfuscation", fake_obf)
+
+    # Fake extended analysis
+    def fake_extended(pe, meta, text):
+        return {"extended_key": 123}
+    monkeypatch.setitem(engine._pipeline_pe.__globals__, "analyse_extended", fake_extended)
+
+    # --- Patch Engine internal methods ---
+
+    engine._get_pe_metadata = lambda path: (
+        {"pe": True},
+        {"resource_strings": ["resA"], "meta": "x"},
+    )
+
+    engine._get_strings = lambda path: ["s1", "s2"]
+
+    engine._run_detectors = lambda path, text: {
+        "iocs": {"url": ["http://example.com"]}
+    }
+
+    engine._post_process = lambda raw: raw["iocs"]
+
+    # --- Execute ---
+    result = engine._pipeline_pe("dummy.exe")
+
+    # --- Assertions ---
+
+    assert result["file"] == "dummy.exe"
+    assert result["type"] == "PE"
+    assert result["metadata"]["meta"] == "x"
+
+    # IOC propagation
+    assert result["iocs"]["url"] == ["http://example.com"]
+
+    # Analysis block must exist
+    assert "analysis" in result
+    analysis = result["analysis"]
+
+    # Sections
+    assert analysis["sections"][0]["name"] == ".text"
+
+    # Obfuscation (now dataclass → asdict works)
+    assert analysis["obfuscation"][0]["kind"] == "xor"
+
+    # Extended
+    assert analysis["extended"] == {"extended_key": 123}
+
+
+# ------------------------------------------------------------
 # Caching behaviour
 # ------------------------------------------------------------
 

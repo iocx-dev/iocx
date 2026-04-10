@@ -1,42 +1,38 @@
 # iocx Command‑Line Interface (CLI)
 
-The IOCX CLI provides a simple, fast way to extract Indicators of Compromise (IOCs) from text, logs, and binaries. It wraps the same engine used by the Python API and exposes a clean set of options suitable for both interactive use and scripting.
+The IOCX CLI provides a fast, script‑friendly interface for extracting Indicators of Compromise (IOCs) from text, logs, binaries, and PE files. It wraps the same engine used by the Python API and exposes a clean, minimal set of options suitable for both interactive use and automation.
 
 ## Installation
+
 ```bash
-
 pip install iocx
-
 ```
 
 After installation, the `iocx` command becomes available on your system.
 
 ## Basic Usage
 
-Extract IOCs from a file or raw text:
+Extract IOCs from raw text:
+
 ```bash
-
 iocx "Suspicious domain: evil.com"
-
 ```
 
 Extract from a file:
+
 ```bash
-
-iocx sample.bin
-
+iocx sample.exe
 ```
 
 Read from stdin:
+
 ```bash
-
 echo "visit http://malicious.com" | iocx -
-
 ```
 
 ## Command‑Line Options
 
-The CLI supports a focused set of flags designed to keep the interface simple while still offering meaningful control.
+The CLI is intentionally minimal: one command, one input, and a handful of focused flags.
 
 ### Input
 | Flag  | Description                                        |
@@ -44,19 +40,20 @@ The CLI supports a focused set of flags designed to keep the interface simple wh
 | input | File path or raw text. Use `-` to read from stdin. |
 
 
-### Output
-| Flag               | Description                                        |
-|--------------------|----------------------------------------------------|
-| -o, --output FILE  | Write JSON output to a file instead of stdout.     |
-| -c, --compact      | Minify JSON output (indent=None).                  |
-| -e, --enrich       | Add detection enrichment data to the output        |
+### Output Options
+| Flag                                           | Description                                        |
+|------------------------------------------------|----------------------------------------------------|
+| -o, --output FILE                              | Write JSON output to a file instead of stdout.     |
+| -c, --compact                                  | Minify JSON output (no indentation).               |
+| -e, --enrich                                   | Include enrichment metadata in the output          |
+| -a, --analyse/--analyze `[basic, deep, full]`  | Enable PE analysis (default: deep)                 |
 
 ### Examples
-```bash
 
+```bash
 iocx sample.txt --compact
 iocx sample.txt -o results.json
-
+iocx sample.exe -a full
 ```
 
 ## Engine Options
@@ -65,31 +62,33 @@ iocx sample.txt -o results.json
 | --no-cache | Disable engine caching. Useful for debugging or repeated extraction tests. |
 
 
-## Detector Options
+## Detector, Transformer, and Enricher Options
 | Flag                | Description                                                            |
 |---------------------|------------------------------------------------------------------------|
-| --list-detectors    | Print all available detectors and exit.                                |
-| --list-transformers | Print all available transformers and exit.                             |
-| --list-enrichers    | Print all available enrichers and exit.                                |
+| --list-detectors    | List all available detectors and exit.                                 |
+| --list-transformers | List all available transformers and exit.                              |
+| --list-enrichers    | List all available enrichers and exit.                                 |
 | -m, --min-length    | Minimum printable string length for the string extractor (default: 4). |
 
 ### Example:
+
 ```bash
-
 iocx --list-detectors
-
 ```
 
-## Misc
+## Miscellaneous
 | Flag             | Description                                                                  |
 |------------------|------------------------------------------------------------------------------|
 | --version        | Show the installed version of iocx.                                          |
-| -d, --dev        | Intended for plugin developers. Loads plugins from the local environment     |
+| -d, --dev        | Loads plugins from the local environment (for plugin developers)             |
 
 
 ## Output Format
 
-The CLI always emits JSON (Indent=2 by default). A typical output structure looks like:
+IOCX always emits JSON. By default, output is pretty‑printed with indentation.
+
+### Example
+
 ```json
 {
   "file": "example.txt",
@@ -108,41 +107,36 @@ The CLI always emits JSON (Indent=2 by default). A typical output structure look
 
 ```
 
-Minified output is enabled with:
-```bash
+Minified output:
 
+```bash
 iocx input.txt --compact
-
 ```
 
-### Examples
+### Additional Examples
 
-Extract from a PE file
+Extract from a PE file:
+
 ```bash
-
 iocx malware.exe
-
 ```
 
-Extract from logs
-```bash
+Extract from logs:
 
+```bash
 iocx logs.txt -o iocs.json
-
 ```
 
-Pipe data in
-```bash
+Pipe data in:
 
+```bash
 cat suspicious.log | iocx - --compact
-
 ```
 
-List detectors
+List detectors:
+
 ```bash
-
 iocx --list-detectors
-
 ```
 
 ## Exit Codes
@@ -152,6 +146,7 @@ iocx --list-detectors
 |  1   | Invalid arguments or runtime error |
 
 ## iocx --help example
+
 ```text
 usage: iocx [-h] [-o OUTPUT] [-c] [-e] [--no-cache] [--list-detectors] [--list-transformers] [--list-enrichers] [-m N] [--version] [-d] [input]
 
@@ -168,6 +163,8 @@ Output:
                         Write JSON output to a file instead of stdout.
   -c, --compact         Output compact (minified) JSON.
   -e, --enrich          Write enrichment data to the JSON output.
+  -a [{basic,deep,full}], --analyse [{basic,deep,full}], --analyze [{basic,deep,full}]
+                        Enable PE analysis (basic, deep, full; default: deep).
 
 Engine Options:
   --no-cache            Disable engine caching.
@@ -189,6 +186,8 @@ The CLI is intentionally minimal:
 
 - One command (iocx)
 - One required argument (input)
-- A handful of intuitive flags
+- A small, intuitive set of flags
 - No subcommands
 - No unnecessary complexity
+
+The goal is to provide a fast, predictable, script‑friendly interface that mirrors the Python API without exposing internal complexity.
