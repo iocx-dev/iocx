@@ -118,69 +118,69 @@ flowchart TD
 
 ### 2. Untrusted Input (Files, Logs, Binaries)
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | Fake file types | Signature‑based detection via python‑magic |
-| **T** | Tampering | Malformed binaries crafted to break parsers | Defensive parsing; try/except wrappers |
-| **R** | Repudiation | Attacker denies supplying malicious file | Out of scope; IOCX does not track provenance |
-| **I** | Information Disclosure | Sensitive data inside files | IOCX does not transmit or store data |
-| **D** | Denial of Service | Zip bombs, oversized binaries, pathological inputs | Bounded parsing; timeouts |
-| **E** | Elevation of Privilege | Malicious file triggers code execution | No execution, no deserialization, no eval |
+| STRIDE | Threat                 | Description                                        | Mitigation                                   |
+|--------|------------------------|----------------------------------------------------|----------------------------------------------|
+| **S**  | Spoofing               | Fake file types                                    | Signature‑based detection via python‑magic   |
+| **T**  | Tampering              | Malformed binaries crafted to break parsers        | Defensive parsing; try/except wrappers       |
+| **R**  | Repudiation            | Attacker denies supplying malicious file           | Out of scope; IOCX does not track provenance |
+| **I**  | Information Disclosure | Sensitive data inside files                        | IOCX does not transmit or store data         |
+| **D**  | Denial of Service      | Zip bombs, oversized binaries, pathological inputs | Bounded parsing; timeouts                    |
+| **E**  | Elevation of Privilege | Malicious file triggers code execution             | No execution, no deserialization, no eval    |
 
 ### 3. File Type Detection (python‑magic)
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | File claims incorrect MIME type | Signature‑based detection |
-| **T** | Tampering | Malformed headers crash detection | Exception handling; safe fallback |
-| **R** | Repudiation | Incorrect type classification | Non‑security‑critical; local‑only |
-| **I** | Information Disclosure | Revealing internal detection logic | No sensitive data; local‑only |
-| **D** | Denial of Service | Crafted files cause excessive scanning | Bounded reads; timeouts |
-| **E** | Elevation of Privilege | Exploiting python‑magic | Minimal dependency; audited regularly |
+| STRIDE | Threat                 | Description                            | Mitigation                            |
+|--------|------------------------|----------------------------------------|---------------------------------------|
+| **S**  | Spoofing               | File claims incorrect MIME type        | Signature‑based detection             |
+| **T**  | Tampering              | Malformed headers crash detection      | Exception handling; safe fallback     |
+| **R**  | Repudiation            | Incorrect type classification          | Non‑security‑critical; local‑only     |
+| **I**  | Information Disclosure | Revealing internal detection logic     | No sensitive data; local‑only         |
+| **D**  | Denial of Service      | Crafted files cause excessive scanning | Bounded reads; timeouts               |
+| **E**  | Elevation of Privilege | Exploiting python‑magic                | Minimal dependency; audited regularly |
 
 ### 4. PE Parser (pefile)
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | Fake PE headers | Structural validation by pefile |
-| **T** | Tampering | Malformed PE triggers parser bugs | Defensive parsing; try/except wrappers |
-| **R** | Repudiation | Incorrect parsing results | Local‑only; no persistence |
-| **I** | Information Disclosure | Extracting sensitive metadata | Output is user‑controlled |
-| **D** | Denial of Service | Malformed PE causing recursion or heavy parsing | Timeouts; bounded parsing |
-| **E** | Elevation of Privilege | Exploiting pefile | No execution of PE content |
+| STRIDE | Threat                 | Description                                     | Mitigation                             |
+|--------|------------------------|-------------------------------------------------|----------------------------------------|
+| **S**  | Spoofing               | Fake PE headers                                 | Structural validation by pefile        |
+| **T**  | Tampering              | Malformed PE triggers parser bugs               | Defensive parsing; try/except wrappers |
+| **R**  | Repudiation            | Incorrect parsing results                       | Local‑only; no persistence             |
+| **I**  | Information Disclosure | Extracting sensitive metadata                   | Output is user‑controlled              |
+| **D**  | Denial of Service      | Malformed PE causing recursion or heavy parsing | Timeouts; bounded parsing              |
+| **E**  | Elevation of Privilege | Exploiting pefile                               | No execution of PE content             |
 
 ### 5. Detectors / Transformers / Enrichers
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | Fake IOC patterns | Deterministic regex‑based detection |
-| **T** | Tampering | Malicious input breaks detectors | Strict parsing; no dynamic code |
-| **R** | Repudiation | Incorrect detection results | Local‑only; no persistence |
-| **I** | Information Disclosure | Extracted IOCs reveal sensitive data | User controls output; no network access |
-| **D** | Denial of Service | Regex backtracking attacks | Pre‑compiled safe regex patterns |
-| **E** | Elevation of Privilege | Plugin system abused | ``--dev`` mode opt‑in; no auto‑loading |
+| STRIDE | Threat                 | Description                          | Mitigation                              |
+|--------|------------------------|--------------------------------------|-----------------------------------------|
+| **S**  | Spoofing               | Fake IOC patterns                    | Deterministic regex‑based detection     |
+| **T**  | Tampering              | Malicious input breaks detectors     | Strict parsing; no dynamic code         |
+| **R**  | Repudiation            | Incorrect detection results          | Local‑only; no persistence              |
+| **I**  | Information Disclosure | Extracted IOCs reveal sensitive data | User controls output; no network access |
+| **D**  | Denial of Service      | Regex backtracking attacks           | Pre‑compiled safe regex patterns        |
+| **E**  | Elevation of Privilege | Plugin system abused                 | ``--dev`` mode opt‑in; no auto‑loading  |
 
 ### 6. Local Cache
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | Cache poisoning | Cache is local and ephemeral |
-| **T** | Tampering | Attacker modifies cache files | Cache disabled by default; no sensitive data |
-| **R** | Repudiation | Cache state disputes | Cache is non‑persistent |
-| **I** | Information Disclosure | Cache leaks sensitive data | Cache stores only extraction metadata |
-| **D** | Denial of Service | Cache grows unbounded | Cache is small and optional |
-| **E** | Elevation of Privilege | Cache used to load code | Cache stores no executable content |
+| STRIDE | Threat                 | Description                   | Mitigation                                   |
+|--------|------------------------|-------------------------------|----------------------------------------------|
+| **S**  | Spoofing               | Cache poisoning               | Cache is local and ephemeral                 |
+| **T**  | Tampering              | Attacker modifies cache files | Cache disabled by default; no sensitive data |
+| **R**  | Repudiation            | Cache state disputes          | Cache is non‑persistent                      |
+| **I**  | Information Disclosure | Cache leaks sensitive data    | Cache stores only extraction metadata        |
+| **D**  | Denial of Service      | Cache grows unbounded         | Cache is small and optional                  |
+| **E**  | Elevation of Privilege | Cache used to load code       | Cache stores no executable content           |
 
 ### 7. JSON Output
 
-| STRIDE | Threat | Description | Mitigation |
-| --- | --- | --- | --- |
-| **S** | Spoofing | Fake output injected | Output is deterministic; no external input |
-| **T** | Tampering | Output modified in transit | Local‑only; user controls destination |
-| **R** | Repudiation | User denies output | Out of scope; no logging |
-| **I** | Information Disclosure | Sensitive IOCs exposed | User controls output file |
-| **D** | Denial of Service | Huge output from pathological input | Bounded extraction |
-| **E** | Elevation of Privilege | Output used to trigger downstream tools | JSON only; no executable content |
+| STRIDE | Threat                 | Description                             | Mitigation                                 |
+|--------|------------------------|-----------------------------------------|--------------------------------------------|
+| **S**  | Spoofing               | Fake output injected                    | Output is deterministic; no external input |
+| **T**  | Tampering              | Output modified in transit              | Local‑only; user controls destination      |
+| **R**  | Repudiation            | User denies output                      | Out of scope; no logging                   |
+| **I**  | Information Disclosure | Sensitive IOCs exposed                  | User controls output file                  |
+| **D**  | Denial of Service      | Huge output from pathological input     | Bounded extraction                         |
+| **E**  | Elevation of Privilege | Output used to trigger downstream tools | JSON only; no executable content           |
 
 ## How These Diagrams Fit Into IOCX’s Security Posture
 
