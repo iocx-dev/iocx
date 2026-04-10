@@ -65,17 +65,17 @@ Key points:
 ```mermaid
 flowchart TD
 
-    subgraph External_Actors
+    subgraph External Actors
         A[Attacker]
         U[User]
     end
 
-    subgraph IOCX_CLI
+    subgraph IOCX CLI
         CLI[CLI Frontend]
     end
 
     subgraph Engine
-        DET[Detectors, Transformers]
+        DET[Detectors, Transformers, Enrichers]
         PE[PE Parser]
         MAGIC[File Type Detection]
         CACHE[Local Cache]
