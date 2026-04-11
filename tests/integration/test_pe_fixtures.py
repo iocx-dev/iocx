@@ -61,6 +61,7 @@ def run_fixture_test(name: str):
     "pe_utf16",
     "pe_rsrc",
     "pe_overlay",
+    "pe_chaos",
 ])
 
 @pytest.mark.integration

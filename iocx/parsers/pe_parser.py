@@ -1,4 +1,5 @@
 import pefile
+import math
 from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any
@@ -33,6 +34,21 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
 
                 resource_strings.extend(extract_strings_from_bytes(data))
 
+
+def _entropy(data):
+    if not data:
+        return 0.0
+    occur = [0] * 256
+    for x in data:
+        occur[x] += 1
+    ent = 0.0
+    for c in occur:
+        if c:
+            p = c / len(data)
+            ent -= p * math.log2(p)
+    return ent
+
+
 def parse_pe(path):
     try:
         # fast_load=True avoids parsing every directory up front, which is ideal for performance and for untrusted files.
@@ -41,17 +57,11 @@ def parse_pe(path):
 
         # Extract imports defensively to avoid crashes on malformed or stripped binaries
         imports = []
-        if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
-            for entry in pe.DIRECTORY_ENTRY_IMPORT:
-                dll = entry.dll.decode(errors="ignore") if entry.dll else None
-                imports.append(dll)
-
-
-        # Full import details
         import_details = []
         if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
             for entry in pe.DIRECTORY_ENTRY_IMPORT:
                 dll = entry.dll.decode(errors="ignore") if entry.dll else None
+                imports.append(dll)
                 for imp in entry.imports:
                     import_details.append({
                         "dll": dll,
@@ -59,8 +69,61 @@ def parse_pe(path):
                         "ordinal": imp.ordinal,
                     })
 
+        # Delayed imports
+        delayed_imports = []
+        if hasattr(pe, "DIRECTORY_ENTRY_DELAY_IMPORT"):
+            for entry in pe.DIRECTORY_ENTRY_DELAY_IMPORT:
+                dll = entry.dll.decode(errors="ignore") if entry.dll else None
+                for imp in entry.imports:
+                    delayed_imports.append({
+                        "dll": dll,
+                        "function": imp.name.decode(errors="ignore") if imp.name else None,
+                        "ordinal": imp.ordinal,
+                    })
+
+        # Bound imports
+        bound_imports = []
+        if hasattr(pe, "DIRECTORY_ENTRY_BOUND_IMPORT"):
+            for entry in pe.DIRECTORY_ENTRY_BOUND_IMPORT:
+                dll = entry.name.decode(errors="ignore") if entry.name else None
+                bound_imports.append({
+                    "dll": dll,
+                    "timestamp": entry.struct.TimeDateStamp,
+                })
+
         # PE section names are fixed‑length, null‑padded byte strings, so stripping nulls is necessary
         sections = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
+
+        # Resource directory
+        resources = []
+        if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
+            for entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
+                type_id = entry.id
+                type_name = pefile.RESOURCE_TYPE.get(type_id, str(type_id))
+
+                if not hasattr(entry, "directory"):
+                    continue
+
+                for res in entry.directory.entries:
+                    lang = res.id
+                    if not hasattr(res, "directory"):
+                        continue
+                    if not res.directory.entries:
+                        continue
+
+                    data_entry = res.directory.entries[0].data
+                    size = data_entry.struct.Size
+                    offset = data_entry.struct.OffsetToData
+
+                    blob = pe.get_memory_mapped_image()[offset:offset + size]
+                    ent = _entropy(blob)
+
+                    resources.append({
+                        "type": type_name,
+                        "language": lang,
+                        "size": size,
+                        "entropy": ent,
+                    })
 
         # Extract strings from resource directory
         resource_strings = []
@@ -70,7 +133,6 @@ def parse_pe(path):
         # Deduplicate resource strings
         resource_strings = list(dict.fromkeys(resource_strings))
 
-
         # Exports
         exports = []
         if hasattr(pe, "DIRECTORY_ENTRY_EXPORT"):
@@ -79,8 +141,8 @@ def parse_pe(path):
                     "name": exp.name.decode(errors="ignore") if exp.name else None,
                     "ordinal": exp.ordinal,
                     "address": exp.address,
+                    "forwarder": exp.forwarder.decode(errors="ignore") if exp.forwarder else None,
                 })
-
 
         # TLS Directory
         tls = None
@@ -92,28 +154,57 @@ def parse_pe(path):
                 "callbacks": getattr(tls_struct, "AddressOfCallBacks", None),
             }
 
+        # Digital Signatures (WIN_CERTIFICATE)
+        signatures = []
+        if hasattr(pe, "DIRECTORY_ENTRY_SECURITY"):
+            for sec in pe.DIRECTORY_ENTRY_SECURITY:
+                signatures.append({
+                    "address": sec.struct.VirtualAddress,
+                    "size": sec.struct.Size,
+                })
+
+        # Optional header fields
+        opt = pe.OPTIONAL_HEADER
+        optional_header = {
+            "section_alignment": opt.SectionAlignment,
+            "file_alignment": opt.FileAlignment,
+            "size_of_image": opt.SizeOfImage,
+            "size_of_headers": opt.SizeOfHeaders,
+            "linker_version": f"{opt.MajorLinkerVersion}.{opt.MinorLinkerVersion}",
+            "os_version": f"{opt.MajorOperatingSystemVersion}.{opt.MinorOperatingSystemVersion}",
+            "subsystem_version": f"{opt.MajorSubsystemVersion}.{opt.MinorSubsystemVersion}",
+        }
+
+        # Rich header
+        rich_header = pe.parse_rich_header()
 
         # Header metadata
         header = {
-            "entry_point": pe.OPTIONAL_HEADER.AddressOfEntryPoint,
-            "image_base": pe.OPTIONAL_HEADER.ImageBase,
-            "subsystem": pe.OPTIONAL_HEADER.Subsystem,
+            "entry_point": opt.AddressOfEntryPoint,
+            "image_base": opt.ImageBase,
+            "subsystem": opt.Subsystem,
             "timestamp": pe.FILE_HEADER.TimeDateStamp,
             "machine": pe.FILE_HEADER.Machine,
             "characteristics": pe.FILE_HEADER.Characteristics,
         }
-
 
         # Final metadata dict
         metadata = {
             "file_type": "PE",
             "imports": imports,
             "sections": sections,
+            "resources": resources,
             "resource_strings": resource_strings,
             "import_details": import_details,
+            "delayed_imports": delayed_imports,
+            "bound_imports": bound_imports,
             "exports": exports,
             "tls": tls,
             "header": header,
+            "optional_header": optional_header,
+            "rich_header": rich_header,
+            "signatures": signatures,
+            "has_signature": bool(signatures),
         }
 
         return pe, metadata

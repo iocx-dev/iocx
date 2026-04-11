@@ -26,12 +26,15 @@ def analyse_extended(pe, metadata, strings):
     detections = []
 
     #
-    # 1. Summary block
+    # Summary block
     #
     import_details = metadata.get("import_details", [])
+    delayed_imports = metadata.get("delayed_imports", [])
+    bound_imports = metadata.get("bound_imports", [])
     exports = metadata.get("exports", [])
-    resource_strings = metadata.get("resource_strings", [])
+    resources = metadata.get("resources", [])
     tls = metadata.get("tls")
+    signatures = metadata.get("signatures", [])
 
     detections.append(
         Detection(
@@ -42,15 +45,18 @@ def analyse_extended(pe, metadata, strings):
             metadata={
                 "dll_count": len({imp["dll"] for imp in import_details}),
                 "import_count": len(import_details),
+                "delayed_import_count": len(delayed_imports),
+                "bound_import_count": len(bound_imports),
                 "export_count": len(exports),
-                "resource_count": len(resource_strings),
+                "resource_count": len(resources),
                 "has_tls": bool(tls),
+                "has_signature": bool(signatures),
             },
         )
     )
 
     #
-    # 2. Grouped imports
+    # Grouped imports
     #
     grouped = {}
     for imp in import_details:
@@ -73,17 +79,57 @@ def analyse_extended(pe, metadata, strings):
                 value="imports",
                 start=0,
                 end=0,
+                metadata={"dll": dll, "functions": funcs},
+            )
+        )
+
+    #
+    # Delayed imports
+    #
+    if delayed_imports:
+        grouped_delayed = {}
+        for imp in delayed_imports:
+            dll = imp["dll"]
+            func = imp["function"]
+            ordinal = imp["ordinal"]
+            if func is None and ordinal is not None:
+                func = f"#{ordinal}"
+            grouped_delayed.setdefault(dll, []).append(func)
+
+        for dll in sorted(grouped_delayed.keys(), key=str.lower):
+            funcs = sorted(grouped_delayed[dll], key=lambda x: (x.startswith("#"), x.lower()))
+            detections.append(
+                Detection(
+                    category="pe_metadata",
+                    value="delayed_imports",
+                    start=0,
+                    end=0,
+                    metadata={"dll": dll, "functions": funcs},
+                )
+            )
+
+    #
+    # Bound imports
+    #
+    if bound_imports:
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="bound_imports",
+                start=0,
+                end=0,
                 metadata={
-                    "dll": dll,
-                    "functions": funcs,
+                    "entries": sorted(bound_imports, key=lambda x: x["dll"].lower() if x["dll"] else "")
                 },
             )
         )
 
     #
-    # 3. Exports summary
+    # Exports summary
     #
     export_names = [e["name"] for e in exports if e.get("name")]
+    forwarded = [e for e in exports if e.get("forwarder")]
+
     detections.append(
         Detection(
             category="pe_metadata",
@@ -93,12 +139,13 @@ def analyse_extended(pe, metadata, strings):
             metadata={
                 "count": len(exports),
                 "names": sorted(export_names, key=str.lower),
+                "forwarded": forwarded,
             },
         )
     )
 
     #
-    # 4. TLS directory
+    # TLS directory
     #
     if tls:
         detections.append(
@@ -112,7 +159,7 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # 5. Header (with human-friendly translations)
+    # Header (with human-friendly translations)
     #
     header = metadata.get("header", {})
     machine = header.get("machine")
@@ -133,22 +180,72 @@ def analyse_extended(pe, metadata, strings):
     )
 
     #
-    # 6. Resource summary
+    # Optional Header
     #
-    # If we later store entropy per resource, we can compute min/max/avg here.
-    detections.append(
-        Detection(
-            category="pe_metadata",
-            value="resources",
-            start=0,
-            end=0,
-            metadata={
-                "count": len(resource_strings),
-            },
+    optional_header = metadata.get("optional_header")
+    if optional_header:
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="optional_header",
+                start=0,
+                end=0,
+                metadata=optional_header,
+            )
         )
-    )
 
     #
-    # Final JSON‑serialisable output
+    # Rich Header
     #
+    rich_header = metadata.get("rich_header")
+    if rich_header:
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="rich_header",
+                start=0,
+                end=0,
+                metadata=rich_header,
+            )
+        )
+
+    #
+    # Digital Signature
+    #
+    if signatures:
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="signature",
+                start=0,
+                end=0,
+                metadata={
+                    "has_signature": True,
+                    "entries": signatures,
+                },
+            )
+        )
+
+    #
+    # Resource summary
+    #
+    if resources:
+        types = sorted({r["type"] for r in resources})
+        entropies = [r["entropy"] for r in resources]
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="resources",
+                start=0,
+                end=0,
+                metadata={
+                    "count": len(resources),
+                    "types": types,
+                    "entropy_min": min(entropies),
+                    "entropy_max": max(entropies),
+                    "entropy_avg": sum(entropies) / len(entropies),
+                },
+            )
+        )
+
     return [asdict(d) for d in detections]
