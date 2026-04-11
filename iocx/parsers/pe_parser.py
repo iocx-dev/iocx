@@ -43,7 +43,21 @@ def parse_pe(path):
         imports = []
         if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
             for entry in pe.DIRECTORY_ENTRY_IMPORT:
-                imports.append(entry.dll.decode(errors="ignore"))
+                dll = entry.dll.decode(errors="ignore") if entry.dll else None
+                imports.append(dll)
+
+
+        # Full import details
+        import_details = []
+        if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
+            for entry in pe.DIRECTORY_ENTRY_IMPORT:
+                dll = entry.dll.decode(errors="ignore") if entry.dll else None
+                for imp in entry.imports:
+                    import_details.append({
+                        "dll": dll,
+                        "function": imp.name.decode(errors="ignore") if imp.name else None,
+                        "ordinal": imp.ordinal,
+                    })
 
         # PE section names are fixed‑length, null‑padded byte strings, so stripping nulls is necessary
         sections = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
@@ -56,15 +70,56 @@ def parse_pe(path):
         # Deduplicate resource strings
         resource_strings = list(dict.fromkeys(resource_strings))
 
-        return pe, {
+
+        # Exports
+        exports = []
+        if hasattr(pe, "DIRECTORY_ENTRY_EXPORT"):
+            for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+                exports.append({
+                    "name": exp.name.decode(errors="ignore") if exp.name else None,
+                    "ordinal": exp.ordinal,
+                    "address": exp.address,
+                })
+
+
+        # TLS Directory
+        tls = None
+        if hasattr(pe, "DIRECTORY_ENTRY_TLS"):
+            tls_struct = pe.DIRECTORY_ENTRY_TLS.struct
+            tls = {
+                "start_address": tls_struct.StartAddressOfRawData,
+                "end_address": tls_struct.EndAddressOfRawData,
+                "callbacks": getattr(tls_struct, "AddressOfCallBacks", None),
+            }
+
+
+        # Header metadata
+        header = {
+            "entry_point": pe.OPTIONAL_HEADER.AddressOfEntryPoint,
+            "image_base": pe.OPTIONAL_HEADER.ImageBase,
+            "subsystem": pe.OPTIONAL_HEADER.Subsystem,
+            "timestamp": pe.FILE_HEADER.TimeDateStamp,
+            "machine": pe.FILE_HEADER.Machine,
+            "characteristics": pe.FILE_HEADER.Characteristics,
+        }
+
+
+        # Final metadata dict
+        metadata = {
             "file_type": "PE",
             "imports": imports,
             "sections": sections,
             "resource_strings": resource_strings,
+            "import_details": import_details,
+            "exports": exports,
+            "tls": tls,
+            "header": header,
         }
 
-    except pefile.PEFormatError:
-        return {}
+        return pe, metadata
+
+    except Exception:
+        return None, {}
 
 
 def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
