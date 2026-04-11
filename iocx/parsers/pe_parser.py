@@ -60,62 +60,97 @@ def parse_pe(path):
         import_details = []
         if hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
             for entry in pe.DIRECTORY_ENTRY_IMPORT:
-                dll = entry.dll.decode(errors="ignore") if entry.dll else None
-                imports.append(dll)
-                for imp in entry.imports:
-                    import_details.append({
-                        "dll": dll,
-                        "function": imp.name.decode(errors="ignore") if imp.name else None,
-                        "ordinal": imp.ordinal,
-                    })
+                dll_raw = getattr(entry, "dll", None)
+                if isinstance(dll_raw, bytes):
+                    dll = dll_raw.decode(errors="ignore")
+                elif isinstance(dll_raw, str):
+                    dll = dll_raw
+                else:
+                    dll = None
+
+                if dll:
+                    imports.append(dll)
+
+                if hasattr(entry, "imports"):
+                    for imp in entry.imports:
+                        import_details.append({
+                            "dll": dll,
+                            "function": imp.name.decode(errors="ignore") if getattr(imp, "name", None) else None,
+                            "ordinal": getattr(imp, "ordinal", None),
+                        })
 
         # Delayed imports
         delayed_imports = []
         if hasattr(pe, "DIRECTORY_ENTRY_DELAY_IMPORT"):
             for entry in pe.DIRECTORY_ENTRY_DELAY_IMPORT:
-                dll = entry.dll.decode(errors="ignore") if entry.dll else None
-                for imp in entry.imports:
-                    delayed_imports.append({
-                        "dll": dll,
-                        "function": imp.name.decode(errors="ignore") if imp.name else None,
-                        "ordinal": imp.ordinal,
-                    })
+                dll_raw = getattr(entry, "dll", None)
+                if isinstance(dll_raw, bytes):
+                    dll = dll_raw.decode(errors="ignore")
+                elif isinstance(dll_raw, str):
+                    dll = dll_raw
+                else:
+                    dll = None
+
+                if hasattr(entry, "imports"):
+                    for imp in entry.imports:
+                        delayed_imports.append({
+                            "dll": dll,
+                            "function": imp.name.decode(errors="ignore") if getattr(imp, "name", None) else None,
+                            "ordinal": getattr(imp, "ordinal", None),
+                        })
 
         # Bound imports
         bound_imports = []
         if hasattr(pe, "DIRECTORY_ENTRY_BOUND_IMPORT"):
             for entry in pe.DIRECTORY_ENTRY_BOUND_IMPORT:
-                dll = entry.name.decode(errors="ignore") if entry.name else None
-                bound_imports.append({
-                    "dll": dll,
-                    "timestamp": entry.struct.TimeDateStamp,
-                })
+                dll_raw = getattr(entry, "name", None) or getattr(entry, "dll", None)
+                if isinstance(dll_raw, bytes):
+                    dll = dll_raw.decode(errors="ignore")
+                elif isinstance(dll_raw, str):
+                    dll = dll_raw
+                else:
+                    dll = None
+
+                ts = getattr(entry.struct, "TimeDateStamp", 0)
+                bound_imports.append({"dll": dll, "timestamp": ts})
 
         # PE section names are fixed‑length, null‑padded byte strings, so stripping nulls is necessary
-        sections = [s.Name.decode(errors="ignore").strip("\x00") for s in pe.sections]
+        sections = []
+        for s in getattr(pe, "sections", []):
+            name = s.Name
+            if isinstance(name, bytes):
+                name = name.decode(errors="ignore")
+            sections.append(name.strip("\x00"))
 
         # Resource directory
         resources = []
-        if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE"):
-            for entry in pe.DIRECTORY_ENTRY_RESOURCE.entries:
-                type_id = entry.id
+        if hasattr(pe, "DIRECTORY_ENTRY_RESOURCE") and hasattr(pe, "get_memory_mapped_image"):
+            mm = pe.get_memory_mapped_image() or b""
+            for entry in getattr(pe.DIRECTORY_ENTRY_RESOURCE, "entries", []):
+                type_id = getattr(entry, "id", None)
                 type_name = pefile.RESOURCE_TYPE.get(type_id, str(type_id))
 
                 if not hasattr(entry, "directory"):
                     continue
 
-                for res in entry.directory.entries:
-                    lang = res.id
+                for res in getattr(entry.directory, "entries", []):
+                    lang = getattr(res, "id", None)
                     if not hasattr(res, "directory"):
                         continue
-                    if not res.directory.entries:
+                    if not getattr(res.directory, "entries", []):
                         continue
 
                     data_entry = res.directory.entries[0].data
                     size = data_entry.struct.Size
+                    if size <= 0:
+                        continue
+
                     offset = data_entry.struct.OffsetToData
 
-                    blob = pe.get_memory_mapped_image()[offset:offset + size]
+                    if offset < 0 or offset + size > len(mm):
+                        continue
+
+                    blob = mm[offset:offset + size]
                     ent = _entropy(blob)
 
                     resources.append({
@@ -138,10 +173,10 @@ def parse_pe(path):
         if hasattr(pe, "DIRECTORY_ENTRY_EXPORT"):
             for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
                 exports.append({
-                    "name": exp.name.decode(errors="ignore") if exp.name else None,
-                    "ordinal": exp.ordinal,
-                    "address": exp.address,
-                    "forwarder": exp.forwarder.decode(errors="ignore") if exp.forwarder else None,
+                    "name": exp.name.decode(errors="ignore") if getattr(exp, "name", None) else None,
+                    "ordinal": getattr(exp, "ordinal", None),
+                    "address": getattr(exp, "address", None),
+                    "forwarder": exp.forwarder.decode(errors="ignore") if getattr(exp, "forwarder", None) else None,
                 })
 
         # TLS Directory
@@ -149,9 +184,9 @@ def parse_pe(path):
         if hasattr(pe, "DIRECTORY_ENTRY_TLS"):
             tls_struct = pe.DIRECTORY_ENTRY_TLS.struct
             tls = {
-                "start_address": tls_struct.StartAddressOfRawData,
-                "end_address": tls_struct.EndAddressOfRawData,
-                "callbacks": getattr(tls_struct, "AddressOfCallBacks", None),
+                "start_address": getattr(tls_struct, "StartAddressOfRawData", 0) or 0,
+                "end_address": getattr(tls_struct, "EndAddressOfRawData", 0) or 0,
+                "callbacks": getattr(tls_struct, "AddressOfCallBacks", 0) or 0,
             }
 
         # Digital Signatures (WIN_CERTIFICATE)
@@ -159,33 +194,40 @@ def parse_pe(path):
         if hasattr(pe, "DIRECTORY_ENTRY_SECURITY"):
             for sec in pe.DIRECTORY_ENTRY_SECURITY:
                 signatures.append({
-                    "address": sec.struct.VirtualAddress,
-                    "size": sec.struct.Size,
+                    "address": getattr(sec.struct, "VirtualAddress", 0),
+                    "size": getattr(sec.struct, "Size", 0),
                 })
 
         # Optional header fields
-        opt = pe.OPTIONAL_HEADER
-        optional_header = {
-            "section_alignment": opt.SectionAlignment,
-            "file_alignment": opt.FileAlignment,
-            "size_of_image": opt.SizeOfImage,
-            "size_of_headers": opt.SizeOfHeaders,
-            "linker_version": f"{opt.MajorLinkerVersion}.{opt.MinorLinkerVersion}",
-            "os_version": f"{opt.MajorOperatingSystemVersion}.{opt.MinorOperatingSystemVersion}",
-            "subsystem_version": f"{opt.MajorSubsystemVersion}.{opt.MinorSubsystemVersion}",
-        }
+        opt = getattr(pe, "OPTIONAL_HEADER", None)
+        if opt:
+            optional_header = {
+                "section_alignment": getattr(opt, "SectionAlignment", 0),
+                "file_alignment": getattr(opt, "FileAlignment", 0),
+                "size_of_image": getattr(opt, "SizeOfImage", 0),
+                "size_of_headers": getattr(opt, "SizeOfHeaders", 0),
+                "linker_version": f"{getattr(opt, 'MajorLinkerVersion', 0)}.{getattr(opt, 'MinorLinkerVersion', 0)}",
+                "os_version": f"{getattr(opt, 'MajorOperatingSystemVersion', 0)}.{getattr(opt, 'MinorOperatingSystemVersion', 0)}",
+                "subsystem_version": f"{getattr(opt, 'MajorSubsystemVersion', 0)}.{getattr(opt, 'MinorSubsystemVersion', 0)}",
+            }
+        else:
+            optional_header = {}
 
         # Rich header
-        rich_header = pe.parse_rich_header()
+        try:
+            rich_header = pe.parse_rich_header()
+        except Exception:
+            rich_header = None
 
         # Header metadata
+        fh = getattr(pe, "FILE_HEADER", None)
         header = {
-            "entry_point": opt.AddressOfEntryPoint,
-            "image_base": opt.ImageBase,
-            "subsystem": opt.Subsystem,
-            "timestamp": pe.FILE_HEADER.TimeDateStamp,
-            "machine": pe.FILE_HEADER.Machine,
-            "characteristics": pe.FILE_HEADER.Characteristics,
+            "entry_point": getattr(opt, "AddressOfEntryPoint", 0) if opt else 0,
+            "image_base": getattr(opt, "ImageBase", 0) if opt else 0,
+            "subsystem": getattr(opt, "Subsystem", 0) if opt else 0,
+            "timestamp": getattr(fh, "TimeDateStamp", 0) if fh else 0,
+            "machine": getattr(fh, "Machine", 0) if fh else 0,
+            "characteristics": getattr(fh, "Characteristics", 0) if fh else 0,
         }
 
         # Final metadata dict
@@ -209,7 +251,7 @@ def parse_pe(path):
 
         return pe, metadata
 
-    except Exception:
+    except pefile.PEFormatError:
         return None, {}
 
 

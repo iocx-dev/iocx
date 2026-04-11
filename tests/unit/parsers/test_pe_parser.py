@@ -203,7 +203,7 @@ def test_parse_pe_handles_peformaterror(monkeypatch):
 
     result = parse_pe("not_a_real_pe.exe")
 
-    assert result == {}
+    assert result == (None, {})
 
 # ------------------------------------------------------------
 # Direct tests for _walk_resources()
