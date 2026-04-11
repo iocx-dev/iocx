@@ -162,8 +162,8 @@ def analyse_extended(pe, metadata, strings):
     # Header (with human-friendly translations)
     #
     header = metadata.get("header", {})
-    machine = header.get("machine")
-    subsystem = header.get("subsystem")
+    machine = header.get("machine") or 0
+    subsystem = header.get("subsystem") or 0
 
     header_pretty = dict(header)
     header_pretty["machine_human"] = _MACHINE_MAP.get(machine, f"0x{machine:04x}")
