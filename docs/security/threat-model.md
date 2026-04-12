@@ -193,3 +193,97 @@ These diagrams support the project’s security goals by:
 - Providing transparency for auditors, contributors, and users
 
 Together, they form the foundation of IOCX’s threat model and help guide secure development practices.
+
+# PE Metadata Expansion (v0.6.0)
+
+IOCX v0.6.0 introduces a deterministic, static metadata extraction layer for Portable Executable (PE) files.
+This feature expands IOCX’s visibility into binary structure while maintaining strict security guarantees:
+
+- No dynamic analysis
+- No unpacking or emulation
+- No network access
+- No heavy dependencies
+- Fully deterministic and offline
+
+This metadata is used to provide analysts with richer context and to support future heuristic layers (v0.7.0).
+
+## What IOCX Extracts
+
+### 1. Import Table
+
+IOCX extracts:
+
+- DLL names
+- Imported functions
+- Ordinal imports
+- Delayed imports
+- Bound imports
+
+This information helps analysts understand API usage and identify unusual import patterns.
+
+### 2. Export Table
+
+IOCX extracts:
+
+- Exported function names
+- Ordinals
+- Forwarded exports
+
+This is useful for triaging DLLs and identifying suspicious export structures.
+
+### 3. Resource Directory
+
+IOCX extracts:
+
+- Resource types (icons, dialogs, version info, RCDATA)
+- Resource sizes
+- Resource entropy
+- Language codes (mapped to region-locale)
+
+High‑entropy resources may indicate embedded payloads or obfuscation.
+
+> Language codes are mapped to human‑readable locale identifiers using a minimal, safe lookup table. Only well‑defined primary language IDs and a small set of explicit region codes are resolved; ambiguous or non‑standard values are returned as "unknown" to avoid misclassification.
+
+### 4. Extended PE Metadata
+
+IOCX surfaces:
+
+- Timestamp
+- Subsystem
+- Machine type
+- Characteristics flags
+- Optional header fields
+- Entry point
+- Image base
+- Section alignment
+- Compiler/toolchain hints
+- Digital signature presence (raw only)
+- TLS directory (raw only)
+
+This metadata provides a structural overview of the binary without making behavioural claims.
+
+### Security Considerations
+
+- All analysis is read‑only and non‑invasive
+- No code execution occurs at any stage
+- All parsing is wrapped in defensive exception handling
+- No external lookups or network calls are performed
+- All entropy and size calculations are deterministic
+
+This ensures IOCX remains safe to use on untrusted or malicious binaries.
+
+### Relationship to v0.7.0
+
+v0.6.0 is descriptive only.
+It extracts facts but does not interpret them.
+
+Heuristics such as:
+
+- packer detection
+- anti‑debug detection
+- TLS callback analysis
+- import anomaly scoring
+- signature anomaly detection
+- control‑flow hints
+
+are explicitly reserved for v0.7.0, which will build on the metadata introduced here.
