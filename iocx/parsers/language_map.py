@@ -1,0 +1,16 @@
+LANGUAGE_MAP = {
+    0x0409: "en-US",
+    0x0809: "en-GB",
+    0x0C09: "en-AU",
+    0x0411: "ja-JP",
+    0x0407: "de-DE",
+    0x040C: "fr-FR",
+    0x0410: "it-IT",
+    0x0416: "pt-BR",
+    0x0C0A: "es-ES",
+    0x0405: "cs-CZ",
+    0x0415: "pl-PL",
+    0x0419: "ru-RU",
+    0x0804: "zh-CN",
+    0x0404: "zh-TW",
+}
