@@ -262,7 +262,7 @@ IOCX surfaces:
 
 This metadata provides a structural overview of the binary without making behavioural claims.
 
-### Security Considerations
+## Security Considerations
 
 - All analysis is read‑only and non‑invasive
 - No code execution occurs at any stage
@@ -272,7 +272,7 @@ This metadata provides a structural overview of the binary without making behavi
 
 This ensures IOCX remains safe to use on untrusted or malicious binaries.
 
-### Relationship to v0.7.0
+## Relationship to v0.7.0
 
 v0.6.0 is descriptive only.
 It extracts facts but does not interpret them.
