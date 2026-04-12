@@ -3,7 +3,7 @@ import math
 from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any
-from .language_map import LANGUAGE_MAP
+from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 
 # ---------------------------------------------------------------------------
 # Low-level helpers
@@ -78,6 +78,33 @@ def _entropy(data: bytes | None) -> float:
             p = c / length
             ent -= p * math.log2(p)
     return ent
+
+
+def _decode_langid(langid: int) -> str:
+    """Return a human-readable locale string from a Windows LANGID."""
+    if not isinstance(langid, int):
+        return "unknown"
+
+    if langid < 0x0400:
+        return "unknown"
+
+    primary = langid & 0x3FF # low 10 bits
+    sublang = (langid >> 10) & 0x3F # high bits
+
+    lang = PRIMARY_LANG.get(primary)
+    if not lang:
+        return "unknown"
+
+    region = SUBLANG.get(sublang)
+    if region:
+        return f"{lang}-{region}"
+
+    default_region = DEFAULT_REGION.get(lang)
+    if default_region:
+        return f"{lang}-{default_region}"
+
+    # If no region known, return just the language
+    return lang
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +354,7 @@ def _parse_resources(pe):
             resources.append({
                 "type": type_name,
                 "language": lang,
-                "language_name": LANGUAGE_MAP.get(lang, "unknown"),
+                "language_name": _decode_langid(lang),
                 "size": size,
                 "entropy": ent,
             })

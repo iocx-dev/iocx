@@ -968,3 +968,41 @@ def test_optional_header_block(monkeypatch):
     assert opt["linker_version"] == "14.25"
     assert opt["os_version"] == "10.0"
     assert opt["subsystem_version"] == "6.1"
+
+
+# ------------------------------------------------------------
+# Test language id decoder
+# ------------------------------------------------------------
+
+
+from iocx.parsers.pe_parser import _decode_langid
+
+def test_decode_langid_non_int():
+    assert _decode_langid("409") == "unknown"
+    assert _decode_langid(None) == "unknown"
+
+
+def test_decode_langid_too_small():
+    # < 0x0400 should always be unknown
+    assert _decode_langid(0x0000) == "unknown"
+    assert _decode_langid(0x003F) == "unknown"
+
+
+def test_decode_langid_valid_with_default_region():
+    # 0x0409 = English (United States) → fallback region
+    assert _decode_langid(0x0409) == "en-US"
+
+
+def test_decode_langid_valid_without_region():
+    # 0x0411 = Japanese → no fallback region
+    assert _decode_langid(0x0411) == "ja"
+
+
+def test_decode_langid_unknown_primary():
+    # Primary language 0x999 is not in PRIMARY_LANG
+    assert _decode_langid(0x0999) == "unknown"
+
+
+def test_decode_langid_region_branch():
+    # 0x0809 = English (United Kingdom) → explicit SUBLANG region
+    assert _decode_langid(0x0809) == "en-GB"
