@@ -46,7 +46,7 @@ flowchart TD
     end
 
     subgraph Stage3_Core
-        CORE[Unified Core Metadata Extraction (Headers, Sections, Imports, Exports,Resources, TLS, Signatures)]
+        CORE[Unified Core Metadata Extraction - Headers, Sections, Imports, Exports,Resources, TLS, Signatures]
     end
 
     subgraph Stage4_Strings
@@ -54,7 +54,7 @@ flowchart TD
     end
 
     subgraph Stage5_Obfuscation
-        OBF[Obfuscation Heuristics (v0.5.0)]
+        OBF[Obfuscation Heuristics - v0.5.0)]
     end
 
     subgraph Stage6_IOC
