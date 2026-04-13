@@ -57,7 +57,11 @@ flowchart TD
         OBF[Obfuscation Heuristics v0.5.0]
     end
 
-    subgraph Stage6_IOC
+    subgraph Stage6_ExtemdedSummary
+        META6[Extended Metadata Summary v0.6.0]
+    end
+
+    subgraph Stage7_IOC
         DET[IOC Detectors]
     end
 
@@ -77,6 +81,10 @@ flowchart TD
     CORE --> DET
     STR --> DET
     OBF --> DET
+
+    CORE--> META6
+    STR --> META6
+    MEA6 --> DET
 
     DET --> OUT
 ```
