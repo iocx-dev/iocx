@@ -33,72 +33,55 @@ Each stage is offline, deterministic, and safe to run on malicious or malformed 
 ```mermaid
 flowchart TD
 
-    %% ========= Input =========
+    %% Input
     F[Untrusted PE File]
 
-    %% ========= Core parsing =========
-    GETMETA[Get PE and core metadata]
-    GETSTR[Get strings from file]
-    MERGESTR[Append resource strings<br/>Build analysis text]
+    %% Core extraction
+    META[Extract PE and core metadata]
+    STR[Extract strings]
+    MERGE[Merge resource strings and build text]
 
-    %% ========= Analysis level decision =========
-    ALVL[Analysis level<br/>basic / deep / full]
+    %% Analysis stages
+    SECT[Section analysis]
+    OBF[Obfuscation heuristics]
+    EXT[Extended analysis]
 
-    %% ========= Section analysis =========
-    SECT[analyse_pe_sections]
+    %% IOC detection
+    DETRUN[Run IOC detectors]
+    DETPOST[Post‑process detections]
 
-    %% ========= Obfuscation heuristics =========
-    OBF[analyse_obfuscation]
+    %% Output
+    BUILDRES[Assemble result with metadata and iocs]
+    BUILDAN[Assemble analysis block]
+    OUT[Final JSON output]
 
-    %% ========= Extended analysis =========
-    EXT[analyse_extended]
+    %% Linear flow
+    F --> META
+    F --> STR
+    META --> MERGE
+    STR --> MERGE
 
-    %% ========= IOC detection =========
-    DETRUN[_run_detectors<br/>on text]
-    DETPOST[_post_process<br/>raw detections]
+    MERGE --> SECT
+    MERGE --> OBF
+    MERGE --> EXT
 
-    %% ========= Result assembly =========
-    BUILDRES[Build result dict<br/>file • type • iocs • metadata]
-    BUILDAN[Build analysis dict<br/>sections • obfuscation • extended]
-
-    OUT[Final JSON result]
-
-    %% ========= Core flow =========
-    F --> GETMETA
-    F --> GETSTR
-
-    GETMETA --> MERGESTR
-    GETSTR --> MERGESTR
-
-    MERGESTR --> ALVL
-
-    %% ========= BASIC / DEEP / FULL: sections =========
-    ALVL -->|basic / deep / full| SECT
-
-    %% ========= DEEP / FULL: obfuscation =========
     SECT --> OBF
-    ALVL -->|deep / full| OBF
-
-    %% ========= FULL: extended =========
-    ALVL -->|full| EXT
-    GETMETA --> EXT
-    MERGESTR --> EXT
-
-    %% ========= IOC detection (always) =========
-    MERGESTR --> DETRUN
-    DETRUN --> DETPOST
-
-    %% ========= Result assembly =========
-    GETMETA --> BUILDRES
-    DETPOST --> BUILDRES
-
     SECT --> BUILDAN
     OBF --> BUILDAN
     EXT --> BUILDAN
 
+    MERGE --> DETRUN
+    DETRUN --> DETPOST
+
+    META --> BUILDRES
+    DETPOST --> BUILDRES
+
     BUILDRES --> OUT
     BUILDAN --> OUT
 ```
+The diagram shows a single forward path from input to output. The analysis stages sit in the middle of the pipeline, but whether they contribute to the final output depends entirely on the selected analysis level.
+
+The pipeline always performs metadata extraction, string extraction, IOC detection, and result assembly. The analysis level determines which additional stages contribute data to the final output. Basic analysis includes only section layout and entropy. Deep analysis adds obfuscation heuristics that rely on both section information and extracted text. Full analysis adds the extended module, which uses the PE object, metadata, and combined text to produce richer structural insights. IOC detection always runs, and the final JSON includes core metadata plus whichever analysis results were enabled.
 
 ## 2. File Type Detection
 
