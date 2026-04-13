@@ -46,7 +46,7 @@ flowchart TD
     end
 
     subgraph Stage3_Core
-        CORE[Unified Core Metadata Extraction<br/>(Headers, Sections, Imports, Exports,<br/>Resources, TLS, Signatures)]
+        CORE[Unified Core Metadata Extraction (Headers, Sections, Imports, Exports,Resources, TLS, Signatures)]
     end
 
     subgraph Stage4_Strings
