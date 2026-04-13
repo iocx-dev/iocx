@@ -89,9 +89,7 @@ flowchart TD
 
     DET --> OUT
 ```
-The diagram shows a single forward path from input to output. The analysis stages sit in the middle of the pipeline, but whether they contribute to the final output depends entirely on the selected analysis level.
-
-The pipeline always performs metadata extraction, string extraction, IOC detection, and result assembly. The analysis level determines which additional stages contribute data to the final output. Basic analysis includes only section layout and entropy. Deep analysis adds obfuscation heuristics that rely on both section information and extracted text. Full analysis adds the extended module, which uses the PE object, metadata, and combined text to produce richer structural insights. IOC detection always runs, and the final JSON includes core metadata plus whichever analysis results were enabled.
+The pipeline is structured as a straight, deterministic sequence of stages, but only some of them contribute data depending on the selected analysis level. File‑type detection, PE parsing, unified core metadata extraction, string extraction, IOC detection, and JSON assembly always run. Section‑level analysis, obfuscation heuristics, and the extended metadata summary are conditional: basic analysis includes only section layout and entropy; deep analysis adds obfuscation heuristics; full analysis adds the extended metadata summary, which incorporates core metadata, strings, and obfuscation hints into a richer structural view. The final output merges the always‑present core metadata and IOC detections with whichever analysis components were enabled.
 
 ## 2. File Type Detection
 
