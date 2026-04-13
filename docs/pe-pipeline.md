@@ -54,7 +54,7 @@ flowchart TD
     end
 
     subgraph Stage5_Obfuscation
-        OBF[Obfuscation Heuristics - v0.5.0)]
+        OBF[Obfuscation Heuristics - v050)]
     end
 
     subgraph Stage6_IOC
