@@ -75,6 +75,7 @@ flowchart TD
     PE --> CORE
     PE --> STR
 
+    STR --> OBF
     PE --> OBF
 
     CORE --> OUT
