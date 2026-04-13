@@ -80,11 +80,11 @@ flowchart TD
 
     CORE --> OUT
     STR --> DET
-    OBF --> DET
+    OBF --> OUT
 
     CORE--> META6
     STR --> META6
-    META6 --> DET
+    META6 --> OUT
 
     DET --> OUT
 ```
