@@ -24,7 +24,7 @@ The PE analysis pipeline runs through the following ordered stages:
 - Unified Core Metadata Extraction (v0.6.0)
 - String Extraction
 - Obfuscation Heuristics (v0.5.0)
-- Unified Core Metadata Summary (v0.6.0)
+- Extended Metadata Summary (v0.6.0)
 - IOC Detection
 - Output Assembly
 
@@ -57,7 +57,7 @@ flowchart TD
         OBF[Obfuscation Heuristics v0.5.0]
     end
 
-    subgraph Stage6_ExtemdedSummary
+    subgraph Stage6_ExtendedSummary
         META6[Extended Metadata Summary v0.6.0]
     end
 
@@ -117,7 +117,7 @@ The unified core includes:
 
 - entry point
 - image base
-- subsytem
+- subsystem
 - timestamp
 - machine type
 - characteristics flags
@@ -135,7 +135,7 @@ The unified core includes:
 ### Import Table
 
 - DLL names
-- Imported functions
+- imported functions
 - ordinals
 - delayed imports
 - bound imports
@@ -165,7 +165,11 @@ The unified core includes:
 - boolean `has_signature`
 - raw signature metadata
 
-### Sections (*in standard, deep, and full analysis modes only*)
+### Sections
+
+- list of section names
+
+### Sections analysis (*in standard, deep, and full analysis modes only*)
 
 - section name
 - raw size
@@ -175,7 +179,7 @@ The unified core includes:
 
 ### Extended Metadata summary (*in full analysis mode only*)
 
-- summary data across all metadata categories
+- summary data across metadata categories
 - resource entropy min, max and average.
 
 All extracted metadata is descriptive only. No scoring, heuristics, or behavioural interpretation occurs in v0.6.0.
@@ -262,7 +266,9 @@ into a single structured JSON document, including:
 - `metadata.rich_header`
 - `metadata.signatures`
 - `metadata.has_signature`
-- `analysis.*`
+- `analysis.sections`
+- `analysis.obfuscation`
+- `analysis.extended`
 
 No network access or external lookups occur.
 
