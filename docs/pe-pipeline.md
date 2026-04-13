@@ -1,32 +1,34 @@
 # IOCX PE Analysis Pipeline
 
 IOCX includes a deterministic, static, offline analysis pipeline for Portable Executable (PE) files.
-The pipeline is designed to safely process untrusted binaries without executing them, unpacking them, or performing any dynamic analysis.
+The pipeline is designed to safely process untrusted binaries without executing them, unpacking them, or performing any dynamic analysis. All stages operate on raw bytes only and are fully deterministic.
 
-This document describes the full PE pipeline as of v0.6.0, including:
+This document describes the PE pipeline as implemented in v0.6.0, including:
 
+- file-type detection
 - PE parsing
-- metadata extraction
-- obfuscation heuristics
-- deep metadata analysis
+- core structural metadata extraction
+- extended metadata extraction (v0.6.0)
+- string extraction
 - IOC detection
+- output assembly
 
 It also outlines how future versions (v0.7.0+) will extend this pipeline with behavioural heuristics.
 
 ## 1. Pipeline Overview
 
-The IOCX PE pipeline consists of the following ordered stages:
+The PE analysis pipeline runs through the following ordered stages:
 
 - File Type Detection
 - PE Parsing
-- Core Metadata Extraction
+- Core Structural Metadata Extraction
 - String Extraction
 - Obfuscation Heuristics (v0.5.0)
-- PE Metadata Expansion (v0.6.0)
+- Extended Metadata Extraction (v0.6.0)
 - IOC Detection
 - Output Assembly
 
-Each stage is deterministic, offline, and safe to run on malicious or malformed binaries.
+Each stage is offline, deterministic, and safe to run on malicious or malformed binaries.
 
 ```mermaid
 flowchart TD
@@ -112,42 +114,48 @@ flowchart TD
 
 ## 2. File Type Detection
 
-IOCX uses signature‑based detection (via python-magic) to determine whether a file is a PE.
+IOCX uses signature‑based identification to determine whether a file is a PE.
 
-- No execution
-- No sandboxing
-- No heuristics
-- Purely structural detection
+This step is:
+
+- Structural only
+- Non-heuristic
+- Non-executing
 
 If the file is not a PE, the PE pipeline is skipped.
 
 ## 3. PE Parsing
 
-IOCX uses pefile to parse the binary safely:
+IOCX parses the binary using a defensive, read-only approach. The parser extracts:
 
 - DOS header
 - NT headers
 - Optional header
 - Section table
-- Data directories
+- Data directory pointers
 
-All parsing is wrapped in defensive exception handling to prevent crashes on malformed samples.
+All parsing is wrapped in exception handling to avoid crashes on malformed samples.
 
 No dynamic loading or execution occurs.
 
-## 4. Core Metadata Extraction
+## 4. Core Structural Metadata Extraction
 
-The engine extracts a minimal set of metadata used by downstream components:
+This stage extracts the minimal structural information required by downstream components. These values appear in the final JSON under `metadata.header` and `metadata.sections`.
 
-- section names
-- section sizes
-- virtual vs raw size
+Core metadata includes:
+
 - entry point
 - timestamp
 - machine type
 - characteristics flags
+- section names
 
-This metadata is passed to both the obfuscation heuristics (v0.5.0) and the deep metadata module (v0.6.0).
+When basic analysis is enabled, IOCX also extracts:
+
+- section sizes
+- virtual vs raw size
+
+This metadata is used by both the obfuscation heuristics (v0.5.0) and the extended metadata module (v0.6.0).
 
 ## 5. String Extraction
 
@@ -158,28 +166,28 @@ IOCX extracts printable ASCII and UTF‑16LE strings from:
 - `.data`
 - entire file (fallback)
 
-Strings are used by:
+Extracted strings feed into:
 
+- IOC detection
 - obfuscation heuristics
-- IOC detectors
-- future anti‑debug heuristics (v0.7.0)
+- resource string extraction
 
 Extraction is deterministic and bounded.
 
 ## 6. Obfuscation Heuristics (v0.5.0)
 
-Introduced in v0.5.0, this module provides lightweight static hints about potential packing or obfuscation.
+This module provides lightweight static hints about potential packing or obfuscation.
 
 Heuristics include:
 
-- suspicious section names (.upx, .aspack, .mpress, etc.)
+- suspicious section names (`.upx`, `.aspack`, `.mpress`, etc.)
 - high‑entropy sections
 - abnormal section layout
-- basic string‑obfuscation patterns
+- simple string‑obfuscation patterns
 
 ### Output
 
-Each heuristic emits a structured Detection object:
+Each heuristic emits a structured detection object:
 
 ```json
 {
@@ -195,13 +203,13 @@ Each heuristic emits a structured Detection object:
 
 These hints are contextual, not behavioural.
 
-## 7. PE Metadata Expansion (v0.6.0)
+## 7. PE Metadata Extraction (v0.6.0)
 
-v0.6.0 introduces a comprehensive metadata extraction layer that surfaces rich PE structural information.
+v0.6.0 introduces a comprehensive metadata extraction layer that extracts rich PE structural information.
 
-This module is descriptive only — no scoring, no heuristics, no packer detection.
+This module is descriptive only — no scoring, no packer detection, no heuristics.
 
-### 7.1 Import Table Extraction
+### 7.1 Import Table
 
 Extracts:
 
@@ -211,7 +219,7 @@ Extracts:
 - delayed imports
 - bound imports
 
-### 7.2 Export Table Extraction
+### 7.2 Export Table
 
 Extracts:
 
@@ -219,76 +227,103 @@ Extracts:
 - ordinals
 - forwarded exports
 
-### 7.3 Resource Directory Extraction
+### 7.3 Resource Directory
 
 Extracts:
 
-- resource types (ICON, VERSION, RCDATA, etc.)
+- resource types (e.g., `RT_STRING`, `RT_ICON`, `RCDATA`)
 - resource sizes
 - resource entropy
-- language codes and region-locale mapping
+- language codes and safe region-locale mapping
 
-### 7.4 TLS Directory (Raw Only)
+### 7.4 TLS Directory (Raw)
 
 Extracts:
 
-- start/end addresses
+- start address
+- end address
 - callback table pointer
 - No heuristics are applied in v0.6.0.
 
-### 7.5 Extended Header Metadata
+### 7.5 Header and Optional Header Fields
 
 Extracts:
 
-- timestamp
-- subsystem
-- machine type
-- characteristics
 - entry point
 - image base
+- subsystem
+- timestamp
+- machine type
+- characteristics
 - section alignment
-- compiler/toolchain hints
-- digital signature presence (raw only)
-
-**Output**
-
-Metadata is returned as structured Detection objects of type `pe_metadata`.
+- file alignment
+- size of image
+- size of headers
+- linked version
+- OS version
+- subsystem version
 
 ## 8. IOC Detection
 
-After metadata and heuristics are complete, IOCX runs its IOC detectors:
-
-- file hashes
-- suspicious strings
-- URLs
-- IPs
-- domains
-- registry paths
-- file paths
-- email addresses
-- cryptographic constants
-- malware‑family‑specific patterns
-
-Detectors operate on:
+After metadata extraction, IOCX runs its IOC detectors across:
 
 - raw bytes
 - extracted strings
-- metadata
-- section data
+- resource strings
+- metadata fields
 
-This stage is deterministic and purely static.
+Detectors identify:
+
+- file paths (Windows, UNC, Linux, env-var, relative)
+- URLs
+- domains
+- IP addresses
+- hashes
+- email addresses
+- cryptographic constants
+
+Detection is static and deterministic.
 
 ## 9. Output Assembly
 
 The engine merges:
 
-- obfuscation hints
 - PE metadata
+- obfuscation hints
 - IOC detections
 
-into a single structured JSON output.
+into a single structured JSON document, including:
 
-### Example
+- `file`
+- `type`
+- `iocs.*`
+- `metadata.file_type`
+- `metadata.imports`
+- `metadata.sections`
+- `metadata.resources`
+- `metadata.resource_strings`
+- `metadata.import_details`
+- `metadata.delayed_imports`
+- `metadata.bound_imports`
+- `metadata.exports`
+- `metadata.tls`
+- `metadata.header`
+- `metadata.optional_header`
+- `metadata.rich_header`
+- `metadata.signatures`
+- `metadata.has_signature`
+
+metadata.import_details
+
+metadata.resources
+
+metadata.resource_strings
+
+metadata.tls
+
+metadata.signatures
+
+iocs.*
 
 ```json
 {
@@ -300,21 +335,21 @@ into a single structured JSON output.
 }
 ```
 
-No network access, no external lookups, no dynamic behaviour.
+No network access or external lookups occur.
 
 ## 10. Security Model
 
-The PE pipeline is designed to be safe for untrusted input:
+The PE pipeline is designed for safe analysis of untrusted input:
 
 - no execution
 - no unpacking
 - no emulation
 - no dynamic imports
 - no network calls
-- no heavy dependencies
 - no ML/AI models
+- deterministic, offline processing
 
-All analysis is static and deterministic.
+All analysis is read-only.
 
 ## 11. Roadmap Alignment
 
@@ -325,7 +360,7 @@ All analysis is static and deterministic.
 - layout anomalies
 - string obfuscation
 
-### v0.6.0 — Metadata Expansion (this document)
+### v0.6.0 — Extended Metadata (this document)
 
 - imports
 - exports
@@ -343,18 +378,18 @@ All analysis is static and deterministic.
 - signature anomalies
 - control‑flow hints
 
-v0.6.0 provides the structural foundation for v0.7.0’s behavioural layer.
+v0.6.0 provides the structural foundation for v0.7.0.
 
 ## 12. Summary
 
-The IOCX PE pipeline is:
+The IOCX PE pipeline in v0.6.0 is:
 
-- deterministic
 - static
+- deterministic
 - offline
 - safe
 - modular
 - extensible
 
-v0.6.0 significantly expands IOCX’s visibility into PE structure while preserving its core philosophy:
+It significantly expands IOCX’s visibility into PE structure while preserving its core philosophy:
 no dynamic analysis, no risk, no surprises.
