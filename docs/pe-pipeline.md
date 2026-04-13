@@ -84,7 +84,7 @@ flowchart TD
 
     CORE--> META6
     STR --> META6
-    MEA6 --> DET
+    META6 --> DET
 
     DET --> OUT
 ```
