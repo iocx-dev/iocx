@@ -33,51 +33,60 @@ Each stage is offline, deterministic, and safe to run on malicious or malformed 
 ```mermaid
 flowchart TD
 
-    %% Input
-    F[Untrusted PE File]
+    subgraph Input
+        F[Untrusted File]
+    end
 
-    %% Core extraction
-    META[Extract PE and core metadata]
-    STR[Extract strings]
-    MERGE[Merge resource strings and build text]
+    subgraph Stage1_FileType
+        MAGIC[File Type Detection]
+    end
 
-    %% Analysis stages
-    SECT[Section analysis]
-    OBF[Obfuscation heuristics]
-    EXT[Extended analysis]
+    subgraph Stage2_PEParsing
+        PE[PE Parser]
+    end
 
-    %% IOC detection
-    DETRUN[Run IOC detectors]
-    DETPOST[Post‑process detections]
+    subgraph Stage3_Core
+        CORE[Unified Core Metadata Extraction - Headers, Sections, Imports, Exports,Resources, TLS, Signatures]
+    end
 
-    %% Output
-    BUILDRES[Assemble result with metadata and iocs]
-    BUILDAN[Assemble analysis block]
-    OUT[Final JSON output]
+    subgraph Stage4_Strings
+        STR[String Extraction]
+    end
 
-    %% Linear flow
-    F --> META
-    F --> STR
-    META --> MERGE
-    STR --> MERGE
+    subgraph Stage5_Obfuscation
+        OBF[Obfuscation Heuristics v0.5.0]
+    end
 
-    MERGE --> SECT
-    MERGE --> OBF
-    MERGE --> EXT
+    subgraph Stage6_ExtemdedSummary
+        META6[Extended Metadata Summary v0.6.0]
+    end
 
-    SECT --> OBF
-    SECT --> BUILDAN
-    OBF --> BUILDAN
-    EXT --> BUILDAN
+    subgraph Stage7_IOC
+        DET[IOC Detectors]
+    end
 
-    MERGE --> DETRUN
-    DETRUN --> DETPOST
+    subgraph Output
+        OUT[JSON Output]
+    end
 
-    META --> BUILDRES
-    DETPOST --> BUILDRES
+    F --> MAGIC
+    MAGIC --> PE
 
-    BUILDRES --> OUT
-    BUILDAN --> OUT
+    PE --> CORE
+    PE --> STR
+
+    CORE --> OBF
+    STR --> OBF
+
+    CORE --> OUT
+    STR --> DET
+    OBF --> OUT
+
+    CORE--> META6
+    STR --> META6
+    META6 --> OUT
+
+    DET --> OUT
 ```
 The diagram shows a single forward path from input to output. The analysis stages sit in the middle of the pipeline, but whether they contribute to the final output depends entirely on the selected analysis level.
 
