@@ -83,6 +83,7 @@ flowchart TD
     OBF --> OUT
 
     CORE--> META6
+    PE --> META6
     STR --> META6
     META6 --> OUT
 
