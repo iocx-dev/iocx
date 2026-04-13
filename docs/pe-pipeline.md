@@ -33,60 +33,71 @@ Each stage is offline, deterministic, and safe to run on malicious or malformed 
 ```mermaid
 flowchart TD
 
-    subgraph Input
-        F[Untrusted File]
-    end
+    %% ========= Input =========
+    F[Untrusted PE File]
 
-    subgraph Stage1_FileType
-        MAGIC[File Type Detection]
-    end
+    %% ========= Core parsing =========
+    GETMETA[Get PE and core metadata]
+    GETSTR[Get strings from file]
+    MERGESTR[Append resource strings<br/>Build analysis text]
 
-    subgraph Stage2_PEParsing
-        PE[PE Parser]
-    end
+    %% ========= Analysis level decision =========
+    ALVL[Analysis level<br/>basic / deep / full]
 
-    subgraph Stage3_Core
-        CORE[Unified Core Metadata Extraction - Headers, Sections, Imports, Exports,Resources, TLS, Signatures]
-    end
+    %% ========= Section analysis =========
+    SECT[analyse_pe_sections]
 
-    subgraph Stage4_Strings
-        STR[String Extraction]
-    end
+    %% ========= Obfuscation heuristics =========
+    OBF[analyse_obfuscation]
 
-    subgraph Stage5_Obfuscation
-        OBF[Obfuscation Heuristics v0.5.0]
-    end
+    %% ========= Extended analysis =========
+    EXT[analyse_extended]
 
-    subgraph Stage6_ExtemdedSummary
-        META6[Extended Metadata Summary v0.6.0]
-    end
+    %% ========= IOC detection =========
+    DETRUN[_run_detectors<br/>on text]
+    DETPOST[_post_process<br/>raw detections]
 
-    subgraph Stage7_IOC
-        DET[IOC Detectors]
-    end
+    %% ========= Result assembly =========
+    BUILDRES[Build result dict<br/>file • type • iocs • metadata]
+    BUILDAN[Build analysis dict<br/>sections • obfuscation • extended]
 
-    subgraph Output
-        OUT[JSON Output]
-    end
+    OUT[Final JSON result]
 
-    F --> MAGIC
-    MAGIC --> PE
+    %% ========= Core flow =========
+    F --> GETMETA
+    F --> GETSTR
 
-    PE --> CORE
-    PE --> STR
+    GETMETA --> MERGESTR
+    GETSTR --> MERGESTR
 
-    CORE --> OBF
-    STR --> OBF
+    MERGESTR --> ALVL
 
-    CORE --> OUT
-    STR --> DET
-    OBF --> OUT
+    %% ========= BASIC / DEEP / FULL: sections =========
+    ALVL -->|basic / deep / full| SECT
 
-    CORE--> META6
-    STR --> META6
-    META6 --> OUT
+    %% ========= DEEP / FULL: obfuscation =========
+    SECT --> OBF
+    ALVL -->|deep / full| OBF
 
-    DET --> OUT
+    %% ========= FULL: extended =========
+    ALVL -->|full| EXT
+    GETMETA --> EXT
+    MERGESTR --> EXT
+
+    %% ========= IOC detection (always) =========
+    MERGESTR --> DETRUN
+    DETRUN --> DETPOST
+
+    %% ========= Result assembly =========
+    GETMETA --> BUILDRES
+    DETPOST --> BUILDRES
+
+    SECT --> BUILDAN
+    OBF --> BUILDAN
+    EXT --> BUILDAN
+
+    BUILDRES --> OUT
+    BUILDAN --> OUT
 ```
 
 ## 2. File Type Detection
