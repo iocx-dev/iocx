@@ -78,7 +78,6 @@ flowchart TD
     CORE --> OBF
     STR --> OBF
 
-    CORE --> DET
     STR --> DET
     OBF --> DET
 
