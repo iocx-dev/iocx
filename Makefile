@@ -17,6 +17,7 @@ INTEGRATION_DIR := tests/integration
 FUZZ_DIR := tests/fuzz
 ROBUSTNESS_DIR := tests/robustness
 PERFORMANCE_DIR := tests/performance
+CONTRACT_DIR := tests/contract
 
 .PHONY: activate
 activate:
@@ -29,16 +30,19 @@ activate:
 help:
 	@echo ""
 	@echo "Available commands:"
-	@echo "  make venv        Create virtual environment (only once)"
-	@echo "  make install     Install package in editable mode"
-	@echo "  make dev         Install dev tools (pytest, ruff, black)"
-	@echo "  make test        Run test suite"
-	@echo "  make lint        Run ruff linter"
-	@echo "  make format      Auto-format with black"
-	@echo "  make run         Run CLI tool"
-	@echo "  make clean       Remove build artifacts"
-	@echo "  make dist        Build wheel + sdist"
-	@echo "  make reset       Delete venv and reinstall everything"
+	@echo "  make venv          Create virtual environment (only once)"
+	@echo "  make install       Install package in editable mode"
+	@echo "  make dev           Install dev tools (pytest, ruff, black, coverage, pip-audit, bandit, pytest-timeout)"
+	@echo "  make test          Run unit test suite only"
+	@echo "  make test-[option] Run test suite (option=contract, fuzz, integration, performance, robustness, coverage)"
+	@echo "  make security      Run security scans (pip-audit, bandit)"
+	@echo "  make lint          Run ruff linter"
+	@echo "  make format        Auto-format with black"
+	@echo "  make run           Run CLI tool"
+	@echo "  make clean         Remove build artifacts"
+	@echo "  make clean-all     Remove build artifacts and virtual environment"
+	@echo "  make dist          Build wheel + sdist"
+	@echo "  make reset         Delete venv and reinstall everything"
 	@echo ""
 
 
@@ -121,6 +125,14 @@ test-performance: dev
 test-coverage: dev
 	$(PYTHON) -m coverage run -m pytest
 	$(PYTHON) -m coverage report -m
+
+# ----------------------------------------
+# Contract tests only
+# ----------------------------------------
+.PHONY: test-contract
+test-contract: dev
+	@echo "Running contract tests..."
+	$(PYTEST) -m contract $(CONTRACT_DIR)
 
 # ----------------------------------------
 # Static analysis and SCA

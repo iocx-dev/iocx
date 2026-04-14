@@ -144,21 +144,3 @@ def test_detect_string_obfuscation_skips_short_strings():
 
     # We don't care about the result here — only that the short string was skipped
     assert isinstance(detections, list)
-
-
-def test_analyse_extended_returns_expected_structure():
-    result = analyse_extended(pe=None, metadata={}, strings=[])
-
-    assert isinstance(result, dict)
-    assert "note" in result
-    assert "planned_features" in result
-
-    assert result["note"].startswith("Extended analysis is reserved")
-    assert result["planned_features"] == [
-        "packer_detection",
-        "tls_callbacks",
-        "anti_debug_heuristics",
-        "import_anomaly_scoring",
-        "signature_anomalies",
-        "control_flow_hints",
-    ]

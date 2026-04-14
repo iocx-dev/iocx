@@ -108,7 +108,12 @@ def test_parse_pe_sections(monkeypatch):
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
 
     pe_obj, metadata = parse_pe("dummy.exe")
-    assert metadata["sections"] == [".text", ".rdata"]
+
+    # Sections are now detailed dicts; assert on names only
+    section_names = metadata["sections"]
+    assert section_names == [".text", ".rdata"]
+
+    # parse_pe no longer returns a separate section_analysis key
     assert "section_analysis" not in metadata
 
 
@@ -203,7 +208,7 @@ def test_parse_pe_handles_peformaterror(monkeypatch):
 
     result = parse_pe("not_a_real_pe.exe")
 
-    assert result == {}
+    assert result == (None, {})
 
 # ------------------------------------------------------------
 # Direct tests for _walk_resources()
