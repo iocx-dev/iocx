@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-629_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-633_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
@@ -92,6 +92,23 @@ IOCX is **static extraction only**, by design.
 - Extend with custom detectors for internal patterns
 
 ## Version Highlights
+
+### v0.6.0 — Stable Output Schema, Deterministic PE Metadata, Contract‑Safe Analysis Levels
+
+- Introduced a fully stable JSON schema across all analysis levels
+- Added strict structural guarantees for `iocs`, `metadata`, and `analysis` blocks
+- Normalised PE metadata fields for deterministic output (headers, TLS, optional header, signatures)
+- Ensured **all IOC categories always exist** (empty arrays when no matches)
+- Formalised analysis‑level behaviour:
+  - core behaviour → no analysis block
+  - basic → section layout + entropy
+  - deep → adds obfuscation heuristics
+  - full → adds extended metadata summaries
+- Added **snapshot‑contract tests** to prevent schema drift across releases
+- Improved PE parser consistency for imports, resources, and section metadata
+- Strengthened safety guarantees for CI/CD and large‑scale automation pipelines
+
+This release establishes the long‑term schema contract that downstream tools can rely on.
 
 ### v0.5.0 — Analysis Levels, PE Section Analysis, Obfuscation Hints
 
@@ -329,6 +346,73 @@ If you are building something that integrates with IOCX and want guidance on nam
 ### Why Static Only?
 
 Static analysis ensures **safety**, **determinism**, and **CI‑friendly operation**. No sandboxing, no execution, and no risk of triggering malware behaviour.
+
+## Output Schema (v0.6.0)
+
+IOCX v0.6.0 defines a stable, deterministic JSON schema designed for DFIR, SOC automation, and threat‑intel pipelines. The schema is intentionally simple, predictable, and safe for long‑term integrations.
+
+The top‑level structure contains three blocks:
+
+- `iocs` — extracted indicators
+- `metadata` — structural information about the artifact
+- `analysis` — optional deeper inspection depending on analysis level
+
+This structure is identical across all input types, with PE‑specific fields populated only when applicable.
+
+### IOC Categories
+
+The `iocs` block always contains the same keys, regardless of analysis level:
+
+- `urls`
+- `domains`
+- `ips`
+- `hashes`
+- `emails`
+- `filepaths`
+- `base64`
+- `crypto.btc`
+- `crypto.eth`
+
+Each category is always an array. Empty categories are returned as empty arrays to ensure predictable downstream parsing.
+
+### Metadata Categories
+
+The metadata block contains structural information about the file. For PE files, this includes:
+
+- Imports and import details
+- Sections
+- Resources and resource strings
+- TLS directory
+- Header and optional header
+- Rich header
+- Signatures
+
+These fields are always present, even when empty. Metadata is **independent of analysis level** and is always returned in full.
+
+### Analysis Levels
+
+The `analysis` block is the only part of the schema that changes based on the selected analysis level.
+
+- **basic** — section layout + entropy
+- **deep** — adds obfuscation heuristics
+- **full** — adds extended metadata summaries
+
+This tiered design allows users to trade off performance vs. depth without changing their downstream parsing logic.
+
+### Deterministic Output
+
+IOCX v0.6.0 guarantees:
+
+- Stable keys
+- Stable types
+- No volatile values in minimal modes
+- Deterministic behaviour across runs and platforms
+
+This makes IOCX safe for SIEM/SOAR ingestion, CI/CD pipelines, and large‑scale batch processing.
+
+### Schema stability
+
+IOCX guarantees a stable JSON schema, not a guaranteed ordering of keys within objects. JSON objects are defined as unordered maps, so consumers should rely on field presence and structure rather than positional ordering. All fields, types, and structural relationships remain consistent across versions, even if internal key order changes.
 
 ## Quickstart
 
