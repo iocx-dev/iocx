@@ -1,0 +1,54 @@
+{
+  "file": "pe_chaos.exe",
+  "type": "PE",
+  "iocs": {
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {
+    "file_type": "PE",
+    "imports": [],
+    "sections": [],
+    "resources": [],
+    "resource_strings": [],
+    "import_details": [],
+    "delayed_imports": [],
+    "bound_imports": [],
+    "exports": [],
+    "tls": {
+      "start_address": null,
+      "end_address": null,
+      "callbacks": null
+    },
+    "header": {
+      "entry_point": null,
+      "image_base": null,
+      "subsystem": null,
+      "timestamp": null,
+      "machine": null,
+      "characteristics": null
+    },
+    "optional_header": {
+      "section_alignment": null,
+      "file_alignment": null,
+      "size_of_image": null,
+      "size_of_headers": null,
+      "linker_version": null,
+      "os_version": null,
+      "subsystem_version": null
+    },
+    "rich_header": null,
+    "signatures": [],
+    "has_signature": false
+  },
+  "analysis": {
+    "sections": []
+  }
+}
