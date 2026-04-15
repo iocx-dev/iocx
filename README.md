@@ -27,7 +27,7 @@ This is the **original IOCX engine** for static IOC extraction and PE analysis.
 
 Any other repositories using the name "iocx" are **not affiliated** with this project.
 
-[Demo](https://iocx.dev/assets/iocx_demo.gif)
+![Demo](https://iocx.dev/assets/iocx_demo.gif)
 
 <sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
 
