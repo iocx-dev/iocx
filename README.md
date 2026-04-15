@@ -11,11 +11,7 @@
   <a href="https://github.com/iocx-dev/iocx/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
   </a>
-  <img src="https://img.shields.io/badge/v0.6.0_engine_1MB-0.0358s-brightgreen" alt="Engine Performance">
-  <img src="https://img.shields.io/badge/v0.6.0_engine_throughput-~28MB%2Fs-brightgreen" alt="Engine Throughput">
-  <img src="https://img.shields.io/badge/v0.6.0_detector_peak-150--450MB%2Fs-blue" alt="Detector Peak Throughput">
-  <img src="https://img.shields.io/badge/v0.6.0_pathological_IPv6-0.0004s-brightgreen" alt="Pathological IPv6 Timing">
-  <img src="https://img.shields.io/badge/v0.6.0_perf-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Cluster">
+  <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
 
 # Official IOCX Project
