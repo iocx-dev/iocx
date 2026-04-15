@@ -12,6 +12,7 @@ from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
 from .analysis.obfuscation import analyse_obfuscation
 from .analysis.extended import analyse_extended
+from .analysis.heuristics import analyse_pe_heuristics
 
 @dataclass
 class EngineConfig:
@@ -113,6 +114,7 @@ class Engine:
         section_analysis = []
         obf = []
         extended = None
+        heuristics = []
 
         # BASIC: section layout + entropy
         if analysis_level in ("basic", "deep", "full"):
@@ -125,6 +127,14 @@ class Engine:
         # FULL: future expansion
         if analysis_level == "full":
             extended = analyse_extended(pe, metadata, text)
+
+            analysis_dict = {
+                "sections": section_analysis,
+                "extended": extended or [],
+                "obfuscation": [asdict(d) for d in obf],
+            }
+
+            heuristics = analyse_pe_heuristics(metadata, analysis_dict)
 
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)
@@ -141,6 +151,7 @@ class Engine:
 
         if analysis_level == "full" and extended is not None:
             analysis["extended"] = extended
+            analysis["heuristics"] = [asdict(h) for h in heuristics]
 
         if analysis:
             result["analysis"] = analysis

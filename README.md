@@ -27,6 +27,10 @@ This is the **original IOCX engine** for static IOC extraction and PE analysis.
 
 Any other repositories using the name "iocx" are **not affiliated** with this project.
 
+[Demo](https://iocx.dev/assets/iocx_demo.gif)
+
+<sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
+
 # IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
 **Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
@@ -45,13 +49,17 @@ IOCX is a core component of the MalX Labs ecosystem for scalable, modern threat�
 
 ## Why IOCX?
 
-IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes **binary‑aware static analysis**, a **plugin-friendly rule system**, and a **stable JSON schema** suitable for pipelines and long-term integrations.
+IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes:
+
+- Binary‑aware static analysis
+- A plugin-friendly rule system
+- A stable JSON schema suitable for pipelines and long-term integrations
 
 ### Key advantages
 
 - **Static‑only design** — never executes untrusted code
 - **Binary parsing** — PE-aware extraction with section analysis, entropy, and obfuscation hints
-- **Analysis level** — basic, deep, and full (future-ready) for performance-tuned workflows
+- **Analysis level** — basic, deep, and full for performance-tuned workflows
 - **Deterministic behaviour** — stable output and predictable performance
 - **Extensible rule engine** — custom detectors, parsers, and plugins
 - **Consistent JSON schema** — clean integration with SIEM/SOAR

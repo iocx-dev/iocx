@@ -95,7 +95,8 @@ def normalise_full(output):
     output["analysis"] = {
         "sections": [],
         "obfuscation": [],
-        "extended": []
+        "extended": [],
+        "heuristics": [],
     }
     return output
 

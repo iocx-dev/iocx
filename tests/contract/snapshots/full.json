@@ -51,6 +51,7 @@
   "analysis": {
     "sections": [],
     "obfuscation": [],
-    "extended": []
+    "extended": [],
+    "heuristics": []
   }
 }
