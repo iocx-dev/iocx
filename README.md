@@ -1,3 +1,12 @@
+# Official IOCX Project
+
+This is the **original IOCX engine** for static IOC extraction and PE analysis.
+Any other repositories using the name "iocx" are **not affiliated** with this project.
+
+- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
+- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
+- Website: [https://iocx.dev/](https://iocx.dev/)
+
 <p align="center">
   <a href="https://pypi.org/project/iocx/">
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
@@ -14,24 +23,15 @@
   <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
 
-# Official IOCX Project
-
-This is the **original IOCX engine** for static IOC extraction and PE analysis.
-Any other repositories using the name "iocx" are **not affiliated** with this project.
-
-- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
-- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
-- Website: [https://iocx.dev/](https://iocx.dev/)
-
-# IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
-
-**Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
-
 <p align="center">
   <img src="https://iocx.dev/assets/iocx_demo.gif" alt="IOCX Demo" width="720">
 </p>
 
 <sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
+
+# IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
+
+**Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
 
 IOCX is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) and structural metadata using **pure static analysis**. No execution. No sandboxing. No risk.
 
