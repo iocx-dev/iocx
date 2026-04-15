@@ -21,19 +21,21 @@
 # Official IOCX Project
 
 This is the **original IOCX engine** for static IOC extraction and PE analysis.
+Any other repositories using the name "iocx" are **not affiliated** with this project.
+
 - PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
 - Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
 - Website: [https://iocx.dev/](https://iocx.dev/)
 
-Any other repositories using the name "iocx" are **not affiliated** with this project.
-
-![Demo](https://iocx.dev/assets/iocx_demo.gif)
-
-<sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
-
 # IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
 **Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
+
+<p align="center">
+  <img src="https://iocx.dev/assets/iocx_demo.gif" alt="IOCX Demo" width="720">
+</p>
+
+<sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
 
 IOCX is a lightweight, extensible engine for extracting Indicators of Compromise (IOCs) and structural metadata using **pure static analysis**. No execution. No sandboxing. No risk.
 
