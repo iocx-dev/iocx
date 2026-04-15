@@ -1,3 +1,12 @@
+# Official IOCX Project
+
+This is the **original IOCX engine** for static IOC extraction and PE analysis.
+Any other repositories using the name "iocx" are **not affiliated** with this project.
+
+- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
+- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
+- Website: [https://iocx.dev/](https://iocx.dev/)
+
 <p align="center">
   <a href="https://pypi.org/project/iocx/">
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
@@ -11,21 +20,15 @@
   <a href="https://github.com/iocx-dev/iocx/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
   </a>
-  <img src="https://img.shields.io/badge/v0.6.0_engine_1MB-0.0358s-brightgreen" alt="Engine Performance">
-  <img src="https://img.shields.io/badge/v0.6.0_engine_throughput-~28MB%2Fs-brightgreen" alt="Engine Throughput">
-  <img src="https://img.shields.io/badge/v0.6.0_detector_peak-150--450MB%2Fs-blue" alt="Detector Peak Throughput">
-  <img src="https://img.shields.io/badge/v0.6.0_pathological_IPv6-0.0004s-brightgreen" alt="Pathological IPv6 Timing">
-  <img src="https://img.shields.io/badge/v0.6.0_perf-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Cluster">
+  <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
 
-# Official IOCX Project
-
-This is the **original IOCX engine** for static IOC extraction and PE analysis.
-- PyPI: [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
-- Github: [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
-- Website: [https://iocx.dev/](https://iocx.dev/)
-
-Any other repositories using the name "iocx" are **not affiliated** with this project.
+<p align="center">
+  <img src="https://iocx.dev/assets/iocx_demo.gif" alt="IOCX Demo" width="720">
+</p>
+<p align="center">
+  <sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
+</p>
 
 # IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
@@ -45,7 +48,11 @@ IOCX is a core component of the MalX Labs ecosystem for scalable, modern threat�
 
 ## Why IOCX?
 
-IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes **binary‑aware static analysis**, a **plugin-friendly rule system**, and a **stable JSON schema** suitable for pipelines and long-term integrations.
+IOCX is designed for environments where **safety, determinism, and automation** matter. Unlike extractors that operate only on raw text, IOCX includes:
+
+- Binary‑aware static analysis
+- A plugin-friendly rule system
+- A stable JSON schema suitable for pipelines and long-term integrations
 
 ### Key advantages
 
