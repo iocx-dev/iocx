@@ -25,6 +25,8 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
 
 <p align="center">
   <img src="https://iocx.dev/assets/iocx_demo.gif" alt="IOCX Demo" width="720">
+</p>
+<p align="center">
   <sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
 </p>
 
