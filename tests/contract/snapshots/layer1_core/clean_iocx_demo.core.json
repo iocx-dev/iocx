@@ -1,5 +1,5 @@
 {
- "file": "tests/contract/fixtures/layer1_core/clean_iocx_demo.exe",
+ "file": "tests/contract/fixtures/layer1_core/clean_iocx_demo.core.exe",
  "type": "PE",
  "iocs": {
    "urls": [],

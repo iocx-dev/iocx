@@ -32,17 +32,29 @@ def save_snapshot(snapshot_path, data):
 
 
 def discover_fixtures():
-    """Yield (fixture_path, snapshot_path) pairs for all layers."""
+    """Yield (fixture_path, snapshot_path, level) pairs for all layers."""
     for fixture in FIXTURES_DIR.rglob("*"):
         if fixture.is_file() and fixture.suffix.lower() in ('.exe', '.bin'):
             rel = fixture.relative_to(FIXTURES_DIR)
             snapshot = SNAPSHOTS_DIR / rel.with_suffix(".json")
-            yield fixture, snapshot
+
+            name = fixture.stem.lower()
+            if name.endswith(".full"):
+                level = "full"
+            elif name.endswith(".deep"):
+                level = "deep"
+            elif name.endswith(".basic"):
+                level = "basic"
+            else:
+                level = "None"
+
+            yield fixture, snapshot, level
 
 @pytest.mark.contract
-@pytest.mark.parametrize("fixture_path,snapshot_path", discover_fixtures())
-def test_contract_safe_pipeline(engine, fixture_path, snapshot_path):
+@pytest.mark.parametrize("fixture_path,snapshot_path,level", discover_fixtures())
+def test_contract_safe_pipeline(engine, fixture_path, snapshot_path, level):
 
+    engine._analysis_level = level
     output = engine.extract(fixture_path)
 
     # Normalise file path to string for deterministic snapshot comparison
