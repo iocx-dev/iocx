@@ -1,0 +1,308 @@
+{
+ "file": "tests/contract/fixtures/layer1_core/clean_iocx_demo.exe",
+ "type": "PE",
+ "iocs": {
+   "urls": [],
+   "domains": [],
+   "ips": [],
+   "hashes": [],
+   "emails": [],
+   "filepaths": [
+     "C:\\Users\\Public\\Documents\\iocx_demo.exe"
+   ],
+   "base64": [],
+   "crypto.btc": [],
+   "crypto.eth": []
+ },
+ "metadata": {
+   "file_type": "PE",
+   "imports": [
+     "KERNEL32.dll",
+     "msvcrt.dll"
+   ],
+   "sections": [
+     ".text",
+     ".data",
+     ".rdata",
+     ".pdata",
+     ".xdata",
+     ".bss",
+     ".idata",
+     ".CRT",
+     ".tls",
+     ".reloc"
+   ],
+   "resources": [],
+   "resource_strings": [],
+   "import_details": [
+     {
+       "dll": "KERNEL32.dll",
+       "function": "DeleteCriticalSection",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "EnterCriticalSection",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "GetLastError",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "GetSystemTime",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "InitializeCriticalSection",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "IsDBCSLeadByteEx",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "LeaveCriticalSection",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "MultiByteToWideChar",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "SetUnhandledExceptionFilter",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "Sleep",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "TlsGetValue",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "VirtualProtect",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "VirtualQuery",
+       "ordinal": null
+     },
+     {
+       "dll": "KERNEL32.dll",
+       "function": "WideCharToMultiByte",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__C_specific_handler",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "___lc_codepage_func",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "___mb_cur_max_func",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__getmainargs",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__initenv",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__iob_func",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__set_app_type",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "__setusermatherr",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_amsg_exit",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_cexit",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_commode",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_errno",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_fmode",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_initterm",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_lock",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_onexit",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "_unlock",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "abort",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "calloc",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "exit",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "fprintf",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "fputc",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "free",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "fwrite",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "localeconv",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "malloc",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "memcpy",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "memset",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "signal",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "strerror",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "strlen",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "strncmp",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "vfprintf",
+       "ordinal": null
+     },
+     {
+       "dll": "msvcrt.dll",
+       "function": "wcslen",
+       "ordinal": null
+     }
+   ],
+   "delayed_imports": [],
+   "bound_imports": [],
+   "exports": [],
+   "tls": {
+     "start_address": 5368770560,
+     "end_address": 5368770568,
+     "callbacks": 5368766520
+   },
+   "header": {
+     "entry_point": 5136,
+     "image_base": 5368709120,
+     "subsystem": 3,
+     "timestamp": 1776246181,
+     "machine": 34404,
+     "characteristics": 558
+   },
+   "optional_header": {
+     "section_alignment": 4096,
+     "file_alignment": 512,
+     "size_of_image": 69632,
+     "size_of_headers": 1024,
+     "linker_version": "2.41",
+     "os_version": "4.0",
+     "subsystem_version": "5.2"
+   },
+   "rich_header": null,
+   "signatures": [],
+   "has_signature": false
+ }
+}
