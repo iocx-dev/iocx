@@ -241,7 +241,7 @@ Every bug fixed becomes a new golden test.
 **Process:**
 
 1. Capture the offending file (or minimal reproducer).
-2. Add it to `tests/fixtures/regressions/`.
+2. Add it to `tests/contract/fixtures/layer4_regressions/`.
 3. Generate the correct output.
 4. Snapshot it.
 5. Never delete it.
@@ -397,7 +397,7 @@ def test_contract_safe_pipeline(engine, fixture_path, snapshot_path):
 
 **1. Automatic fixture discovery**
 
-Every binary in `tests/fixtures/**` is automatically tested.
+Every binary in `tests/contract/fixtures/**` is automatically tested.
 
 **2. Snapshot enforcement**
 
