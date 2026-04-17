@@ -1,0 +1,647 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/string_obfuscation_tricks.full.exe",
+  "type": "PE",
+  "iocs": {
+    "urls": [
+      "http://literal-ioc.test/path",
+      "http://example.com/pathmoc.elpmaxh",
+      "http://bad.test"
+    ],
+    "domains": [],
+    "ips": [
+      "198.51.100.42"
+    ],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {
+    "file_type": "PE",
+    "imports": [
+      "KERNEL32.dll",
+      "USER32.dll",
+      "VCRUNTIME140.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll",
+      "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-locale-l1-1-0.dll",
+      "api-ms-win-crt-heap-l1-1-0.dll"
+    ],
+    "sections": [
+      ".text",
+      ".rdata",
+      ".data",
+      ".pdata",
+      ".obfs",
+      ".rsrc"
+    ],
+    "resources": [
+      {
+        "type": "RT_MANIFEST",
+        "language": 1,
+        "language_name": "unknown",
+        "size": 381,
+        "entropy": 4.9116145157351045
+      }
+    ],
+    "resource_strings": [
+      "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>",
+      "<assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'>",
+      "  <trustInfo xmlns=\"urn:schemas-microsoft-com:asm.v3\">",
+      "    <security>",
+      "      <requestedPrivileges>",
+      "        <requestedExecutionLevel level='asInvoker' uiAccess='false' />",
+      "      </requestedPrivileges>",
+      "    </security>",
+      "  </trustInfo>",
+      "</assembly>"
+    ],
+    "import_details": [
+      {
+        "dll": "KERNEL32.dll",
+        "function": "OutputDebugStringA",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetCurrentProcessId",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetCurrentThreadId",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetSystemTimeAsFileTime",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "InitializeSListHead",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "RtlCaptureContext",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "RtlLookupFunctionEntry",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "RtlVirtualUnwind",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "IsDebuggerPresent",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetModuleHandleW",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "IsProcessorFeaturePresent",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetStartupInfoW",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "SetUnhandledExceptionFilter",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "UnhandledExceptionFilter",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "QueryPerformanceCounter",
+        "ordinal": null
+      },
+      {
+        "dll": "USER32.dll",
+        "function": "MessageBoxA",
+        "ordinal": null
+      },
+      {
+        "dll": "VCRUNTIME140.dll",
+        "function": "__C_specific_handler",
+        "ordinal": null
+      },
+      {
+        "dll": "VCRUNTIME140.dll",
+        "function": "__current_exception",
+        "ordinal": null
+      },
+      {
+        "dll": "VCRUNTIME140.dll",
+        "function": "__current_exception_context",
+        "ordinal": null
+      },
+      {
+        "dll": "VCRUNTIME140.dll",
+        "function": "memset",
+        "ordinal": null
+      },
+      {
+        "dll": "VCRUNTIME140.dll",
+        "function": "memcpy",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_register_onexit_function",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_seh_filter_exe",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_crt_atexit",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_set_app_type",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_initialize_onexit_table",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_register_thread_local_exe_atexit_callback",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_c_exit",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_cexit",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "terminate",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_exit",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "exit",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_initterm_e",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_initterm",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_get_narrow_winmain_command_line",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_initialize_narrow_environment",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+        "function": "_configure_narrow_argv",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-math-l1-1-0.dll",
+        "function": "__setusermatherr",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "function": "__p__commode",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+        "function": "_set_fmode",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+        "function": "_configthreadlocale",
+        "ordinal": null
+      },
+      {
+        "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+        "function": "_set_new_mode",
+        "ordinal": null
+      }
+    ],
+    "delayed_imports": [],
+    "bound_imports": [],
+    "exports": [],
+    "tls": null,
+    "header": {
+      "entry_point": 4804,
+      "image_base": 5368709120,
+      "subsystem": 2,
+      "timestamp": 1776422601,
+      "machine": 34404,
+      "characteristics": 35
+    },
+    "optional_header": {
+      "section_alignment": 4096,
+      "file_alignment": 512,
+      "size_of_image": 28672,
+      "size_of_headers": 1024,
+      "linker_version": "14.44",
+      "os_version": "6.0",
+      "subsystem_version": "6.0"
+    },
+    "rich_header": {
+      "key": "291fb073",
+      "raw_data": "6d7ede20291fb073291fb073291fb07320672373231fb073ae96b1722b1fb073ae96b3722b1fb073ae96b472201fb073ae96b5723b1fb073509eb1722c1fb073291fb173071fb073b096b472281fb073b0964f73281fb073b096b272281fb073",
+      "clear_data": "44616e53000000000000000000000000097893000a00000087890101020000008789030102000000878904010900000087890501120000007981010105000000000001002e00000099890401010000009989ff00010000009989020101000000",
+      "checksum": 1940922153,
+      "values": [
+        9664521,
+        10,
+        16877959,
+        2,
+        17009031,
+        2,
+        17074567,
+        9,
+        17140103,
+        18,
+        16875897,
+        5,
+        65536,
+        46,
+        17074585,
+        1,
+        16746905,
+        1,
+        16943513,
+        1
+      ]
+    },
+    "signatures": [],
+    "has_signature": false
+  },
+  "analysis": {
+    "sections": [
+      {
+        "name": ".text",
+        "raw_size": 3584,
+        "virtual_size": 3276,
+        "characteristics": 1610612768,
+        "entropy": 5.698372139231079
+      },
+      {
+        "name": ".rdata",
+        "raw_size": 4096,
+        "virtual_size": 3788,
+        "characteristics": 1073741888,
+        "entropy": 3.9212581416047985
+      },
+      {
+        "name": ".data",
+        "raw_size": 512,
+        "virtual_size": 304,
+        "characteristics": 3221225536,
+        "entropy": 0.7248079683977926
+      },
+      {
+        "name": ".pdata",
+        "raw_size": 512,
+        "virtual_size": 324,
+        "characteristics": 1073741888,
+        "entropy": 2.475035099342431
+      },
+      {
+        "name": ".obfs",
+        "raw_size": 512,
+        "virtual_size": 69,
+        "characteristics": 3221225536,
+        "entropy": 0.9243439934453046
+      },
+      {
+        "name": ".rsrc",
+        "raw_size": 512,
+        "virtual_size": 480,
+        "characteristics": 1073741888,
+        "entropy": 4.6975970082517895
+      }
+    ],
+    "obfuscation": [],
+    "extended": [
+      {
+        "value": "summary",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll_count": 8,
+          "import_count": 42,
+          "delayed_import_count": 0,
+          "bound_import_count": 0,
+          "export_count": 0,
+          "resource_count": 1,
+          "has_tls": false,
+          "has_signature": false
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "functions": [
+            "_set_new_mode"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "functions": [
+            "_configthreadlocale"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "api-ms-win-crt-math-l1-1-0.dll",
+          "functions": [
+            "__setusermatherr"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "functions": [
+            "_c_exit",
+            "_cexit",
+            "_configure_narrow_argv",
+            "_crt_atexit",
+            "_exit",
+            "_get_narrow_winmain_command_line",
+            "_initialize_narrow_environment",
+            "_initialize_onexit_table",
+            "_initterm",
+            "_initterm_e",
+            "_register_onexit_function",
+            "_register_thread_local_exe_atexit_callback",
+            "_seh_filter_exe",
+            "_set_app_type",
+            "exit",
+            "terminate"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "functions": [
+            "__p__commode",
+            "_set_fmode"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "KERNEL32.dll",
+          "functions": [
+            "GetCurrentProcessId",
+            "GetCurrentThreadId",
+            "GetModuleHandleW",
+            "GetStartupInfoW",
+            "GetSystemTimeAsFileTime",
+            "InitializeSListHead",
+            "IsDebuggerPresent",
+            "IsProcessorFeaturePresent",
+            "OutputDebugStringA",
+            "QueryPerformanceCounter",
+            "RtlCaptureContext",
+            "RtlLookupFunctionEntry",
+            "RtlVirtualUnwind",
+            "SetUnhandledExceptionFilter",
+            "UnhandledExceptionFilter"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "USER32.dll",
+          "functions": [
+            "MessageBoxA"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "VCRUNTIME140.dll",
+          "functions": [
+            "__C_specific_handler",
+            "__current_exception",
+            "__current_exception_context",
+            "memcpy",
+            "memset"
+          ]
+        }
+      },
+      {
+        "value": "exports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "count": 0,
+          "names": [],
+          "forwarded": []
+        }
+      },
+      {
+        "value": "header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "entry_point": 4804,
+          "image_base": 5368709120,
+          "subsystem": 2,
+          "timestamp": 1776422601,
+          "machine": 34404,
+          "characteristics": 35,
+          "machine_human": "AMD64",
+          "subsystem_human": "Windows GUI"
+        }
+      },
+      {
+        "value": "optional_header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "section_alignment": 4096,
+          "file_alignment": 512,
+          "size_of_image": 28672,
+          "size_of_headers": 1024,
+          "linker_version": "14.44",
+          "os_version": "6.0",
+          "subsystem_version": "6.0"
+        }
+      },
+      {
+        "value": "rich_header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "key": "291fb073",
+          "raw_data": "6d7ede20291fb073291fb073291fb07320672373231fb073ae96b1722b1fb073ae96b3722b1fb073ae96b472201fb073ae96b5723b1fb073509eb1722c1fb073291fb173071fb073b096b472281fb073b0964f73281fb073b096b272281fb073",
+          "clear_data": "44616e53000000000000000000000000097893000a00000087890101020000008789030102000000878904010900000087890501120000007981010105000000000001002e00000099890401010000009989ff00010000009989020101000000",
+          "checksum": 1940922153,
+          "values": [
+            9664521,
+            10,
+            16877959,
+            2,
+            17009031,
+            2,
+            17074567,
+            9,
+            17140103,
+            18,
+            16875897,
+            5,
+            65536,
+            46,
+            17074585,
+            1,
+            16746905,
+            1,
+            16943513,
+            1
+          ]
+        }
+      },
+      {
+        "value": "resources",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "count": 1,
+          "types": [
+            "RT_MANIFEST"
+          ],
+          "entropy_min": 4.9116145157351045,
+          "entropy_max": 4.9116145157351045,
+          "entropy_avg": 4.9116145157351045
+        }
+      }
+    ],
+    "heuristics": [
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "anti_debug_api_import",
+          "dll": "kernel32.dll",
+          "function": "OutputDebugStringA"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "anti_debug_api_import",
+          "dll": "kernel32.dll",
+          "function": "IsDebuggerPresent"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "timing_api_import",
+          "dll": "kernel32.dll",
+          "function": "QueryPerformanceCounter"
+        }
+      }
+    ]
+  }
+}
