@@ -95,8 +95,15 @@ def normalise_full(output):
     output["analysis"] = {
         "sections": [],
         "obfuscation": [],
-        "extended": []
+        "extended": [],
+        "heuristics": [],
     }
+    return output
+
+
+def normalise_enrich(output):
+    output = normalise_core(output)
+    output["enrichment"] = {}
     return output
 
 
@@ -128,3 +135,26 @@ def test_pipeline_snapshots(engine, mode, normaliser, snapshot):
     # Structural contract enforcement
     assert output == expected
 
+@pytest.mark.parametrize(
+    "normaliser,snapshot",
+    [
+        (normalise_enrich, "enrich"),
+    ]
+)
+@pytest.mark.contract
+def test_pipeline_enrichment_snapshot(engine, normaliser, snapshot):
+    raw = engine.extract("tests/integration/fixtures/bin/pe_chaos.exe")
+
+    ctx = engine.plugin_context
+
+    # enrichment output is a CLI decision so replicate that behaviour
+    raw["enrichment"] = ctx.metadata
+
+    # Normalise volatile fields and reduce to structural form
+    output = normaliser(raw)
+
+    # Load the minimal structural snapshot
+    expected = load_snapshot(snapshot)
+
+    # Structural contract enforcement
+    assert output == expected

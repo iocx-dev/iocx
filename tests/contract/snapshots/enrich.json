@@ -48,10 +48,5 @@
     "signatures": [],
     "has_signature": false
   },
-  "analysis": {
-    "sections": [],
-    "obfuscation": [],
-    "extended": [],
-    "heuristics": []
-  }
+  "enrichment": {}
 }

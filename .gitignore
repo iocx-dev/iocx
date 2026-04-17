@@ -47,8 +47,8 @@ pip-wheel-metadata/
 
 !tests/integration/fixtures/bin/
 !tests/integration/fixtures/bin/*.exe
-!tests/integration/fixtures/bin/analysis/*.exe
-
+!tests/contract/fixtures/**/*.exe
+!tests/contract/fixtures/**/*.bin
 
 *.dll
 *.so

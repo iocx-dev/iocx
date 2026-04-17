@@ -12,13 +12,16 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-633_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-663_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
   </a>
   <a href="https://github.com/iocx-dev/iocx/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
+  </a>
+  <a href="docs/testing/">
+    <img src="docs/testing/contract-tests.svg" alt="Contract tests">
   </a>
   <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
@@ -58,7 +61,7 @@ IOCX is designed for environments where **safety, determinism, and automation** 
 
 - **Static‑only design** — never executes untrusted code
 - **Binary parsing** — PE-aware extraction with section analysis, entropy, and obfuscation hints
-- **Analysis level** — basic, deep, and full (future-ready) for performance-tuned workflows
+- **Analysis level** — basic, deep, and full for performance-tuned workflows
 - **Deterministic behaviour** — stable output and predictable performance
 - **Extensible rule engine** — custom detectors, parsers, and plugins
 - **Consistent JSON schema** — clean integration with SIEM/SOAR
@@ -101,6 +104,14 @@ IOCX is **static extraction only**, by design.
 - Extend with custom detectors for internal patterns
 
 ## Version Highlights
+
+### v0.7.0 — Deterministic Heuristics & Adversarial Testing Foundation
+
+- Deterministic heuristics: anti‑debug APIs, TLS anomalies, packer‑like behaviour, RWX sections, import anomalies.
+- Adversarial testing: added three initial Layer 3 samples to validate rich heuristics, entropy analysis and string‑based IOC extraction.
+- Contract testing: deterministic snapshots for sections, imports, heuristics, and IOCs.
+- Bug fix: resolved a crash caused by non‑UTF8 Rich Header bytes by introducing deep hex‑encoding sanitisation.
+- Docs: new deterministic‑output section and appendices for adversarial samples.
 
 ### v0.6.0 — Stable Output Schema, Deterministic PE Metadata, Contract‑Safe Analysis Levels
 

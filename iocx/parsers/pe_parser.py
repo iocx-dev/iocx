@@ -1,5 +1,6 @@
 import pefile
 import math
+import base64
 from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any
@@ -8,6 +9,25 @@ from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 # ---------------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------------
+def sanitize(obj):
+    """Recursively convert bytes → hex strings so JSON can serialize."""
+    if obj is None:
+        return None
+
+    if isinstance(obj, (bytes, bytearray)):
+        return obj.hex()
+
+    if isinstance(obj, tuple):
+        return tuple(sanitize(x) for x in obj)
+
+    if isinstance(obj, list):
+        return [sanitize(x) for x in obj]
+
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+
+    return obj
+
 
 def _decode_dll_name(dll_raw) -> str | None:
     if isinstance(dll_raw, bytes):
@@ -387,9 +407,11 @@ def parse_pe(path):
 
         # Rich header
         try:
-            rich_header = pe.parse_rich_header()
+            raw_rich_header = pe.parse_rich_header()
         except Exception:
-            rich_header = None
+            raw_rich_header = None
+
+        rich_header = sanitize(raw_rich_header)
 
         metadata = {
             "file_type": "PE",

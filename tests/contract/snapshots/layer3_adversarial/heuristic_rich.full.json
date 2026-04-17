@@ -1,0 +1,750 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/heuristic_rich.full.exe",
+  "type": "PE",
+  "iocs": {
+    "urls": [
+      "http://not-a-real-domain.test/payload"
+    ],
+    "domains": [
+      "example-malware.com"
+    ],
+    "ips": [
+      "192.0.2.123"
+    ],
+    "hashes": [
+      "abcd1234ef567890abcd1234ef567890",
+      "1234567890",
+      "3333333333333333"
+    ],
+    "emails": [],
+    "filepaths": [
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/crtexe.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt",
+      "/usr/x86_64-w64-mingw32/include",
+      "/usr/x86_64-w64-mingw32/include/psdk_inc",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/include",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/crtexewin.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/gccmain.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/natstart.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/wildcard.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/dllargv.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/_newmode.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/tlssup.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/xncommod.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/cinitexe.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/merr.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/CRT_fp10.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/mingw_helpers.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/pseudo-reloc.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/usermatherr.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/xtxtmode.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/crt_handler.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/tlsthrd.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/tlsmcrt.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/pseudo-reloc-list.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/pesect.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc/mingw_matherr.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc/__p__fmode.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc/__p__commode.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc/__p__acmdln.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/misc/invalid_parameter_handler.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/stdio/acrt_iob_func.c",
+      "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/stdio"
+    ],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {
+    "file_type": "PE",
+    "imports": [
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "USER32.dll"
+    ],
+    "sections": [
+      ".text",
+      ".data",
+      ".rwx",
+      ".rdata",
+      "UPX0",
+      ".pdata",
+      ".xdata",
+      ".bss",
+      ".idata",
+      ".CRT",
+      ".tls",
+      ".reloc",
+      "/4",
+      "/19",
+      "/31",
+      "/45",
+      "/57",
+      "/70",
+      "/81",
+      "/97",
+      "/113"
+    ],
+    "resources": [],
+    "resource_strings": [],
+    "import_details": [
+      {
+        "dll": "KERNEL32.dll",
+        "function": "CheckRemoteDebuggerPresent",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "DeleteCriticalSection",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "EnterCriticalSection",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetCurrentProcess",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetLastError",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetStartupInfoA",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetTickCount",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "GetTickCount64",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "InitializeCriticalSection",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "IsDebuggerPresent",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "LeaveCriticalSection",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "OutputDebugStringA",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "QueryPerformanceCounter",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "SetUnhandledExceptionFilter",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "Sleep",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "TlsGetValue",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "VirtualProtect",
+        "ordinal": null
+      },
+      {
+        "dll": "KERNEL32.dll",
+        "function": "VirtualQuery",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__C_specific_handler",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__getmainargs",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__initenv",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__iob_func",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__set_app_type",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "__setusermatherr",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_acmdln",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_amsg_exit",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_cexit",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_commode",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_fmode",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_initterm",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_ismbblead",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "_onexit",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "abort",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "calloc",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "exit",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "fprintf",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "free",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "fwrite",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "malloc",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "memcpy",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "signal",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "strlen",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "strncmp",
+        "ordinal": null
+      },
+      {
+        "dll": "msvcrt.dll",
+        "function": "vfprintf",
+        "ordinal": null
+      },
+      {
+        "dll": "USER32.dll",
+        "function": "MessageBoxA",
+        "ordinal": null
+      }
+    ],
+    "delayed_imports": [],
+    "bound_imports": [],
+    "exports": [],
+    "tls": {
+      "start_address": 5368758272,
+      "end_address": 5368758280,
+      "callbacks": 5368754232
+    },
+    "header": {
+      "entry_point": 5088,
+      "image_base": 5368709120,
+      "subsystem": 2,
+      "timestamp": 1776351178,
+      "machine": 34404,
+      "characteristics": 38
+    },
+    "optional_header": {
+      "section_alignment": 4096,
+      "file_alignment": 512,
+      "size_of_image": 155648,
+      "size_of_headers": 1536,
+      "linker_version": "2.41",
+      "os_version": "4.0",
+      "subsystem_version": "5.2"
+    },
+    "rich_header": null,
+    "signatures": [],
+    "has_signature": false
+  },
+  "analysis": {
+    "sections": [
+      {
+        "name": ".text",
+        "raw_size": 6656,
+        "virtual_size": 6456,
+        "characteristics": 1610612832,
+        "entropy": 5.924372591847281
+      },
+      {
+        "name": ".data",
+        "raw_size": 512,
+        "virtual_size": 464,
+        "characteristics": 3221225536,
+        "entropy": 2.698039144395611
+      },
+      {
+        "name": ".rwx",
+        "raw_size": 2048,
+        "virtual_size": 2048,
+        "characteristics": 3221225536,
+        "entropy": 0.0
+      },
+      {
+        "name": ".rdata",
+        "raw_size": 2560,
+        "virtual_size": 2352,
+        "characteristics": 1073741888,
+        "entropy": 4.038083178583999
+      },
+      {
+        "name": "UPX0",
+        "raw_size": 4096,
+        "virtual_size": 4096,
+        "characteristics": 1073741888,
+        "entropy": 0.3462042726507212
+      },
+      {
+        "name": ".pdata",
+        "raw_size": 1024,
+        "virtual_size": 564,
+        "characteristics": 1073741888,
+        "entropy": 2.4025672459968455
+      },
+      {
+        "name": ".xdata",
+        "raw_size": 1024,
+        "virtual_size": 516,
+        "characteristics": 1073741888,
+        "entropy": 2.673439977013856
+      },
+      {
+        "name": ".bss",
+        "raw_size": 0,
+        "virtual_size": 384,
+        "characteristics": 3221225600,
+        "entropy": 0.0
+      },
+      {
+        "name": ".idata",
+        "raw_size": 2048,
+        "virtual_size": 1768,
+        "characteristics": 3221225536,
+        "entropy": 3.5769284280512728
+      },
+      {
+        "name": ".CRT",
+        "raw_size": 512,
+        "virtual_size": 96,
+        "characteristics": 3221225536,
+        "entropy": 0.27950974526108024
+      },
+      {
+        "name": ".tls",
+        "raw_size": 512,
+        "virtual_size": 16,
+        "characteristics": 3221225536,
+        "entropy": 0.0
+      },
+      {
+        "name": ".reloc",
+        "raw_size": 512,
+        "virtual_size": 128,
+        "characteristics": 1107296320,
+        "entropy": 1.4993464215874115
+      },
+      {
+        "name": "/4",
+        "raw_size": 1536,
+        "virtual_size": 1136,
+        "characteristics": 1107296320,
+        "entropy": 1.3402042440923132
+      },
+      {
+        "name": "/19",
+        "raw_size": 45568,
+        "virtual_size": 45326,
+        "characteristics": 1107296320,
+        "entropy": 5.899698080808064
+      },
+      {
+        "name": "/31",
+        "raw_size": 8192,
+        "virtual_size": 7770,
+        "characteristics": 1107296320,
+        "entropy": 4.707724264196141
+      },
+      {
+        "name": "/45",
+        "raw_size": 7680,
+        "virtual_size": 7464,
+        "characteristics": 1107296320,
+        "entropy": 4.881976487096395
+      },
+      {
+        "name": "/57",
+        "raw_size": 2560,
+        "virtual_size": 2296,
+        "characteristics": 1107296320,
+        "entropy": 4.024921258330688
+      },
+      {
+        "name": "/70",
+        "raw_size": 1024,
+        "virtual_size": 707,
+        "characteristics": 1107296320,
+        "entropy": 3.9923561608390723
+      },
+      {
+        "name": "/81",
+        "raw_size": 6144,
+        "virtual_size": 5757,
+        "characteristics": 1107296320,
+        "entropy": 4.670491070614295
+      },
+      {
+        "name": "/97",
+        "raw_size": 5120,
+        "virtual_size": 4802,
+        "characteristics": 1107296320,
+        "entropy": 4.899582005816624
+      },
+      {
+        "name": "/113",
+        "raw_size": 512,
+        "virtual_size": 450,
+        "characteristics": 1107296320,
+        "entropy": 4.387195682804599
+      }
+    ],
+    "obfuscation": [
+      {
+        "value": "abnormal_section_layout_virtual_only",
+        "start": 0,
+        "end": 0,
+        "category": "obfuscation_hint",
+        "metadata": {
+          "section": ".bss",
+          "raw_size": 0,
+          "virtual_size": 384
+        }
+      }
+    ],
+    "extended": [
+      {
+        "value": "summary",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll_count": 3,
+          "import_count": 45,
+          "delayed_import_count": 0,
+          "bound_import_count": 0,
+          "export_count": 0,
+          "resource_count": 0,
+          "has_tls": true,
+          "has_signature": false
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "KERNEL32.dll",
+          "functions": [
+            "CheckRemoteDebuggerPresent",
+            "DeleteCriticalSection",
+            "EnterCriticalSection",
+            "GetCurrentProcess",
+            "GetLastError",
+            "GetStartupInfoA",
+            "GetTickCount",
+            "GetTickCount64",
+            "InitializeCriticalSection",
+            "IsDebuggerPresent",
+            "LeaveCriticalSection",
+            "OutputDebugStringA",
+            "QueryPerformanceCounter",
+            "SetUnhandledExceptionFilter",
+            "Sleep",
+            "TlsGetValue",
+            "VirtualProtect",
+            "VirtualQuery"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "msvcrt.dll",
+          "functions": [
+            "__C_specific_handler",
+            "__getmainargs",
+            "__initenv",
+            "__iob_func",
+            "__set_app_type",
+            "__setusermatherr",
+            "_acmdln",
+            "_amsg_exit",
+            "_cexit",
+            "_commode",
+            "_fmode",
+            "_initterm",
+            "_ismbblead",
+            "_onexit",
+            "abort",
+            "calloc",
+            "exit",
+            "fprintf",
+            "free",
+            "fwrite",
+            "malloc",
+            "memcpy",
+            "signal",
+            "strlen",
+            "strncmp",
+            "vfprintf"
+          ]
+        }
+      },
+      {
+        "value": "imports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll": "USER32.dll",
+          "functions": [
+            "MessageBoxA"
+          ]
+        }
+      },
+      {
+        "value": "exports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "count": 0,
+          "names": [],
+          "forwarded": []
+        }
+      },
+      {
+        "value": "tls_directory",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "start_address": 5368758272,
+          "end_address": 5368758280,
+          "callbacks": 5368754232
+        }
+      },
+      {
+        "value": "header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "entry_point": 5088,
+          "image_base": 5368709120,
+          "subsystem": 2,
+          "timestamp": 1776351178,
+          "machine": 34404,
+          "characteristics": 38,
+          "machine_human": "AMD64",
+          "subsystem_human": "Windows GUI"
+        }
+      },
+      {
+        "value": "optional_header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "section_alignment": 4096,
+          "file_alignment": 512,
+          "size_of_image": 155648,
+          "size_of_headers": 1536,
+          "linker_version": "2.41",
+          "os_version": "4.0",
+          "subsystem_version": "5.2"
+        }
+      }
+    ],
+    "heuristics": [
+      {
+        "value": "packer_suspected",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "packer_section_name",
+          "section": "UPX0"
+        }
+      },
+      {
+        "value": "tls_callback_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "callback_outside_tls_range",
+          "callbacks": 5368754232,
+          "start_address": 5368758272,
+          "end_address": 5368758280
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "anti_debug_api_import",
+          "dll": "kernel32.dll",
+          "function": "CheckRemoteDebuggerPresent"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "timing_api_import",
+          "dll": "kernel32.dll",
+          "function": "GetTickCount"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "timing_api_import",
+          "dll": "kernel32.dll",
+          "function": "GetTickCount64"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "anti_debug_api_import",
+          "dll": "kernel32.dll",
+          "function": "IsDebuggerPresent"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "anti_debug_api_import",
+          "dll": "kernel32.dll",
+          "function": "OutputDebugStringA"
+        }
+      },
+      {
+        "value": "anti_debug_heuristic",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "timing_api_import",
+          "dll": "kernel32.dll",
+          "function": "QueryPerformanceCounter"
+        }
+      }
+    ]
+  }
+}
