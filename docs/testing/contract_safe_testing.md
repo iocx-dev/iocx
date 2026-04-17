@@ -176,6 +176,7 @@ These are the **baseline contract**. If any of these outputs change, it must be 
 | **4. Typical compiler‑produced PE** (MSVC or MinGW)            | Normal import table, standard sections, realistic metadata.                 |
 | **5. .NET assembly**                                           | Tests CLR header, metadata directories, managed PE quirks.                  |
 | **6. Signed binary**                                           | Tests deterministic signature extraction and certificate chain handling.    |
+
 *This is an aspirational list and does not represent the core behaviour input corpus. It will be added to gradually.*
 
 Tests for each sample
@@ -203,6 +204,7 @@ Weird, malformed, or unusual binaries that stress the parser but are not hostile
 | **8. Binary with malformed PE header**        | Tests “best effort” parsing.                              |
 | **9. Binary with unusual subsystem**          | Tests subsystem parsing and normalisation.                |
 | **10. Binary with sparse import table**       | Tests import enumeration stability.                       |
+
 *This is an aspirational list and does not represent the current edge case input corpus. It will be added to gradually.*
 
 Tests for each sample:
@@ -219,9 +221,9 @@ Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
 
 | Sample                                                                                | Why it matters                                                                                                              |
 |---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/appendices/heuristic_rich.full.exe.md))                       |
-| **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/appendices/crypto_entropy_payload.full.exe.md))       |
-| **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/appendices/string_obfuscation_tricks.full.exe.md))             |
+| **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/docs/testing/appendices/heuristic_rich.full.exe.md))                       |
+| **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/docs/testing/appendices/crypto_entropy_payload.full.exe.md))       |
+| **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/docs/testing/appendices/string_obfuscation_tricks.full.exe.md))             |
 | **4. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                               |
 | **5. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                |
 | **6. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                 |
@@ -232,6 +234,7 @@ Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
 | **11. Binary with random high‑entropy strings**                                       | Tests false‑positive suppression.                                                                                           |
 | **12. Binary with misleading import names**                                           | Tests import heuristics.                                                                                                    |
 | **13. Binary with intentionally broken RVA/offsets**                                  | Tests error‑tolerant parsing.                                                                                               |
+
 *This is an aspirational list and does not represent the current adversarial input corpus. It will be added to gradually.*
 
 Tests for each sample
