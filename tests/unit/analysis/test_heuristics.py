@@ -1,5 +1,5 @@
 import pytest
-from iocx.analysis.heuristics import analyse_pe_heuristics
+from iocx.analysis.heuristics import analyse_pe_heuristics, _analyse_tls
 from iocx.models import Detection
 
 
@@ -308,3 +308,22 @@ def test_synthetic_triggers_all_heuristics():
     seen = {(d.value, d.metadata.get("reason")) for d in dets}
     for pair in expected:
         assert pair in seen, f"Missing heuristic {pair}"
+
+
+def test_tls_analysis_skips_incomplete_entries():
+    analysis = {
+        "extended": [
+            {
+                "value": "tls_directory",
+                "metadata": {
+                    # Missing start_address, end_address, callbacks
+                    # This forces the `continue` branch
+                }
+            }
+        ]
+    }
+
+    detections = _analyse_tls({}, analysis)
+
+    # No detections should be produced
+    assert detections == []
