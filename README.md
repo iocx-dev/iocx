@@ -20,7 +20,9 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
   <a href="https://github.com/iocx-dev/iocx/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
   </a>
-  [![Contract tests](docs/testing/contract-tests.svg)](docs/testing/)
+  <a href="docs/testing/">
+    <img src="docs/testing/contract-tests.svg" alt="Contract tests">
+  </a>
   <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
 
