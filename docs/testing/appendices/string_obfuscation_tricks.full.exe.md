@@ -1,7 +1,7 @@
 # Appendix 3.3 — Adversarial PE (string obfuscation) Specification
 
-- **File:** string_obfuscation_tricks.bin
-- **Layer: 3** Adversarial PE (string obfuscation)
+- **File:** `string_obfuscation_tricks.bin`
+- **Layer: 3** `Adversarial PE (string obfuscation)`
 
 # Purpose:
 
