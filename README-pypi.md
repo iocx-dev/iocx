@@ -10,16 +10,45 @@ This is the **official IOCX engine** for static IOC extraction and PE analysis.
 - **Website:** https://iocx.dev
 
 IOCX is **not** an OSINT reputation checker, HTML report generator, or IP/domain scoring tool.
-It is a **static analysis engine** focused on extracting Indicators of Compromise (IOCs) from binaries and text.
+It is a **static analysis engine** focused on extracting Indicators of Compromise (IOCs) from binaries and text with deterministic, snapshot‑stable output.
 
 ---
 
 ## What IOCX does
 
-IOCX is a fast, safe, deterministic engine for extracting Indicators of Compromise (IOCs) from binaries, text, and logs.
+IOCX is a fast, safe, deterministic engine for extracting Indicators of Compromise (IOCs) from:
+
+- Windows PE files
+- Raw text
+- Logs and unstructured data
+
 It performs **pure static analysis** — no execution, no sandboxing, no risk.
 
-## What's new in v0.6.0
+## What's new in v0.7.0
+
+- **Deterministic heuristic engine**
+
+Anti‑debug APIs, TLS anomalies, packer‑like signals, RWX sections, import anomalies.
+
+- **First adversarial samples added**
+
+`heuristic_rich.exe`, `crypto_entropy_payload.exe`, `string_obfuscation_tricks.exe`.
+
+- **Snapshot‑based contract testing**
+
+Deterministic output for sections, imports, heuristics, and IOCs.
+
+- **Rich Header crash fixed**
+
+Deep hex‑encoding of nested byte structures prevents JSON serialization failures.
+
+- **Documentation updates**
+
+New appendices and deterministic‑output guidance.
+
+## Recent changes
+
+### v0.6.0
 
 - Stable JSON schema across all analysis levels
 - Deterministic PE metadata (headers, TLS, optional header, signatures)
@@ -33,17 +62,18 @@ It performs **pure static analysis** — no execution, no sandboxing, no risk.
 
 ## Schema stability
 
-IOCX guarantees a stable JSON schema, not a guaranteed ordering of keys within objects. JSON objects are unordered by definition, so consumers should rely on field presence and structure rather than positional ordering.
+IOCX guarantees a stable JSON schema across releases. JSON objects are unordered by definition, so consumers should rely on field presence and structure rather than positional ordering.
 
 ## Features
 
 - Extracts IOCs from Windows PE files and raw text
 - Detects URLs, domains, IPv4/IPv6, file paths, hashes, emails, Base64
 - Crypto wallet detection (Ethereum, Bitcoin)
-- Deterministic output suitable for automation
-- Minimal dependencies and safe for enterprise environments
+- Deterministic output suitable for automation and CI/CD
+- Multi-level analysis depth (`basic` → `full`)
+- Minimal dependencies, safe for enterprise environments
 - CLI and Python API
-- Binary-aware static analysis with multi-level depth
+- Binary-aware static analysis with entropy, sections, imports, TLS, signatures
 
 ## Installation
 

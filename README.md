@@ -102,6 +102,14 @@ IOCX is **static extraction only**, by design.
 
 ## Version Highlights
 
+### v0.7.0 — Deterministic Heuristics & Adversarial Testing Foundation
+
+- Deterministic heuristics: anti‑debug APIs, TLS anomalies, packer‑like behaviour, RWX sections, import anomalies.
+- Adversarial testing: added three initial Layer 3 samples to validate rich heuristics, entropy analysis and string‑based IOC extraction.
+- Contract testing: deterministic snapshots for sections, imports, heuristics, and IOCs.
+- Bug fix: resolved a crash caused by non‑UTF8 Rich Header bytes by introducing deep hex‑encoding sanitisation.
+- Docs: new deterministic‑output section and appendices for adversarial samples.
+
 ### v0.6.0 — Stable Output Schema, Deterministic PE Metadata, Contract‑Safe Analysis Levels
 
 - Introduced a fully stable JSON schema across all analysis levels
