@@ -176,6 +176,7 @@ These are the **baseline contract**. If any of these outputs change, it must be 
 | **4. Typical compiler‑produced PE** (MSVC or MinGW)            | Normal import table, standard sections, realistic metadata.                 |
 | **5. .NET assembly**                                           | Tests CLR header, metadata directories, managed PE quirks.                  |
 | **6. Signed binary**                                           | Tests deterministic signature extraction and certificate chain handling.    |
+*This is an aspirational list and does not represent the core behaviour input corpus. It will be added to gradually.*
 
 Tests for each sample
 
@@ -202,6 +203,7 @@ Weird, malformed, or unusual binaries that stress the parser but are not hostile
 | **8. Binary with malformed PE header**        | Tests “best effort” parsing.                              |
 | **9. Binary with unusual subsystem**          | Tests subsystem parsing and normalisation.                |
 | **10. Binary with sparse import table**       | Tests import enumeration stability.                       |
+*This is an aspirational list and does not represent the current edge case input corpus. It will be added to gradually.*
 
 Tests for each sample:
 
@@ -215,19 +217,22 @@ Tests for each sample:
 
 Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
 
-| Sample                                               | Why it matters                                             |
-|------------------------------------------------------|------------------------------------------------------------|
-| **1. Heuristics-rich PE (heuristics_rich.full.exe)** | Exercises full-analysis heuristic engine (see Appendix A)  |
-| **2. Binary containing fake PE headers in data**     | Tests header‑detection logic.                              |
-| **3. Binary with extremely long path‑like strings**  | Tests IOC extraction limits.                               |
-| **4. Binary with Unicode homoglyph domains**         | Tests domain normalisation.                                |
-| **5. Binary with malformed URLs**                    | Tests URL extraction robustness.                           |
-| **6. Binary with mixed‑script IOCs**                 | Tests regex boundaries and Unicode handling.               |
-| **7. Binary with deeply nested escape sequences**    | Tests regex backtracking safety.                           |
-| **8. Binary with corrupted section table**           | Tests fallback parsing.                                    |
-| **9. Binary with random high‑entropy strings**       | Tests false‑positive suppression.                          |
-| **10. Binary with misleading import names**          | Tests import heuristics.                                   |
-| **11. Binary with intentionally broken RVA/offsets** | Tests error‑tolerant parsing.                              |
+| Sample                                                                                | Why it matters                                                                                                              |
+|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/appendices/heuristic_rich.full.exe.md))                       |
+| **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/appendices/crypto_entropy_payload.full.exe.md))       |
+| **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/appendices/string_obfuscation_tricks.full.exe.md))             |
+| **4. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                               |
+| **5. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                |
+| **6. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                 |
+| **7. Binary with malformed URLs**                                                     | Tests URL extraction robustness.                                                                                            |
+| **8. Binary with mixed‑script IOCs**                                                  | Tests regex boundaries and Unicode handling.                                                                                |
+| **9. Binary with deeply nested escape sequences**                                     | Tests regex backtracking safety.                                                                                            |
+| **10. Binary with corrupted section table**                                           | Tests fallback parsing.                                                                                                     |
+| **11. Binary with random high‑entropy strings**                                       | Tests false‑positive suppression.                                                                                           |
+| **12. Binary with misleading import names**                                           | Tests import heuristics.                                                                                                    |
+| **13. Binary with intentionally broken RVA/offsets**                                  | Tests error‑tolerant parsing.                                                                                               |
+*This is an aspirational list and does not represent the current adversarial input corpus. It will be added to gradually.*
 
 Tests for each sample
 
@@ -438,33 +443,3 @@ Any deviation is a contract violation.
 - A harness that enforces the **core promise**:
 
 > Same file, same output, every time
-
-# Appendix A — Heuristic‑Rich Sample Specification
-
-- **File:** `heuristic_rich.full.exe`
-- **Layer: 3** — `Adversarial`
-
-## Purpose
-
-A deliberately constructed PE file used to validate deterministic behaviour of IOCX’s full‑analysis heuristic engine.
-
-## Heuristic behaviours exercised
-
-- Anti‑debug API imports (`CheckRemoteDebuggerPresent`, `IsDebuggerPresent`, `OutputDebugStringA`, timing APIs)
-- TLS callback anomaly (callback outside declared TLS directory range)
-- Packer‑like section (`UPX0`)
-- RWX section and abnormal `.bss` layout (virtual‑only)
-- Mixed entropy sections (high, low, and zero entropy)
-- Large, noisy import table across multiple DLLs
-- Network IOCs (URL, domain, IP)
-- Full extended metadata (imports, TLS, headers, optional header)
-
-## Contract enforced
-
-This sample must produce a stable, deterministic output when analysed with analysis_level = full, including:
-
-- analysis.sections
-- analysis.obfuscation
-- analysis.extended
-- analysis.heuristics
-- All structural metadata and IOCs
