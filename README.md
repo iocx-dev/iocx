@@ -12,7 +12,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-633_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-663_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
@@ -20,6 +20,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
   <a href="https://github.com/iocx-dev/iocx/actions">
     <img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build" alt="Build Status">
   </a>
+  [![Contract tests](docs/testing/contract-tests.svg)](docs/testing/)
   <img src="https://img.shields.io/badge/performance-28MB/s_engine_|_450MB/s_peak_|_0.0004s_path-brightgreen" alt="Performance Summary">
 </p>
 
