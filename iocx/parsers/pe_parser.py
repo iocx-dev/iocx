@@ -214,6 +214,9 @@ def _parse_sections(pe):
         virt_size = getattr(s, "Misc_VirtualSize", 0)
         chars = getattr(s, "Characteristics", 0)
 
+        raw_addr = getattr(s, "PointerToRawData", 0)
+        virt_addr = getattr(s, "VirtualAddress", 0)
+
         try:
             data = s.get_data() or b""
         except Exception:
@@ -226,6 +229,8 @@ def _parse_sections(pe):
                 "virtual_size": virt_size,
                 "characteristics": chars,
                 "entropy": _entropy(data),
+                "raw_address": int(raw_addr),
+                "virtual_address": int(virt_addr),
             }
         )
 
@@ -382,6 +387,29 @@ def _parse_resources(pe):
     return resources, resource_strings
 
 
+def _parse_data_directories(pe, opt):
+    dirs: list[dict[str, Any]] = []
+
+    if not opt:
+        return dirs
+
+    for idx, dd in enumerate(getattr(opt, "DATA_DIRECTORY", [])):
+        name = getattr(dd, "name", None)
+        rva = getattr(dd, "VirtualAddress", 0)
+        size = getattr(dd, "Size", 0)
+
+        dirs.append(
+            {
+                "index": idx,
+                "name": name,
+                "rva": int(rva),
+                "size": int(size),
+            }
+        )
+
+    return dirs
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -404,6 +432,7 @@ def parse_pe(path):
         opt, optional_header = _parse_optional_header(pe)
         header = _parse_header(pe, opt)
         resources, resource_strings = _parse_resources(pe)
+        data_directories = _parse_data_directories(pe, opt)
 
         # Rich header
         try:
@@ -429,6 +458,7 @@ def parse_pe(path):
             "rich_header": rich_header,
             "signatures": signatures,
             "has_signature": bool(signatures),
+            "data_directories": data_directories,
         }
 
         return pe, metadata

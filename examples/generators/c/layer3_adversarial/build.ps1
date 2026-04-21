@@ -58,9 +58,9 @@ function New-Vcxproj {
     </ClCompile>
 
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <EntryPointSymbol>WinMainCRTStartup</EntryPointSymbol>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>

@@ -106,16 +106,16 @@ static void pad(FILE *f, long t) {
 }
 
 int main(void) {
-    FILE *f = fopen("franken_malformed_pe.full.exe", "wb");
+    FILE *f = fopen("franken_malformed_pe.generated.exe", "wb");
     if (!f) {
-        perror("franken_malformed_pe.full.exe");
+        perror("franken_malformed_pe.generated.exe");
         return 1;
     }
 
     // --- DOS + stub ---
     DOS dos = {0};
-    dos.e_magic = 0x5A4D;
-    dos.e_lfanew = 0x100; // push PE header further down
+    dos.e_magic = 0x5A4D; // "MZ"
+    dos.e_lfanew = 0x100; // PE header offset
     w(f, &dos, sizeof(dos));
 
     // crude stub
@@ -124,50 +124,71 @@ int main(void) {
     pad(f, dos.e_lfanew);
 
     // --- PE signature ---
-    PE_SIG sig = {0x00004550};
+    PE_SIG sig = {0x00004550}; // "PE\0\0"
     w(f, &sig, sizeof(sig));
 
     // --- File header ---
     FILE_HDR fh = {0};
-    fh.Machine = 0x8664;
-    fh.NumberOfSections = 2; // make them overlap
+    fh.Machine = 0x8664; // AMD64
+    fh.NumberOfSections = 4; // multiple sections to play with
     fh.SizeOfOptionalHeader = sizeof(OPT64);
-    fh.Characteristics = 0x0002;
+    fh.Characteristics = 0x0002; // executable image
     w(f, &fh, sizeof(fh));
 
     // --- Optional header (intentionally inconsistent) ---
     OPT64 opt = {0};
-    opt.Magic = 0x20B;
-    opt.AddressOfEntryPoint = 0x1100; // inside first section
+    opt.Magic = 0x20B; // PE32+
+    opt.MajorLinkerVersion = 14;
+    opt.MinorLinkerVersion = 44;
+
+    opt.AddressOfEntryPoint = 0x3000; // OUTSIDE any section -> entrypoint_out_of_bounds
     opt.BaseOfCode = 0x1000;
     opt.ImageBase = 0x140000000ULL;
 
     opt.SectionAlignment = 0x1000;
     opt.FileAlignment = 0x200;
 
-    opt.SizeOfCode = 0x100; // too small for sections
+    opt.SizeOfCode = 0x100; // too small vs sections
     opt.SizeOfInitializedData = 0x10;
     opt.SizeOfUninitializedData = 0;
 
-    opt.SizeOfHeaders = 0x200;
-    opt.SizeOfImage = 0x2000; // too small for claim
+    opt.MajorOS = 6;
+    opt.MinorOS = 0;
+    opt.MajorImg = 0;
+    opt.MinorImg = 0;
+    opt.MajorSub = 6;
+    opt.MinorSub = 0;
 
-    opt.Subsystem = 3;
+    opt.SizeOfHeaders = 0x200;
+    opt.SizeOfImage = 0x2000; // smaller than max section end -> optional_header_inconsistent_size
+
+    opt.Subsystem = 3; // CUI
     opt.NumDirs = 16;
 
-    // Broken import directory: points into overlapping region
-    opt.DataDir[1].VirtualAddress = 0x1800; // IMAGE_DIRECTORY_ENTRY_IMPORT
-    opt.DataDir[1].Size = 0x400;
+    // Directories:
+    // 0: EXPORT (empty)
+    opt.DataDir[0].VirtualAddress = 0;
+    opt.DataDir[0].Size = 0;
 
-    // Another directory pointing out of range
-    opt.DataDir[2].VirtualAddress = 0xFFFFFFF0;
+    // 1: IMPORT – RVA outside any section -> import_rva_invalid + data_directory_out_of_range
+    opt.DataDir[1].VirtualAddress = 0x5000;
+    opt.DataDir[1].Size = 0x200;
+
+    // 2: RESOURCE – zero RVA but non-zero size -> data_directory_zero_rva_nonzero_size
+    opt.DataDir[2].VirtualAddress = 0x0000;
     opt.DataDir[2].Size = 0x100;
+
+    // 3: EXCEPTION – inside a section (valid, control case)
+    opt.DataDir[3].VirtualAddress = 0x1800;
+    opt.DataDir[3].Size = 0x200;
+
+    // others left zeroed
 
     w(f, &opt, sizeof(opt));
 
-    // --- Section headers (overlapping) ---
+    // --- Section headers ---
 
-    // .text at 0x1000, raw at 0x200
+    // .text at 0x1000, raw at 0x200 (aligned)
     SECT text = {0};
     memcpy(text.Name, ".text", 5);
     text.VirtualAddress = 0x1000;
@@ -176,32 +197,63 @@ int main(void) {
     text.SizeOfRawData = 0x600;
     text.Characteristics = 0x60000020; // code | exec | read
 
-    // .rdata overlapping .text in both RVA and raw
+    // .rdata overlapping .text in RVA and raw -> section_overlap
     SECT rdata = {0};
     memcpy(rdata.Name, ".rdata", 6);
-    rdata.VirtualAddress = 0x1400; // inside .text range
+    rdata.VirtualAddress = 0x1400; // inside .text range (0x1000–0x1800)
     rdata.VirtualSize = 0x800;
-    rdata.PointerToRawData = 0x300; // inside .text raw range
+    rdata.PointerToRawData = 0x300; // inside .text raw range (0x200–0x800)
     rdata.SizeOfRawData = 0x600;
     rdata.Characteristics = 0x40000040; // read | initialized data
 
+    // .data – non-overlapping but RAW MISALIGNED -> section_raw_misaligned
+    SECT data = {0};
+    memcpy(data.Name, ".data", 5);
+    data.VirtualAddress = 0x2000;
+    data.VirtualSize = 0x400;
+    data.PointerToRawData = 0x950; // NOT multiple of 0x200
+    data.SizeOfRawData = 0x300; // also not multiple of 0x200
+    data.Characteristics = 0xC0000040; // read | write | initialized
+
+    // .rsrc – high RVA to push max section end beyond SizeOfImage
+    SECT rsrc = {0};
+    memcpy(rsrc.Name, ".rsrc", 5);
+    rsrc.VirtualAddress = 0x2800; // 0x2800 + 0x600 = 0x2E00 > SizeOfImage (0x2000)
+    rsrc.VirtualSize = 0x600;
+    rsrc.PointerToRawData = 0xC00; // aligned, just to have some data
+    rsrc.SizeOfRawData = 0x600;
+    rsrc.Characteristics = 0x40000040;
+
     w(f, &text, sizeof(text));
     w(f, &rdata, sizeof(rdata));
+    w(f, &data, sizeof(data));
+    w(f, &rsrc, sizeof(rsrc));
 
-    // --- Section data (intentionally conflicting) ---
+    // --- Section data ---
 
-    // Fill from 0x200 with pattern A
+    // .text raw at 0x200
     pad(f, 0x200);
     for (int i = 0; i < 0x600; i++) fputc(0xAA, f);
 
-    // Now seek into the middle (overlap region) and write pattern B
+    // Overwrite overlapping region for .rdata (0x300–0x700)
     fseek(f, 0x300, SEEK_SET);
     for (int i = 0; i < 0x400; i++) fputc(0xBB, f);
 
-    // Minimal "code" at entrypoint RVA 0x1100 (raw offset inside .text)
+    // .data raw at 0x950 (misaligned)
+    pad(f, 0x950);
+    for (int i = 0; i < 0x300; i++) fputc(0xCC, f);
+
+    // .rsrc raw at 0xC00
+    pad(f, 0xC00);
+    for (int i = 0; i < 0x600; i++) fputc(0xDD, f);
+
+    // Minimal code at the (invalid) entrypoint RVA 0x3000:
+    // we still drop a RET somewhere in file just to keep disassemblers happy,
+    // but 0x3000 does not map to any section, so the EP mapping should fail.
+    unsigned char code[1] = {0xC3}; // ret
+    // place it arbitrarily in .text
     long entry_raw = 0x200 + (0x1100 - 0x1000);
     fseek(f, entry_raw, SEEK_SET);
-    unsigned char code[8] = {0xC3}; // ret
     w(f, code, sizeof(code));
 
     fclose(f);

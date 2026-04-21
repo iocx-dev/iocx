@@ -130,6 +130,7 @@ class Engine:
 
             analysis_dict = {
                 "sections": section_analysis,
+                "data_directories": metadata.get("data_directories", []),
                 "extended": extended or [],
                 "obfuscation": [asdict(d) for d in obf],
             }

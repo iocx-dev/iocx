@@ -56,6 +56,17 @@ def _get_extended(analysis: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
     ]
 
 
+def _map_rva_to_section(sections: List[Dict[str, Any]], rva: int) -> Optional[Dict[str, Any]]:
+    for sec in sections:
+        va = sec.get("virtual_address")
+        vs = sec.get("virtual_size")
+        if not isinstance(va, int) or not isinstance(vs, int):
+            continue
+        if va <= rva < va + vs:
+            return sec
+    return None
+
+
 def _analyse_packer(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
     out: List[Detection] = []
 
@@ -206,6 +217,226 @@ def _analyse_signature(metadata: Dict[str, Any]) -> List[Detection]:
     return out
 
 
+def _analyse_section_overlap(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+    sections = analysis.get("sections", [])
+
+    for i in range(len(sections)):
+        a = sections[i]
+        va_a = a.get("virtual_address")
+        vs_a = a.get("virtual_size")
+        if not isinstance(va_a, int) or not isinstance(vs_a, int):
+            continue
+        end_a = va_a + vs_a
+
+        for j in range(i + 1, len(sections)):
+            b = sections[j]
+            va_b = b.get("virtual_address")
+            vs_b = b.get("virtual_size")
+            if not isinstance(va_b, int) or not isinstance(vs_b, int):
+                continue
+            end_b = va_b + vs_b
+
+            if max(va_a, va_b) < min(end_a, end_b):
+                out.append(
+                    _det(
+                        "pe_structure_anomaly",
+                        "section_overlap",
+                        {"section_a": a.get("name"), "section_b": b.get("name")},
+                    )
+                )
+
+    return out
+
+
+def _analyse_section_alignment(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+
+    opt = metadata.get("optional_header") or {}
+    file_alignment = opt.get("file_alignment")
+    if not isinstance(file_alignment, int) or file_alignment <= 0:
+        return out
+
+    for sec in analysis.get("sections", []):
+        raw_addr = sec.get("raw_address")
+        raw_size = sec.get("raw_size")
+        if not isinstance(raw_addr, int) or not isinstance(raw_size, int):
+            continue
+
+        if raw_addr % file_alignment != 0 or raw_size % file_alignment != 0:
+            out.append(
+                _det(
+                    "pe_structure_anomaly",
+                    "section_raw_misaligned",
+                    {
+                        "section": sec.get("name"),
+                        "raw_address": raw_addr,
+                        "raw_size": raw_size,
+                        "file_alignment": file_alignment,
+                    },
+                )
+            )
+
+    return out
+
+
+def _analyse_optional_header_consistency(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+
+    opt = metadata.get("optional_header") or {}
+    size_of_image = opt.get("size_of_image")
+    if not isinstance(size_of_image, int) or size_of_image <= 0:
+        return out
+
+    max_end = 0
+    for sec in analysis.get("sections", []):
+        va = sec.get("virtual_address")
+        vs = sec.get("virtual_size")
+        if not isinstance(va, int) or not isinstance(vs, int):
+            continue
+        max_end = max(max_end, va + vs)
+
+    if max_end > size_of_image:
+        out.append(
+            _det(
+                "pe_structure_anomaly",
+                "optional_header_inconsistent_size",
+                {"size_of_image": size_of_image, "max_section_end": max_end},
+            )
+        )
+
+    return out
+
+
+def _analyse_entrypoint_mapping(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+
+    header_ext = _get_extended(analysis, "header")
+    if not header_ext:
+        return out
+
+    ep = header_ext[0]["metadata"].get("entry_point")
+    if not isinstance(ep, int):
+        return out
+
+    sections = analysis.get("sections", [])
+    if not sections:
+        return out
+
+    if _map_rva_to_section(sections, ep) is None:
+        out.append(
+            _det(
+                "pe_structure_anomaly",
+                "entrypoint_out_of_bounds",
+                {"entry_point": ep},
+            )
+        )
+
+    return out
+
+
+def _analyse_data_directory_anomalies(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+
+    dirs = analysis.get("data_directories") or metadata.get("data_directories")
+    opt = metadata.get("optional_header") or {}
+    size_of_image = opt.get("size_of_image")
+
+    if not isinstance(size_of_image, int) or not isinstance(dirs, list):
+        return out
+
+    # Out-of-range and zero/size mismatch
+    for d in dirs:
+        rva = d.get("rva")
+        size = d.get("size")
+        name = d.get("name") or d.get("index")
+        if not isinstance(rva, int) or not isinstance(size, int):
+            continue
+
+        if size > 0 and rva == 0:
+            out.append(
+                _det(
+                    "pe_structure_anomaly",
+                    "data_directory_zero_rva_nonzero_size",
+                    {"directory": name, "rva": rva, "size": size},
+                )
+            )
+
+        if rva + size > size_of_image:
+            out.append(
+                _det(
+                    "pe_structure_anomaly",
+                    "data_directory_out_of_range",
+                    {
+                        "directory": name,
+                        "rva": rva,
+                        "size": size,
+                        "size_of_image": size_of_image,
+                    },
+                )
+            )
+
+    # Overlaps
+    for i in range(len(dirs)):
+        a = dirs[i]
+        rva_a = a.get("rva")
+        size_a = a.get("size")
+        if not isinstance(rva_a, int) or not isinstance(size_a, int):
+            continue
+        end_a = rva_a + size_a
+
+        for j in range(i + 1, len(dirs)):
+            b = dirs[j]
+            rva_b = b.get("rva")
+            size_b = b.get("size")
+            if not isinstance(rva_b, int) or not isinstance(size_b, int):
+                continue
+            end_b = rva_b + size_b
+
+            if max(rva_a, rva_b) < min(end_a, end_b):
+                out.append(
+                    _det(
+                        "pe_structure_anomaly",
+                        "data_directory_overlap",
+                        {
+                            "directory_a": a.get("name") or a.get("index"),
+                            "directory_b": b.get("name") or b.get("index"),
+                        },
+                    )
+                )
+
+    return out
+
+
+def _analyse_import_directory_validity(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
+    out: List[Detection] = []
+
+    dirs = analysis.get("data_directories") or metadata.get("data_directories")
+    sections = analysis.get("sections", [])
+    if not isinstance(dirs, list) or not sections:
+        return out
+
+    for d in dirs:
+        name = (d.get("name") or "").lower()
+        idx = d.get("index")
+        if name == "import" or idx == 1:
+            rva = d.get("rva")
+            size = d.get("size")
+            if not isinstance(rva, int) or not isinstance(size, int):
+                continue
+
+            if _map_rva_to_section(sections, rva) is None:
+                out.append(
+                    _det(
+                        "pe_structure_anomaly",
+                        "import_rva_invalid",
+                        {"rva": rva, "size": size},
+                    )
+                )
+
+    return out
+
+
 def analyse_pe_heuristics(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
     out: List[Detection] = []
 
@@ -214,5 +445,12 @@ def analyse_pe_heuristics(metadata: Dict[str, Any], analysis: Dict[str, Any]) ->
     out.extend(_analyse_anti_debug(metadata, analysis))
     out.extend(_analyse_import_anomalies(metadata, analysis))
     out.extend(_analyse_signature(metadata))
+
+    out.extend(_analyse_section_overlap(metadata, analysis))
+    out.extend(_analyse_section_alignment(metadata, analysis))
+    out.extend(_analyse_optional_header_consistency(metadata, analysis))
+    out.extend(_analyse_entrypoint_mapping(metadata, analysis))
+    out.extend(_analyse_data_directory_anomalies(metadata, analysis))
+    out.extend(_analyse_import_directory_validity(metadata, analysis))
 
     return out
