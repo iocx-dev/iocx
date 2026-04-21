@@ -1,5 +1,5 @@
 # ============================================
-# IOCX Project Generator + Auto Builder
+# IOCX Adversarial PE Generator + Auto Builder
 # Creates MSVC .vcxproj files using literal
 # here-strings so MSBuild variables remain intact.
 # Copies source files into project folders.
@@ -88,19 +88,27 @@ function New-Vcxproj {
 }
 
 # ============================================
-# Generate both projects
+# Generate adversarial malformed PE projects
 # ============================================
 
-New-Vcxproj -ProjectName "crypto_entropy_payload.full" -SourceFile "crypto_entropy_payload.full.c"
-New-Vcxproj -ProjectName "string_obfuscation_tricks.full" -SourceFile "string_obfuscation_tricks.full.c"
+$projects = @(
+    @{ Name="crypto_entropy_payload.full"; Src="crypto_entropy_payload.full.c" },
+    @{ Name="string_obfuscation_tricks.full"; Src="string_obfuscation_tricks.full.c" },
+    @{ Name="malformed_import_table.full"; Src="malformed_import_table.full.c" },
+    @{ Name="invalid_section_alignment.full"; Src="invalid_section_alignment.full.c" },
+    @{ Name="corrupted_data_directories.full"; Src="corrupted_data_directories.full.c" },
+    @{ Name="truncated_rich_header.full"; Src="truncated_rich_header.full.c" },
+    @{ Name="franken_malformed_pe.full"; Src="franken_malformed_pe.full.c" }
+)
 
-Write-Host "`nBuilding projects..."
+foreach ($p in $projects) {
+    New-Vcxproj -ProjectName $p.Name -SourceFile $p.Src
+}
 
-# ============================================
-# Build both projects
-# ============================================
+Write-Host "`nBuilding adversarial malformed PE projects..."
 
-msbuild crypto_entropy_payload.full\crypto_entropy_payload.full.vcxproj /p:Configuration=Release /p:Platform=x64
-msbuild string_obfuscation_tricks.full\string_obfuscation_tricks.full.vcxproj /p:Configuration=Release /p:Platform=x64
+foreach ($p in $projects) {
+    msbuild "$($p.Name)\$($p.Name).vcxproj" /p:Configuration=Release /p:Platform=x64
+}
 
-Write-Host "`nAll projects built successfully."
+Write-Host "`nAll malformed PE projects built successfully."
