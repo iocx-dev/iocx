@@ -83,82 +83,14 @@ tests/
     │
     ├── fixtures/
     │ ├── layer1_core/
-    │ │ ├── clean_iocx_demo.exe
-    │ │ ├── windows_like_system_binary.exe
-    │ │ ├── static_minimal.exe
-    │ │ ├── typical_compiler_msvc.exe
-    │ │ ├── dotnet_sample.dll
-    │ │ └── signed_binary.exe
-    │ │
     │ ├── layer2_edge/
-    │ │ ├── upx_packed.exe
-    │ │ ├── ordinal_imports.exe
-    │ │ ├── broken_imports.exe
-    │ │ ├── weird_tls.exe
-    │ │ ├── huge_rsrc.exe
-    │ │ ├── tiny_text.exe
-    │ │ ├── overlapping_sections.exe
-    │ │ ├── malformed_header.exe
-    │ │ ├── unusual_subsystem.exe
-    │ │ └── sparse_import_table.exe
-    │ │
     │ ├── layer3_adversarial/
-    │ │ ├── heuristic_rich.full.exe
-    │ │ ├── fake_headers_in_data.bin
-    │ │ ├── long_paths.bin
-    │ │ ├── unicode_homoglyph_domains.bin
-    │ │ ├── malformed_urls.bin
-    │ │ ├── mixed_script_iocs.bin
-    │ │ ├── deep_escape_sequences.bin
-    │ │ ├── corrupted_section_table.bin
-    │ │ ├── random_entropy_strings.bin
-    │ │ ├── misleading_import_names.bin
-    │ │ └── broken_rvas.bin
-    │ │
     │ └── layer4_regressions/
-    │ ├── 2026_04_bug1234_minimal_repro.exe
-    │ ├── 2026_05_bug1240_header_crash.exe
-    │ └── ...
-    │
     ├── snapshots/
     │ ├── layer1_core/
-    │ │ ├── clean_iocx_demo.json
-    │ │ ├── windows_like_system_binary.json
-    │ │ ├── static_minimal.json
-    │ │ ├── typical_compiler_msvc.json
-    │ │ ├── dotnet_sample.json
-    │ │ └── signed_binary.json
-    │ │
     │ ├── layer2_edge/
-    │ │ ├── upx_packed.json
-    │ │ ├── ordinal_imports.json
-    │ │ ├── broken_imports.json
-    │ │ ├── weird_tls.json
-    │ │ ├── huge_rsrc.json
-    │ │ ├── tiny_text.json
-    │ │ ├── overlapping_sections.json
-    │ │ ├── malformed_header.json
-    │ │ ├── unusual_subsystem.json
-    │ │ └── sparse_import_table.json
-    │ │
     │ ├── layer3_adversarial/
-    │ │ ├── heuristic_rich.full.json
-    │ │ ├── fake_headers_in_data.json
-    │ │ ├── long_paths.json
-    │ │ ├── unicode_homoglyph_domains.json
-    │ │ ├── malformed_urls.json
-    │ │ ├── mixed_script_iocs.json
-    │ │ ├── deep_escape_sequences.json
-    │ │ ├── corrupted_section_table.json
-    │ │ ├── random_entropy_strings.json
-    │ │ ├── misleading_import_names.json
-    │ │ └── broken_rvas.json
-    │ │
     │ └── layer4_regressions/
-    │ ├── 2026_04_bug1234_minimal_repro.json
-    │ ├── 2026_05_bug1240_header_crash.json
-    │ └── ...
-    │
     └── test_pipeline.py
 ```
 
@@ -169,14 +101,14 @@ tests/
 Use:
 
 ```plaintext
-<category>_<descriptive_name>.<ext>
+<category>_<descriptive_name>.<analysis_level>.<ext>
 ```
 Examples:
 
-- `clean_iocx_demo.exe`
-- `upx_packed.exe`
-- `unicode_homoglyph_domains.bin`
-- `2026_04_bug1234_minimal_repro.exe`
+- `clean_iocx_demo.core.exe`
+- `upx_packed.full.exe`
+- `unicode_homoglyph_domains.full.bin`
+- `2026_04_bug1234_minimal_repro.full.exe`
 
 ### Snapshots (JSON)
 
@@ -191,6 +123,7 @@ This ensures:
 - 1:1 mapping
 - Easy diffing
 - Easy regeneration
+- Samples are tested with the appropriate analysis flag set
 
 ### Regression naming
 
@@ -272,7 +205,7 @@ Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
 | **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/docs/testing/appendices/heuristic_rich.full.exe.md))                       |
 | **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/docs/testing/appendices/crypto_entropy_payload.full.exe.md))       |
 | **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/docs/testing/appendices/string_obfuscation_tricks.full.exe.md))             |
-| **4. Franken malformed PE (franken_malformed_pe.full.exe)**                           | Exercises structural-anomaly heuristics using a hand-crafted PE with contradictory headers, overlapping sections, invalid directories, and out-of-bounds entrypoint (see [Appendix 3.4](/docs/testing/appendices/franken_malformed_pe.full.exe.md)             |
+| **4. Franken malformed PE (franken_malformed_pe.full.exe)**                           | Exercises structural-anomaly heuristics using a hand-crafted PE with contradictory headers, overlapping sections, invalid directories, and out-of-bounds entrypoint (see [Appendix 3.4](/docs/testing/appendices/franken_malformed_pe.full.exe.md))             |
 | **5. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                               |
 | **6. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                |
 | **7. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                 |
