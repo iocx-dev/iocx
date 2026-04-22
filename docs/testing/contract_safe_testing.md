@@ -123,7 +123,6 @@ This ensures:
 - 1:1 mapping
 - Easy diffing
 - Easy regeneration
-- Samples are tested with the appropriate analysis flag set
 
 ### Regression naming
 
