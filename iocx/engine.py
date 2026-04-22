@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
-from .parsers.pe_parser import parse_pe, analyse_pe_sections
+from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections
 from .parsers.string_extractor import extract_strings
 from .detectors import all_detectors
 from .models import Detection, PluginContext
@@ -118,19 +118,22 @@ class Engine:
 
         # BASIC: section layout + entropy
         if analysis_level in ("basic", "deep", "full"):
-            section_analysis = analyse_pe_sections(pe)
+            section_analysis = {
+                "sections": analyse_pe_sections(pe),
+                "data_directories": analyse_data_directories(pe)
+            }
 
         # DEEP: obfuscation heuristics
         if analysis_level in ("deep", "full"):
-            obf = analyse_obfuscation(section_analysis, text)
+            obf = analyse_obfuscation(section_analysis["sections"], text)
 
         # FULL: future expansion
         if analysis_level == "full":
             extended = analyse_extended(pe, metadata, text)
 
             analysis_dict = {
-                "sections": section_analysis,
-                "data_directories": metadata.get("data_directories", []),
+                "sections": section_analysis["sections"],
+                "data_directories": section_analysis["data_directories"],
                 "extended": extended or [],
                 "obfuscation": [asdict(d) for d in obf],
             }
@@ -145,7 +148,7 @@ class Engine:
         analysis = {}
 
         if analysis_level in ("basic", "deep", "full"):
-            analysis["sections"] = section_analysis
+            analysis["sections"] = sanitize_sections(section_analysis["sections"])
 
         if analysis_level in ("deep", "full"):
             analysis["obfuscation"] = [asdict(d) for d in obf]

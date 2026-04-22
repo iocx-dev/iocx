@@ -47,105 +47,7 @@
     },
     "rich_header": null,
     "signatures": [],
-    "has_signature": false,
-    "data_directories": [
-      {
-        "index": 0,
-        "name": "IMAGE_DIRECTORY_ENTRY_EXPORT",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 1,
-        "name": "IMAGE_DIRECTORY_ENTRY_IMPORT",
-        "rva": 20480,
-        "size": 512
-      },
-      {
-        "index": 2,
-        "name": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
-        "rva": 0,
-        "size": 256
-      },
-      {
-        "index": 3,
-        "name": "IMAGE_DIRECTORY_ENTRY_EXCEPTION",
-        "rva": 6144,
-        "size": 512
-      },
-      {
-        "index": 4,
-        "name": "IMAGE_DIRECTORY_ENTRY_SECURITY",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 5,
-        "name": "IMAGE_DIRECTORY_ENTRY_BASERELOC",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 6,
-        "name": "IMAGE_DIRECTORY_ENTRY_DEBUG",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 7,
-        "name": "IMAGE_DIRECTORY_ENTRY_COPYRIGHT",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 8,
-        "name": "IMAGE_DIRECTORY_ENTRY_GLOBALPTR",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 9,
-        "name": "IMAGE_DIRECTORY_ENTRY_TLS",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 10,
-        "name": "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 11,
-        "name": "IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 12,
-        "name": "IMAGE_DIRECTORY_ENTRY_IAT",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 13,
-        "name": "IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 14,
-        "name": "IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR",
-        "rva": 0,
-        "size": 0
-      },
-      {
-        "index": 15,
-        "name": "IMAGE_DIRECTORY_ENTRY_RESERVED",
-        "rva": 0,
-        "size": 0
-      }
-    ]
+    "has_signature": false
   },
   "analysis": {
     "sections": [
@@ -154,36 +56,28 @@
         "raw_size": 1536,
         "virtual_size": 2048,
         "characteristics": 1610612768,
-        "entropy": 1.4118634405637875,
-        "raw_address": 512,
-        "virtual_address": 4096
+        "entropy": 1.4118634405637875
       },
       {
         "name": ".rdata",
         "raw_size": 1536,
         "virtual_size": 2048,
         "characteristics": 1073741888,
-        "entropy": 1.4118634405637875,
-        "raw_address": 768,
-        "virtual_address": 5120
+        "entropy": 1.4118634405637875
       },
       {
         "name": ".data",
         "raw_size": 768,
         "virtual_size": 1024,
         "characteristics": 3221225536,
-        "entropy": 0.9886994082884974,
-        "raw_address": 2384,
-        "virtual_address": 8192
+        "entropy": 0.9886994082884974
       },
       {
         "name": ".rsrc",
         "raw_size": 1536,
         "virtual_size": 1536,
         "characteristics": 1073741888,
-        "entropy": 0.2951817430907586,
-        "raw_address": 3072,
-        "virtual_address": 10240
+        "entropy": 0.2951817430907586
       }
     ],
     "obfuscation": [

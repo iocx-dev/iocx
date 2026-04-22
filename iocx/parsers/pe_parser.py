@@ -9,6 +9,22 @@ from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 # ---------------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------------
+def sanitize_sections(sections):
+    """
+    Remove internal-only fields from section dictionaries before
+    returning them in public output.
+    """
+    sanitized = []
+    for sec in sections:
+        # Copy only the fields we want to expose
+        clean = {
+            k: v for k, v in sec.items()
+            if k not in ("raw_address", "virtual_address")
+        }
+        sanitized.append(clean)
+    return sanitized
+
+
 def sanitize(obj):
     """Recursively convert bytes → hex strings so JSON can serialize."""
     if obj is None:
@@ -387,9 +403,9 @@ def _parse_resources(pe):
     return resources, resource_strings
 
 
-def _parse_data_directories(pe, opt):
+def _parse_data_directories(pe):
     dirs: list[dict[str, Any]] = []
-
+    opt = getattr(pe, "OPTIONAL_HEADER", None)
     if not opt:
         return dirs
 
@@ -432,7 +448,6 @@ def parse_pe(path):
         opt, optional_header = _parse_optional_header(pe)
         header = _parse_header(pe, opt)
         resources, resource_strings = _parse_resources(pe)
-        data_directories = _parse_data_directories(pe, opt)
 
         # Rich header
         try:
@@ -458,7 +473,6 @@ def parse_pe(path):
             "rich_header": rich_header,
             "signatures": signatures,
             "has_signature": bool(signatures),
-            "data_directories": data_directories,
         }
 
         return pe, metadata
@@ -469,3 +483,6 @@ def parse_pe(path):
 
 def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
     return _parse_sections(pe)
+
+def analyse_data_directories(pe) -> List[Dict[str, Any]]:
+    return _parse_data_directories(pe)
