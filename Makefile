@@ -132,7 +132,7 @@ test-coverage: dev
 .PHONY: test-contract
 test-contract: dev
 	@echo "Running contract tests..."
-	$(PYTEST) -m contract $(CONTRACT_DIR)
+	$(PYTEST) -m contract $(CONTRACT_DIR) -sv
 
 # ----------------------------------------
 # Static analysis and SCA
