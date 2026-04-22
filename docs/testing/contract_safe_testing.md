@@ -22,10 +22,58 @@ Contract-safe testing is split into four distinct layers. The following sections
 
 ## Layer Model
 
-- Layer 1: Core behaviour
-- Layer 2: Edge cases
-- Layer 3: Adversarial inputs
-- Layer 4: Regression tests
+### Layer 1: Core behaviour
+
+Layer 1 exists to guarantee that IOCX’s fundamental behaviour is stable, predictable, and correct under normal operating conditions. These inputs are intentionally simple, well‑formed, and representative of the kinds of binaries encountered in everyday triage workflows. The goal is not to test edge cases or adversarial conditions, but to ensure that the core extraction engine, metadata pipeline, and section‑level analysis behave deterministically when the input is valid and unambiguous.
+
+This layer establishes the baseline contract for IOCX:
+
+- literal IOCs must be extracted consistently
+- metadata fields must be populated correctly
+- section parsing must be stable
+- no false positives should appear
+- output structure must remain unchanged across versions
+
+Layer 1 provides the “ground truth” against which all higher layers are measured. If a change breaks a Layer 1 test, it indicates a regression in fundamental behaviour rather than an improvement in edge‑case handling. These tests ensure that IOCX’s core remains reliable even as the heuristics engine and adversarial handling evolve.
+
+### Layer 2: Edge cases
+
+Layer 2 exists to validate IOCX’s behaviour on inputs that are technically valid but structurally unusual, ambiguous, or borderline. These binaries sit between “normal” and “adversarial”: they follow the PE specification, but they stress the parser in ways that real‑world samples often do — unusual alignments, sparse sections, oversized directories, mixed encodings, or uncommon metadata layouts.
+
+The purpose of this layer is to ensure that IOCX handles these edge‑case conditions:
+
+- without crashing
+- without misclassifying benign anomalies as malicious
+- without producing inconsistent or unstable output
+- without leaking internal parsing state into the public API
+
+Layer 2 tests the robustness of the extraction and parsing logic when confronted with inputs that are legal but unexpected. These cases frequently appear in:
+
+- packer stubs
+- compiler‑generated oddities
+- embedded resources
+- installers
+- non‑malicious but unconventional binaries
+
+This layer ensures IOCX remains resilient and predictable even when the input stretches the boundaries of what “normal” looks like.
+
+### Layer 3: Adversarial inputs
+
+Layer 3 exists to ensure IOCX behaves predictably when confronted with inputs that are malformed, adversarial, or structurally contradictory — the kinds of binaries real‑world DFIR tools encounter but compilers never produce. These samples are designed to break assumptions, violate the PE specification, and trigger edge‑case logic paths. The goal is not to test correctness against “valid” binaries, but to guarantee that IOCX remains stable, deterministic, and safe even when the input is hostile, corrupted, or intentionally evasive.
+
+### Layer 4: Regression tests
+
+Layer 4 exists to ensure that previously fixed bugs never reappear. These samples are not designed to be adversarial or structurally interesting — they are historical reproductions of issues that IOCX has already encountered and resolved. Each binary in this layer corresponds to a specific past failure mode: a crash, a hang, a mis‑extraction, a mis‑classification, or an incorrect metadata interpretation.
+
+The purpose of this layer is simple but critical:
+
+- If IOCX ever regresses on a previously fixed behaviour, Layer 4 catches it immediately.
+- If a refactor or heuristic change alters output in an unintended way, Layer 4 highlights it.
+- If a new feature accidentally reintroduces an old bug, Layer 4 prevents it from shipping.
+
+Regression tests form the long‑term memory of the project. They ensure that as IOCX grows more capable — with new heuristics, deeper analysis, and more complex adversarial handling — it never loses correctness on the behaviours it has already mastered.
+
+Layer 4 is what allows IOCX to evolve confidently without fear of breaking the past.
 
 ## Directory Structure
 
@@ -224,16 +272,17 @@ Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
 | **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/docs/testing/appendices/heuristic_rich.full.exe.md))                       |
 | **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/docs/testing/appendices/crypto_entropy_payload.full.exe.md))       |
 | **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/docs/testing/appendices/string_obfuscation_tricks.full.exe.md))             |
-| **4. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                               |
-| **5. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                |
-| **6. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                 |
-| **7. Binary with malformed URLs**                                                     | Tests URL extraction robustness.                                                                                            |
-| **8. Binary with mixed‑script IOCs**                                                  | Tests regex boundaries and Unicode handling.                                                                                |
-| **9. Binary with deeply nested escape sequences**                                     | Tests regex backtracking safety.                                                                                            |
-| **10. Binary with corrupted section table**                                           | Tests fallback parsing.                                                                                                     |
-| **11. Binary with random high‑entropy strings**                                       | Tests false‑positive suppression.                                                                                           |
-| **12. Binary with misleading import names**                                           | Tests import heuristics.                                                                                                    |
-| **13. Binary with intentionally broken RVA/offsets**                                  | Tests error‑tolerant parsing.                                                                                               |
+| **4. Franken malformed PE (franken_malformed_pe.full.exe)**                           | Exercises structural-anomaly heuristics using a hand-crafted PE with contradictory headers, overlapping sections, invalid directories, and out-of-bounds entrypoint (see [Appendix 3.4](/docs/testing/appendices/franken_malformed_pe.full.exe.md)             |
+| **5. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                               |
+| **6. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                |
+| **7. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                 |
+| **8. Binary with malformed URLs**                                                     | Tests URL extraction robustness.                                                                                            |
+| **9. Binary with mixed‑script IOCs**                                                  | Tests regex boundaries and Unicode handling.                                                                                |
+| **10. Binary with deeply nested escape sequences**                                    | Tests regex backtracking safety.                                                                                            |
+| **11. Binary with corrupted section table**                                           | Tests fallback parsing.                                                                                                     |
+| **12. Binary with random high‑entropy strings**                                       | Tests false‑positive suppression.                                                                                           |
+| **13. Binary with misleading import names**                                           | Tests import heuristics.                                                                                                    |
+| **14. Binary with intentionally broken RVA/offsets**                                  | Tests error‑tolerant parsing.                                                                                               |
 
 *This is an aspirational list and does not represent the current adversarial input corpus. It will be added to gradually.*
 
