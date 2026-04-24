@@ -19,7 +19,7 @@ The following table compares IOCX’s measured throughput across different subsy
 | PE structural analysis           | Malformed PE (“Franken”)   | 64 KB    | **0.0028 s**      | N/A (non‑linear) |
 | Full engine (PE + IOC)           | 1 MB PE                    | 1 MB     | **0.0360 s**      | **≈ 28 MB/s**    |
 
-*Notes*
+*Notes:*
 
 - Throughput for PE parsing is not expressed in MB/s because PE analysis includes structural heuristics, RVA validation, and metadata extraction rather than pure linear scanning.
 - Pathological cases are intentionally adversarial inputs designed to stress specific detectors.
