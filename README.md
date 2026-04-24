@@ -686,6 +686,13 @@ All test samples are:
 - Publicly safe (EICAR, GTUBE)
 - Designed to avoid accidental malware handling
 
+## Performance Guarantees
+
+IOCX is engineered for high‑throughput, low‑latency analysis across normal, edge‑case, and adversarial inputs.
+We maintain strict performance thresholds enforced in CI to ensure the engine remains fast and predictable across releases.
+
+See the full performance guarantees here: [Performance Guarantees](/docs/performance.md)
+
 ## Contributing
 
 We welcome:
