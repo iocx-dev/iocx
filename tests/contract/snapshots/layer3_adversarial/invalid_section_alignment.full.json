@@ -1,0 +1,147 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/invalid_section_alignment.full.exe",
+  "type": "PE",
+  "iocs": {
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {
+    "file_type": "PE",
+    "imports": [],
+    "sections": [
+      ".text"
+    ],
+    "resources": [],
+    "resource_strings": [],
+    "import_details": [],
+    "delayed_imports": [],
+    "bound_imports": [],
+    "exports": [],
+    "tls": null,
+    "header": {
+      "entry_point": 4096,
+      "image_base": 5368709120,
+      "subsystem": 3,
+      "timestamp": 0,
+      "machine": 34404,
+      "characteristics": 2
+    },
+    "optional_header": {
+      "section_alignment": 4096,
+      "file_alignment": 512,
+      "size_of_image": 12288,
+      "size_of_headers": 512,
+      "linker_version": "0.0",
+      "os_version": "0.0",
+      "subsystem_version": "0.0"
+    },
+    "rich_header": null,
+    "signatures": [],
+    "has_signature": false
+  },
+  "analysis": {
+    "sections": [
+      {
+        "name": ".text",
+        "raw_size": 4096,
+        "virtual_size": 16,
+        "characteristics": 1610612768,
+        "entropy": 0.7194631047522527
+      }
+    ],
+    "obfuscation": [],
+    "extended": [
+      {
+        "value": "summary",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll_count": 0,
+          "import_count": 0,
+          "delayed_import_count": 0,
+          "bound_import_count": 0,
+          "export_count": 0,
+          "resource_count": 0,
+          "has_tls": false,
+          "has_signature": false
+        }
+      },
+      {
+        "value": "exports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "count": 0,
+          "names": [],
+          "forwarded": []
+        }
+      },
+      {
+        "value": "header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "entry_point": 4096,
+          "image_base": 5368709120,
+          "subsystem": 3,
+          "timestamp": 0,
+          "machine": 34404,
+          "characteristics": 2,
+          "machine_human": "AMD64",
+          "subsystem_human": "Windows CUI"
+        }
+      },
+      {
+        "value": "optional_header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "section_alignment": 4096,
+          "file_alignment": 512,
+          "size_of_image": 12288,
+          "size_of_headers": 512,
+          "linker_version": "0.0",
+          "os_version": "0.0",
+          "subsystem_version": "0.0"
+        }
+      }
+    ],
+    "heuristics": [
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "section_raw_misaligned",
+          "section": ".text",
+          "raw_address": 291,
+          "raw_size": 4096,
+          "file_alignment": 512
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "import_rva_invalid",
+          "rva": 0,
+          "size": 0
+        }
+      }
+    ]
+  }
+}
