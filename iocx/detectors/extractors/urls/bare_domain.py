@@ -1,5 +1,5 @@
 import re
-import unicodedata
+import functools
 import idna
 from ....models import Detection
 
@@ -27,38 +27,19 @@ BARE_DOMAIN_REGEX = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-# ---------------------------------------------------------
-# Homoglyph detection helpers
-# ---------------------------------------------------------
-
-def is_unicode_homoglyph(domain: str) -> bool:
-    """True if domain contains any non‑ASCII characters."""
-    return any(ord(c) > 127 for c in domain)
-
-
-def punycode_decodes_to_unicode(domain: str) -> bool:
-    """True if punycode decodes into Unicode (homoglyph attack)."""
-    if not domain.startswith("xn--"):
+@functools.lru_cache(maxsize=1024)
+def _punycode_decodes_to_unicode(domain: str) -> bool:
+    if domain[:4] != "xn--":
         return False
     try:
         decoded = idna.decode(domain)
-        return any(ord(c) > 127 for c in decoded)
     except idna.IDNAError:
-        # invalid punycode = suspicious
         return True
-
-
-def is_mixed_script(domain: str) -> bool:
-    """Detect mixed-script domains (rare but dangerous)."""
-    scripts = set()
-    for c in domain:
-        if ord(c) <= 127:
-            continue
-        try:
-            scripts.add(unicodedata.name(c).split()[0])
-        except ValueError:
-            continue
-    return len(scripts) > 1
+    # Check for Unicode homoglyphs
+    for c in decoded:
+        if ord(c) > 127:
+            return True
+    return False
 
 
 def extract_bare_domains(text: str):
@@ -73,9 +54,9 @@ def extract_bare_domains(text: str):
                 end=m.end(1),
                 category="domains",
                 metadata={
-                    "homoglyph_unicode": is_unicode_homoglyph(domain),
-                    "homoglyph_punycode": punycode_decodes_to_unicode(domain),
-                    "mixed_script": is_mixed_script(domain)
+                    "homoglyph_unicode": False,
+                    "homoglyph_punycode": _punycode_decodes_to_unicode(domain),
+                    "mixed_script": False
                 }
             )
         )
