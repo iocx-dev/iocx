@@ -1,0 +1,22 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/long_paths_adversarial.full.bin",
+  "type": "text",
+  "iocs": {
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [
+      "C:\\Windows\\System32\\cmd.exe",
+      "C:\\Program Files\\TestApp\\app.exe",
+      "C:\\a\\b\\c\\d\\e\\f\\g\\h\\i\\j\\k\\l\\m\\n\\o\\p\\q\\r\\s\\t\\u\\v\\w\\x\\y\\z\\file.txt",
+      "C:\\very\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\nested\\file.txt",
+      "\\\\server\\share\\badprefix\\file.txt"
+    ],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {}
+}

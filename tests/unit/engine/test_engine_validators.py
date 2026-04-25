@@ -20,10 +20,7 @@ def test_dedupe_case_sensitive_crypto(engine):
         "1boatSLRHtKNngkdXEeobR76b53LETtpyT"
     )
     result = engine.extract(text)
-    assert result["iocs"]["crypto.btc"] == [
-        "1BoatSLRHtKNngkdXEeobR76b53LETtpyT",
-        "1boatSLRHtKNngkdXEeobR76b53LETtpyT",
-    ]
+    assert result["iocs"]["crypto.btc"] == ["1BoatSLRHtKNngkdXEeobR76b53LETtpyT"]
 
 
 def test_dedupe_case_sensitive_base64(engine):

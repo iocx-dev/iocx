@@ -14,7 +14,7 @@ The following table compares IOCX’s measured throughput across different subsy
 | IOC extraction (mixed content)   | Flat text (URLs, IPs, BTC) | 1 MB     | **0.0360 s**      | **≈ 28 MB/s**    |
 | IOC extraction (pathological)    | Deep UNIX path             | 1 MB     | **0.0247 s**      | **≈ 40 MB/s**    |
 | IOC extraction (IPv6 blob)       | Pathological IPv6 patterns | 1 MB     | **0.0004 s**      | **≈ 2500 MB/s**  |
-| Crypto extraction                | Mixed crypto text          | 1 MB     | **0.0022 s**      | **≈ 450 MB/s**   |
+| Crypto extraction                | Mixed crypto text          | 1 MB     | **0.0037 s**      | **≈ 270 MB/s**   |
 | Crypto extraction (pathological) | ETH‑like blob              | 1 MB     | **0.0012 s**      | **≈ 830 MB/s**   |
 | PE structural analysis           | Malformed PE (“Franken”)   | 64 KB    | **0.0028 s**      | N/A (non‑linear) |
 | Full engine (PE + IOC)           | 1 MB PE                    | 1 MB     | **0.0360 s**      | **≈ 28 MB/s**    |

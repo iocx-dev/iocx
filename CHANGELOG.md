@@ -20,6 +20,14 @@
 - Public output remains stable except where new heuristics apply.
 - Improved section overlap detection and RVA range validation.
 
+### Crypto Extractor Improvements
+
+- Added **Base58Check checksum validation** for legacy BTC addresses
+- Prevented extraction of near‑miss or malformed BTC Base58 strings
+- ETH extraction unchanged (already strict and correct)
+
+This change significantly reduces false positives in BTC detection and aligns behaviour with the v0.7.1 adversarial requirements.
+
 ## Fixed
 
 - Removed internal fields (raw_address, virtual_address) from public section output.
