@@ -1,0 +1,170 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/invalid_optional_header.pe32.full.exe",
+  "type": "PE",
+  "iocs": {
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {
+    "file_type": "PE",
+    "imports": [],
+    "sections": [
+      ".text"
+    ],
+    "resources": [],
+    "resource_strings": [],
+    "import_details": [],
+    "delayed_imports": [],
+    "bound_imports": [],
+    "exports": [],
+    "tls": null,
+    "header": {
+      "entry_point": 2415919104,
+      "image_base": 74565,
+      "subsystem": 3,
+      "timestamp": 0,
+      "machine": 332,
+      "characteristics": 2
+    },
+    "optional_header": {
+      "section_alignment": 4096,
+      "file_alignment": 16384,
+      "size_of_image": 512,
+      "size_of_headers": 2048,
+      "linker_version": "0.0",
+      "os_version": "10.0",
+      "subsystem_version": "99.99"
+    },
+    "rich_header": null,
+    "signatures": [],
+    "has_signature": false
+  },
+  "analysis": {
+    "sections": [
+      {
+        "name": ".text",
+        "raw_size": 512,
+        "virtual_size": 4096,
+        "characteristics": 1610612768,
+        "entropy": 0.3372900666170139
+      }
+    ],
+    "obfuscation": [],
+    "extended": [
+      {
+        "value": "summary",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "dll_count": 0,
+          "import_count": 0,
+          "delayed_import_count": 0,
+          "bound_import_count": 0,
+          "export_count": 0,
+          "resource_count": 0,
+          "has_tls": false,
+          "has_signature": false
+        }
+      },
+      {
+        "value": "exports",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "count": 0,
+          "names": [],
+          "forwarded": []
+        }
+      },
+      {
+        "value": "header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "entry_point": 2415919104,
+          "image_base": 74565,
+          "subsystem": 3,
+          "timestamp": 0,
+          "machine": 332,
+          "characteristics": 2,
+          "machine_human": "x86",
+          "subsystem_human": "Windows CUI"
+        }
+      },
+      {
+        "value": "optional_header",
+        "start": 0,
+        "end": 0,
+        "category": "pe_metadata",
+        "metadata": {
+          "section_alignment": 4096,
+          "file_alignment": 16384,
+          "size_of_image": 512,
+          "size_of_headers": 2048,
+          "linker_version": "0.0",
+          "os_version": "10.0",
+          "subsystem_version": "99.99"
+        }
+      }
+    ],
+    "heuristics": [
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "section_raw_misaligned",
+          "section": ".text",
+          "raw_address": 512,
+          "raw_size": 512,
+          "file_alignment": 16384
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "optional_header_inconsistent_size",
+          "size_of_image": 512,
+          "max_section_end": 8192
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "entrypoint_out_of_bounds",
+          "entry_point": 2415919104
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "data_directory_out_of_range",
+          "directory": "IMAGE_DIRECTORY_ENTRY_EXPORT",
+          "rva": 4096,
+          "size": 512,
+          "size_of_image": 512
+        }
+      }
+    ]
+  }
+}
