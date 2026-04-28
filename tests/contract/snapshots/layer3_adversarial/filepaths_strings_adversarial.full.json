@@ -1,0 +1,41 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/filepaths_strings_adversarial.full.bin",
+  "type": "text",
+  "iocs": {
+    "urls": [
+      "http://example.com/path/file.txt"
+    ],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [
+      "C:\\Users\\Public\\document.txt",
+      "D:\\Program Files\\App\\bin.exe",
+      "C:\\Windows\\System32\\cmd.exe",
+      "C:\\Windows\\System32\\wscript.exe",
+      "C:\\Windows\\System32\\mshta.exe",
+      "\\\\server01\\share\\folder\\file.log",
+      "\\\\10.0.0.5\\data$\\dump.bin",
+      "/usr/local/bin/script.sh",
+      "/opt/app/config.yaml",
+      "/usr/bin/python3.11",
+      "/usr/bin/openssl",
+      ".\\temp\\run.cmd",
+      "../logs/error.log",
+      "~/projects/code/main.py",
+      "~user/docs/readme.md",
+      "%APPDATA%\\MyApp\\config.json",
+      "$HOME/.config/tool/settings.ini",
+       "C:\\Users\\Pub",
+      "/usr/loc",
+      "C:\\Temp\\my",
+      "/var/log/my",
+      "C:\\Windows\\System32evil"
+    ],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {}
+}

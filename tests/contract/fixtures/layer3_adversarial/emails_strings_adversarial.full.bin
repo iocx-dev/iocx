@@ -1,0 +1,16 @@
+contact@example.com
+first.last@sub.domain.co.uk
+user+tag@my-server.example
+mailto:admin@example.org
+xxx_support@company.com_yyy
+token=abc123user@example.comxyz
+broken@localhost
+user@domain
+bad@domain.c
+weird@domain.123
+split@exa
+mple.com
+auth.failure.reason
+network.connection.error
+@@@@notanemail@@@@
+user@@example.com
