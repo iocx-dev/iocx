@@ -10,7 +10,10 @@ def normalise_url(url: str) -> str:
     - preserve path/query/fragment case
     - treat bare domains correctly
     """
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except:
+        return None
 
     # Lowercase scheme
     scheme = (parsed.scheme or "").lower()

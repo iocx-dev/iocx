@@ -4,25 +4,31 @@ import idna
 from ....models import Detection
 
 REAL_TLDS = (
-    "com|net|org|io|co|uk|gov|edu|mil|info|biz|dev|app|ai|"
-    "xyz|online|site|tech|store|blog|me|us|ca|de|fr|jp|cn|bar"
+    "ae|ai|am|app|ar|au|be|bid|biz|blog|br|bz|ca|cam|cc|cf|ch|cl|click|cm|co|com|cz|"
+    "date|de|dev|es|fi|fm|fr|fun|ga|gg|gl|gq|hk|hu|id|ie|in|info|io|ir|it|jp|kim|"
+    "kr|kz|la|life|link|live|loan|ly|me|men|ml|mom|mx|net|nl|no|nz|online|org|party|"
+    "paste|pe|ph|pl|pro|pt|pw|rest|review|ro|ru|sa|se|sg|sh|site|sk|store|su|tech|"
+    "th|tk|to|top|trade|tr|tv|tw|ua|uk|us|uz|ve|vip|vn|win|world|ws|xyz|za"
 )
 
-BAD_TLDS = "dll|exe|sys|text|startup|pdata|xdata|rdata|sh"
+BAD_TLDS = (
+    "dll|exe|sys|text|startup|pdata|xdata|rdata|sh|"
+    "bat|cmd|ps1|vbs|js|json|xml|ini|cfg|tmp|bak|log|dat|bin"
+)
 
 BARE_DOMAIN_REGEX = re.compile(
     rf"""
-    (?<![A-Za-z0-9@.])                     # strong left boundary (blocks emails + inside words + dotted junk)
+    (?<![A-Za-z0-9@]) # left boundary
 
-    (                                      # capture domain
+    ( # capture domain
         (?:xn--[A-Za-z0-9-]+|[A-Za-z0-9-]+)
-        (?:\.(?:xn--[A-Za-z0-9-]+|[A-Za-z0-9-]+))*   # subdomains
+        (?:\.(?:xn--[A-Za-z0-9-]+|[A-Za-z0-9-]+))* # subdomains
         \.
-        (?!{BAD_TLDS}\b)                   # block file extensions
-        (?:xn--[A-Za-z0-9-]+|{REAL_TLDS})  # real TLDs
+        (?!{BAD_TLDS}\b)
+        (?:xn--[A-Za-z0-9-]+|{REAL_TLDS})
     )
 
-    (?![A-Za-z0-9._-])                     # strong right boundary
+    (?=[^A-Za-z0-9._-]|$) # right boundary
     """,
     re.VERBOSE | re.IGNORECASE,
 )
