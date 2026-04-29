@@ -39,14 +39,9 @@ def _punycode_decodes_to_unicode(domain: str) -> bool:
         return False
     try:
         decoded = idna.decode(domain)
+        return True
     except idna.IDNAError:
         return True
-    # Check for Unicode homoglyphs
-    for c in decoded:
-        if ord(c) > 127:
-            return True
-    return False
-
 
 def extract_bare_domains(text: str):
     results: list[Detection] = []
