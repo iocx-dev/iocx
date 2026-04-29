@@ -40,3 +40,8 @@ def test_normalise_url_without_userinfo():
     result = normalise_url("http://Example.com/path")
 
     assert result == "http://example.com/path"
+
+
+def test_urlparse_exception_returns_none():
+    # urlparse(object()) raises TypeError → triggers except → returns None
+    assert normalise_url(object()) is None
