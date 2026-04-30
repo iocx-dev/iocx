@@ -103,6 +103,28 @@ IOCX is **static extraction only**, by design.
 
 ## Version Highlights
 
+### v0.7.1 — Adversarial Heuristics Expansion & Parser Hardening
+
+v0.7.1 strengthens IOCX’s PE analysis layer with **six new structural heuristics** and introduces a broad adversarial corpus to validate them. This release focuses on robustness, determinism, and resilience against malformed binaries and hostile IOC‑like strings.
+
+- **New PE heuristics added**
+  - Section overlap detection
+  - Section alignment validation
+  - Optional‑header consistency checks
+  - Entrypoint → section mapping validation
+  - Data‑directory anomaly detection
+  - Import‑directory validity checks
+- **Expanded adversarial PE corpus**
+  malformed imports, corrupted RVAs, invalid optional headers, truncated Rich headers, overlapping sections, franken‑PE hybrids
+- **Adversarial fixtures for *all* IOC categories**
+  crypto, homoglyph domains, malformed URLs, broken IPs, long paths, noisy hashes, invalid base64, deceptive emails
+- **Deterministic, JSON‑safe output**
+  all new samples snapshot‑validated
+- **No behavioural changes to extractors**
+  static‑only design preserved
+
+This release improves IOCX’s **structural awareness**, **error resilience**, and **adversarial coverage**.
+
 ### v0.7.0 — Deterministic Heuristics & Adversarial Testing Foundation
 
 - Deterministic heuristics: anti‑debug APIs, TLS anomalies, packer‑like behaviour, RWX sections, import anomalies.
@@ -232,6 +254,7 @@ This three‑tier model provides a realistic, defensible performance profile for
 <details>
 <summary><strong>Show Example JSON Output</strong></summary>
 <br>
+
 ```json
 $ iocx chaos_corpus.json
 {
@@ -265,6 +288,7 @@ $ iocx chaos_corpus.json
 }
 
 ```
+
 </details>
 <details>
 <summary><strong>Chaos Corpus: Input → Extracted Output → Explanation</strong></summary>
