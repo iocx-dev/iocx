@@ -222,8 +222,6 @@ Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section valid
 | **invalid_optional_header.pe32.full.exe** | Tests malformed PE32 optional header fields. [Appendix 3.15](/docs/testing/appendices/invalid_optional_header.pe32.full.exe.md)                                                                                 |
 | **long_paths_adversarial.full.bin**       | Tests extraction limits and boundary handling for extremely long path‑like strings. [Appendix 3.16](/docs/testing/appendices/long_paths_adversarial.full.exe.md)                                                |
 
----
-
 ### **B. Adversarial IOC‑String Corpora (.full.bin)**
 
 These fixtures provide **full adversarial coverage for every IOC category**.
@@ -241,8 +239,6 @@ These fixtures provide **full adversarial coverage for every IOC category**.
 | **malformed_ip.full.exe**                  | Tests IPv4/IPv6 extraction under corrupted, concatenated, or partial IP patterns. [Appendix 3.25](/docs/testing/appendices/malformed_ip.full.exe.md)                                       |
 | **malformed_url.full.exe**                 | Tests URL extraction under broken schemes, malformed IPv6, reversed URLs, and salvage behaviour. [Appendix 3.26](/docs/testing/appendices/malformed_url.full.exe.md)                       |
 | **franken_url_domain_ip.full.exe**         | Combined adversarial sample mixing malformed URLs, domains, and IPs inside a PE container. [Appendix 3.27](/docs/testing/appendices/franken_url_domain_ip.full.exe.md)                     |
-
----
 
 ### **C. Consolidated Summary (Current State)**
 
