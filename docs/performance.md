@@ -1,166 +1,202 @@
-# IOCX Performance Guarantee
+# **IOCX Performance Guarantees**
 
-IOCX is engineered to deliver **predictable, low‑latency extraction and analysis** across a wide range of binary formats and content types. This document defines the performance guarantees that the engine must uphold across releases. These guarantees are enforced through automated performance tests that run in CI.
+IOCX is engineered for **predictable, low‑latency static analysis** across text, buffers, and Windows PE files.
+This document defines the **performance guarantees** that every release must uphold.
+All guarantees are enforced through automated CI performance tests.
 
-The goal is simple:
-> **IOCX must remain fast, stable, and scalable — even under adversarial or malformed inputs.**
+> **IOCX must remain fast, stable, and deterministic — even under adversarial or malformed inputs.**
 
-## Throughput Summary
+---
 
-The following table compares IOCX’s measured throughput across different subsystems and workloads. All tests are run on reference hardware under CI‑controlled conditions.
+# **1. Throughput Summary (v0.7.1 Benchmarks)**
 
-| **Subsystem**                    | **Input Type**             | **Size** | **Measured Time** | **Throughput**   |
-|----------------------------------|----------------------------|----------|-------------------|------------------|
-| IOC extraction (mixed content)   | Flat text (URLs, IPs, BTC) | 1 MB     | **0.0360 s**      | **≈ 28 MB/s**    |
-| IOC extraction (pathological)    | Deep UNIX path             | 1 MB     | **0.0247 s**      | **≈ 40 MB/s**    |
-| IOC extraction (IPv6 blob)       | Pathological IPv6 patterns | 1 MB     | **0.0004 s**      | **≈ 2500 MB/s**  |
-| Crypto extraction                | Mixed crypto text          | 1 MB     | **0.0037 s**      | **≈ 270 MB/s**   |
-| Crypto extraction (pathological) | ETH‑like blob              | 1 MB     | **0.0012 s**      | **≈ 830 MB/s**   |
-| PE structural analysis           | Malformed PE (“Franken”)   | 64 KB    | **0.0028 s**      | N/A (non‑linear) |
-| Full engine (PE + IOC)           | 1 MB PE                    | 1 MB     | **0.0360 s**      | **≈ 28 MB/s**    |
+The table below reflects measured performance on reference hardware under CI‑controlled conditions.
 
-*Notes:*
+| Subsystem                          | Input Type        | Size   | Time         | Throughput     |
+|------------------------------------|-------------------|--------|--------------|----------------|
+| **Raw IOC extraction (crypto)**    | Text              | 1 MB   | **0.0037 s** | **~270 MB/s**  |
+| **Raw IOC extraction (filepaths)** | Text              | 1 MB   | **0.0040 s** | **~250 MB/s**  |
+| **Raw IOC extraction (IP)**        | Text              | 1 MB   | **0.0064 s** | **~156 MB/s**  |
+| **Pathological IPv6 blob**         | IPv6‑dense text   | 1 MB   | **0.0004 s** | **~2500 MB/s** |
+| **Pathological ETH‑like blob**     | Crypto‑dense text | 1 MB   | **0.0012 s** | **~830 MB/s**  |
+| **Typical PE**                     | 39 KB PE          | 39 KB  | **0.0132 s** | ~6–15 MB/s     |
+| **Typical PE (with heuristics)**   | 39 KB PE          | 39 KB  | **0.0153 s** | ~6–15 MB/s     |
+| **Adversarial dense PE**           | 1.5 MB PE         | 1.5 MB | **0.1977 s** | **~7.6 MB/s**  |
+| **Malformed PE (“Franken”)**       | 64 KB PE          | 64 KB  | **0.0017 s** | N/A            |
+| **Full engine (non‑PE)**           | 1 MB text         | 1 MB   | **0.0411 s** | —              |
 
-- Throughput for PE parsing is not expressed in MB/s because PE analysis includes structural heuristics, RVA validation, and metadata extraction rather than pure linear scanning.
-- Pathological cases are intentionally adversarial inputs designed to stress specific detectors.
-- All results demonstrate strictly linear scaling with respect to input size
+**Key takeaways:**
 
-## 1. IOC Extraction Throughput (1MB Mixed‑Content Text)
+- **Raw IOC extraction:** 150–300 MB/s
+- **Typical PE:** ~13–15 ms
+- **Adversarial PE:** ~0.197 s
+- **Worst‑case text blobs:** sub‑millisecond to low‑millisecond
 
-This benchmark measures the performance of the IOC extraction pipeline only. It does not involve PE parsing, binary metadata extraction, or structural heuristics.
+---
 
-The test feeds IOCX a 1MB flat text blob composed of:
+# **2. Raw IOC Extraction Guarantees**
 
-- repeated URLs
-- Windows registry paths
-- Bitcoin‑like crypto strings
-- IPv4 addresses
-- general ASCII noise
+Raw IOC extraction is the **fast path** (no PE parsing, no heuristics).
 
-This represents a realistic high‑entropy, mixed‑IOC workload similar to what appears in logs, telemetry, and decoded buffers.
+### **Guaranteed Baseline**
+- **≤ 10 ms** for 1 MB mixed IOC‑rich text
+- **≤ 5 ms** for crypto‑dense or IPv6‑dense blobs
 
-### Guaranteed Baseline
-
-IOCX must process **1MB of mixed IOC-like text in under 50ms** on reference hardware.
-
-### Current Performance
-
+### **Measured Performance**
 ```
-engine end-to-end 1MB: 0.0360s
-```
-
-- This benchmark reflects pure IOC scanning throughput, demonstrating:
-   - **linear O(n)** behaviour
-   - no regex backtracking
-   - no pathological slow paths
-   - cache‑friendly tokenisation
-   - stable performance across mixed content
-- This test isolates the text‑scanning subsystem and confirms that IOCX can process large volumes of unstructured IOC‑rich text efficiently.
-
-## 2. Crypto Extraction Performance
-
-### Guaranteed Baseline
-
-- IOCX must extract crypto‑related IOCs from **1MB of mixed content in under 10ms**.
-- Pathological ETH/BTC‑like blobs must complete in **under 5ms**.
-
-### Current Performance
-
-```
-crypto 1MB mixed-content: 0.0022s
-pathological ETH-like blob: 0.0012s
+crypto 1MB: 0.0037s
+filepaths 1MB: 0.0040s
+IP 1MB: 0.0064s
+IPv6 blob: 0.0004s
+ETH blob: 0.0012s
 ```
 
-These results confirm:
+### **Guarantee**
+- Strict **O(n)** linear scanning
+- No regex backtracking
+- No pathological slow paths
 
-- no catastrophic regex behaviour
-- no backtracking
-- linear scanning performance
+---
 
-## 3. Filepath Extraction Performance
+# **3. Filepath Extraction Guarantees**
 
-### Guaranteed Baseline
+### **Guaranteed Baseline**
+- **≤ 15 ms** for 1 MB mixed content
+- **≤ 50 ms** for deeply nested or adversarial paths
 
-- IOCX must extract filepaths from **1MB of mixed content in under 15ms**.
-- Deeply nested or pathological paths must complete in **under 50ms**.
-
-### Current Performance
-
+### **Measured Performance**
 ```
 filepaths 1MB mixed-content: 0.0040s
-pathological deep UNIX path: 0.0247s
+pathological deep UNIX path: 0.0248s
 ```
 
-This demonstrates:
+### **Guarantee**
+- No recursion
+- No exponential behaviour
 
-- predictable behaviour under worst‑case nesting
-- no recursion or exponential slowdowns
+---
 
-## 4. IP Extraction Performance
+# **4. IP Extraction Guarantees**
 
-### Guaranteed Baseline
+### **Guaranteed Baseline**
+- **≤ 15 ms** for 1 MB mixed content
+- **≤ 5 ms** for IPv6‑dense blobs
 
-- IOCX must extract IPv4/IPv6 IOCs from **1MB of mixed content in under 15ms**.
-- Pathological IPv6 blobs must complete in **under 5ms**.
-
-### Current Performance
-
+### **Measured Performance**
 ```
-IP 1MB mixed-content: 0.0067s
+IP 1MB mixed-content: 0.0064s
 pathological IPv6 blob: 0.0004s
 ```
 
-The IPv6 detector remains extremely fast even under adversarial patterns.
+### **Guarantee**
+- IPv6 detector remains sub‑millisecond
+- No catastrophic parsing behaviour
 
-## 5. Malformed PE Handling (Franken Guarantee)
+---
 
-Malformed or adversarial PE files must not degrade performance.
+# **5. Crypto Extraction Guarantees**
 
-### Guaranteed Baseline
+### **Guaranteed Baseline**
+- **≤ 10 ms** for 1 MB mixed crypto text
+- **≤ 5 ms** for pathological ETH/BTC‑like blobs
 
-- IOCX must fully analyse malformed PEs in **under 20ms**.
-- No crashes, hangs, or exponential fallback behaviour.
-
-### Current Performance
-
+### **Measured Performance**
 ```
-engine franken PE: 0.0028s
+crypto 1MB mixed-content: 0.0037s
+pathological ETH-like blob: 0.0012s
 ```
 
-This confirms:
+### **Guarantee**
+- Full Base58Check validation remains linear
+- No backtracking or exponential behaviour
 
-- deterministic structural heuristics
-- no repeated scanning
-- no speculative parsing loops
-- no performance cliffs under malformed conditions
+---
 
-## 6. Scaling Behaviour
+# **6. Typical PE Analysis Guarantees**
 
-IOCX must maintain **strictly linear** scaling with respect to input size.
+### **Guaranteed Baseline**
+- **≤ 20 ms** for a typical 30–60 KB PE
+- Heuristics must not materially degrade performance
 
-### Current Scaling Profile
+### **Measured Performance**
+```
+typical PE: 0.0132s
+typical PE (heuristics): 0.0153s
+```
 
+### **Guarantee**
+- Deterministic PE parsing
+- Minimal overhead from heuristics
+
+---
+
+# **7. Malformed PE (“Franken”) Guarantees**
+
+Malformed or adversarial PEs must not degrade performance.
+
+### **Guaranteed Baseline**
+- **≤ 20 ms** for malformed PEs
+- No hangs, crashes, or exponential fallback behaviour
+
+### **Measured Performance**
+```
+engine franken PE: 0.0017s
+```
+
+### **Guarantee**
+- Deterministic structural heuristics
+- No repeated scanning
+- No speculative parsing loops
+
+---
+
+# **8. Adversarial Dense PE Guarantees**
+
+### **Guaranteed Baseline**
+- **≤ 250 ms** for 1.5 MB adversarial PEs
+
+### **Measured Performance**
+```
+dense PE (1.5MB): 0.1977s
+```
+
+### **Guarantee**
+- Stable under high‑entropy sections
+- Stable under corrupted RVA/section tables
+- Stable under adversarial import/TLS structures
+
+---
+
+# **9. Scaling Guarantees**
+
+IOCX must maintain **strictly linear scaling** with respect to input size.
+
+### **Measured Scaling**
 ```
 300KB → ~0.001s
 600KB → ~0.002s
-1000KB → ~0.004–0.006s
-1500KB → ~0.005–0.008s
+1000KB → ~0.0038–0.0069s
+1500KB → ~0.0055–0.0080s
 ```
 
-This behaviour is monitored in CI to detect regressions.
+### **Guarantee**
+- No superlinear behaviour
+- No quadratic or exponential paths
 
-## 7. CI Enforcement
+---
 
-Performance tests run automatically and enforce:
+# **10. CI Enforcement**
 
-- **Upper‑bound thresholds** for each category
-- **Linear scaling checks**
-- **No regression tolerance** beyond a small jitter margin
-- **Hard failure** if any test exceeds its guarantee
+Performance tests enforce:
 
-This ensures IOCX remains fast across all future releases.
+- Upper‑bound thresholds for each subsystem
+- Linear scaling checks
+- No regression tolerance beyond jitter
+- Hard failure if any guarantee is violated
 
-## 8. Philosophy
+---
+
+# **11. Philosophy**
 
 IOCX is designed to be:
 
@@ -168,4 +204,4 @@ IOCX is designed to be:
 - **Fast on adversarial inputs**
 - **Fast on malformed inputs**
 
-Performance is not an afterthought — it is a core contract of the engine.
+Performance is a **core contract**, not an optimisation.
