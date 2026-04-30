@@ -138,11 +138,13 @@ This encodes:
 - bug lineage
 - reproducibility
 
-## Matrix
+---
+
+# Matrix
 
 This matrix defines the minimum viable set of binaries required to lock in deterministic behaviour across normal, edge‑case, adversarial, and regression scenarios.
 
-### Layer 1 — Core Behaviour (4–6 binaries)
+## Layer 1 — Core Behaviour (4–6 binaries)
 
 Representative, non-complex, realistic binaries that exercise the main parsing paths.
 
@@ -168,7 +170,7 @@ Tests for each sample
 
 These snapshots become the IOCX contract.
 
-### Layer 2 — Edge Cases (6–10 binaries)
+## Layer 2 — Edge Cases (6–10 binaries)
 
 Weird, malformed, or unusual binaries that stress the parser but are not hostile.
 
@@ -195,38 +197,87 @@ Tests for each sample:
 - Assertions that the parser **does not crash**
 - Assertions that heuristics fire **predictably**
 
-### Layer 3 — Adversarial Inputs (6–10 binaries)
+## Layer 3 — Adversarial Inputs (6–10 binaries)
 
-Inputs designed to break regexes, confuse parsers, or trigger fallback logic.
+Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section validation, and heuristic stability under malformed or hostile conditions.
 
-| Sample                                                                                | Why it matters                                                                                                                                                                                                                                        |
-|---------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **1. Heuristics-rich PE (heuristics_rich.full.exe)**                                  | Exercises full-analysis heuristic engine (see [Appendix 3.1](/docs/testing/appendices/heuristic_rich.full.exe.md))                                                                                                                                    |
-| **2. Binary with high‑entropy crypto‑like payload (crypto_entropy_payload.full.exe)** | Tests entropy analysis and payload‑like sections (see [Appendix 3.2](/docs/testing/appendices/crypto_entropy_payload.full.exe.md))                                                                                                                    |
-| **3. Binary with obfuscated string patterns (string_obfuscation_tricks.full.exe)**    | Ensures only literal IOCs are extracted (see [Appendix 3.3](/docs/testing/appendices/string_obfuscation_tricks.full.exe.md))                                                                                                                          |
-| **4. Franken malformed PE (franken_malformed_pe.full.exe)**                           | Exercises structural-anomaly heuristics using a hand-crafted PE with contradictory headers, overlapping sections, invalid directories, and out-of-bounds entrypoint (see [Appendix 3.4](/docs/testing/appendices/franken_malformed_pe.full.exe.md))   |
-| **5. Binary with intentionally corrupted import table (malformed_import_table.full.exe)**                    | Validates resilience against malformed PE import tables by forcing the parser to handle out‑of‑range RVAs, invalid directory sizes, and missing import descriptors without crashing or producing false IOCs (see [Appendix 3.5](/docs/testing/appendices/malformed_import_table.full.exe.md))   |
-| **6. Invalid section alignment (invalid_section_alignment.full.exe)**                 | Validates behaviour when section raw offsets violate FileAlignment and raw/virtual sizes contradict each other (see [Appendix 3.6](/docs/testing/appendices/invalid_section_alignment.full.exe.md))   |
-| **7. Corrupted data directories (corrupted_data_directories.full.exe)**               | Validates detection of overlapping, out-of-range, and impossible data-directory entries, ensuring deterministic directory-table heuristics (see [Appendix 3.7](/docs/testing/appendices/corrupted_data_directories.full.exe.md))   |
-| **8. Truncated Rich Header (truncated_rich_header.full.exe)**                         | Validates safe handling of malformed Rich metadata without producing false structural anomalies (see [Appendix 3.8](/docs/testing/appendices/truncated_rich_header.full.exe.md))   |
-| **9. Packed Lookalike (packed_lookalike.full.exe)**                                   | Positive test for packer heuristics: high entropy + fake packer names + compressed-looking overlay (see [Appendix 3.9](/docs/testing/appendices/packed_lookalike.full.exe.md))   |
-| **10. UPX name only (upx_name_only.full.exe)**                                        | Negative test for packer heuristics: UPX-like names only, low entropy, no overlay (see [Appendix 3.10](/docs/testing/appendices/upx_name_only.full.exe.md))   |
-| **11. Broken RVA addresses (broken_rva_addresses.full.exe)**                          | Tests invalid RVAs, directory entries pointing outside sections, RVAs into zero-length regions, and zero-length section handling (see [Appendix 3.11](/docs/testing/appendices/broken_rva_addresses.full.exe.md))   |
-| **12. Overlapping sections (overlapping_sections.full.exe)**                          | Tests overlapping virtual and raw ranges, invalid virtual-size vs raw-size relationships, and optional-header inconsistency (see [Appendix 3.12](/docs/testing/appendices/overlapping_sections.full.exe.md))   |
-| **13. Binary containing fake PE headers in data**                                      | Tests header‑detection logic.                                                                                                                                                                                                                         |
-| **14. Binary with extremely long path‑like strings**                                   | Tests IOC extraction limits.                                                                                                                                                                                                                          |
-| **15. Binary with Unicode homoglyph domains**                                          | Tests domain normalisation.                                                                                                                                                                                                                           |
-| **16. Binary with malformed URLs**                                                     | Tests URL extraction robustness.                                                                                                                                                                                                                      |
-| **17. Binary with mixed‑script IOCs**                                                  | Tests regex boundaries and Unicode handling.                                                                                                                                                                                                          |
-| **18. Binary with deeply nested escape sequences**                                    | Tests regex backtracking safety.                                                                                                                                                                                                                      |
-| **19. Binary with corrupted section table**                                           | Tests fallback parsing.                                                                                                                                                                                                                               |
-| **20. Binary with random high‑entropy strings**                                       | Tests false‑positive suppression.                                                                                                                                                                                                                     |
-| **21. Binary with misleading import names**                                           | Tests import heuristics.                                                                                                                                                                                                                              |
-| **22. Binary with intentionally broken RVA/offsets**                                  | Tests error‑tolerant parsing.                                                                                                                                                                                                                         |
+### **A. Adversarial PE Binaries**
 
-*This is an aspirational list and does not represent the current adversarial input corpus. It will be added to gradually.*
+| Sample                                    | Why it matters                                                                                                                                                                                                  |
+|-------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **heuristic_rich.full.exe**               | Exercises the full heuristic engine across imports, sections, TLS, Rich header, and metadata anomalies. [Appendix 3.1](/docs/testing/appendices/heuristic_rich.full.exe.md)                                     |
+| **crypto_entropy_payload.full.exe**       | Tests entropy heuristics, high‑entropy `.text`, and compressed‑looking overlays. [Appendix 3.2](/docs/testing/appendices/crypto_entropy_payload.full.exe.md)                                                    |
+| **string_obfuscation_tricks.full.exe**    | Ensures only literal IOCs are extracted; validates suppression of obfuscated or misleading patterns. [Appendix 3.3](/docs/testing/appendices/string_obfuscation_tricks.full.exe.md)                             |
+| **franken_malformed_pe.full.exe**         | Hand‑crafted malformed PE combining contradictory headers, invalid directories, overlapping sections, and out‑of‑bounds entrypoints. [Appendix 3.4](/docs/testing/appendices/franken_malformed_pe.full.exe.md)  |
+| **franken_malformed_pe.pe32.full.exe**    | PE32 variant of the franken sample; validates optional‑header consistency and PE32‑specific edge cases. [Appendix 3.5](/docs/testing/appendices/franken_malformed_pe.pe32.full.exe.md)                          |
+| **malformed_import_table.full.exe**       | Tests invalid import descriptors, truncated thunks, and out‑of‑range import RVAs. [Appendix 3.6](/docs/testing/appendices/malformed_import_table.full.exe.md)                                                   |
+| **invalid_section_alignment.full.exe**    | Validates behaviour when raw/virtual sizes contradict alignment rules. [Appendix 3.7](/docs/testing/appendices/invalid_section_alignment.full.exe.md))                                                          |
+| **corrupted_data_directories.full.exe**   | Tests overlapping, out‑of‑range, and impossible data‑directory entries. [Appendix 3.8](/docs/testing/appendices/corrupted_data_directories.full.exe.md)                                                         |
+| **truncated_rich_header.full.exe**        | Ensures safe handling of malformed or truncated Rich headers. [Appendix 3.9](/docs/testing/appendices/truncated_rich_header.full.exe.md)                                                                        |
+| **packed_lookalike.full.exe**             | Positive test for packer heuristics: high entropy + fake packer names + overlay. [Appendix 3.10](/docs/testing/appendices/packed_lookalike.full.exe.md)                                                         |
+| **upx_name_only.full.exe**                | Negative test for packer heuristics: UPX‑like names only, low entropy, no overlay. [Appendix 3.11](/docs/testing/appendices/upx_name_only.full.exe.md)                                                          |
+| **broken_rva_addresses.full.exe**         | Tests invalid RVAs, zero‑length regions, and directory entries pointing outside any section. [Appendix 3.12](/docs/testing/appendices/broken_rva_addresses.full.exe.md)                                         |
+| **overlapping_sections.full.exe**         | Tests overlapping virtual/raw ranges and invalid virtual‑size vs raw‑size relationships. [Appendix 3.13](/docs/testing/appendices/overlapping_sections.full.exe.md)                                             |
+| **invalid_optional_header.full.exe**      | Tests malformed PE32+ optional header fields. [Appendix 3.14](/docs/testing/appendices/invalid_optional_header.full.exe.md)                                                                                     |
+| **invalid_optional_header.pe32.full.exe** | Tests malformed PE32 optional header fields. [Appendix 3.15](/docs/testing/appendices/invalid_optional_header.pe32.full.exe.md)                                                                                 |
+| **long_paths_adversarial.full.bin**       | Tests extraction limits and boundary handling for extremely long path‑like strings. [Appendix 3.16](/docs/testing/appendices/long_paths_adversarial.full.exe.md)                                                |
 
-Tests for each sample
+---
+
+### **B. Adversarial IOC‑String Corpora (.full.bin)**
+
+These fixtures provide **full adversarial coverage for every IOC category**.
+
+| Sample                                     | Why it matters                                                                                                                                                                             |
+|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **crypto_strings_adversarial.full.bin**    | Tests BTC/ETH extraction, Base58Check validation, reversed/embedded wallets, and near‑miss patterns. [Appendix 3.17](/docs/testing/appendices/crypto_strings_adversarial.full.bin.md)      |
+| **homoglyph_domains_adversarial.full.bin** | Tests Unicode homoglyphs, mixed‑script domains, and IDN punycode behaviour. [Appendix 3.18](/docs/testing/appendices/homoglyph_domains_adversarial.full.bin.md)                            |
+| **malformed_urls_adversarial.full.bin**    | Tests broken schemes, nested encodings, truncated URLs, and extremely long URL patterns. [Appendix 3.19](/docs/testing/appendices/malformed_urls_adversarial.full.bin.md)                  |
+| **filepaths_strings_adversarial.full.bin** | Tests MAX_PATH‑breaking Windows paths, malformed UNC prefixes, and deeply nested directory structures. [Appendix 3.20](/docs/testing/appendices/filepaths_strings_adversarial.full.bin.md) |
+| **emails_strings_adversarial.full.bin**    | Tests malformed local parts, Unicode variants, and deceptive email‑like strings. [Appendix 3.21](/docs/testing/appendices/emails_strings_adversarial.full.bin.md)                          |
+| **hashes_strings_adversarial.full.bin**    | Tests truncated digests, near‑miss hex sequences, and false‑positive suppression. [Appendix 3.22](/docs/testing/appendices/hashes_strings_adversarial.full.bin.md)                         |
+| **base64_strings_adversarial.full.bin**    | Tests invalid padding, embedded noise, and extremely long base64 runs. [Appendix 3.23](/docs/testing/appendices/base64_strings_adversarial.full.bin.md)                                    |
+| **malformed_domain.full.exe**              | Tests domain extraction under malformed, embedded, or deceptive domain‑like patterns. [Appendix 3.24](/docs/testing/appendices/malformed_domain.full.exe.md)                               |
+| **malformed_ip.full.exe**                  | Tests IPv4/IPv6 extraction under corrupted, concatenated, or partial IP patterns. [Appendix 3.25](/docs/testing/appendices/malformed_ip.full.exe.md)                                       |
+| **malformed_url.full.exe**                 | Tests URL extraction under broken schemes, malformed IPv6, reversed URLs, and salvage behaviour. [Appendix 3.26](/docs/testing/appendices/malformed_url.full.exe.md)                       |
+| **franken_url_domain_ip.full.exe**         | Combined adversarial sample mixing malformed URLs, domains, and IPs inside a PE container. [Appendix 3.27](/docs/testing/appendices/franken_url_domain_ip.full.exe.md)                     |
+
+---
+
+### **C. Consolidated Summary (Current State)**
+
+#### **PE Adversarial Fixtures (16 total)**
+- heuristic_rich.full.exe
+- crypto_entropy_payload.full.exe
+- string_obfuscation_tricks.full.exe
+- franken_malformed_pe.full.exe
+- franken_malformed_pe.pe32.full.exe
+- malformed_import_table.full.exe
+- invalid_section_alignment.full.exe
+- corrupted_data_directories.full.exe
+- truncated_rich_header.full.exe
+- packed_lookalike.full.exe
+- upx_name_only.full.exe
+- broken_rva_addresses.full.exe
+- overlapping_sections.full.exe
+- invalid_optional_header.full.exe
+- invalid_optional_header.pe32.full.exe
+- long_paths_adversarial.full.bin
+
+#### **IOC‑String Adversarial Fixtures (11 total)**
+- crypto_strings_adversarial.full.bin
+- homoglyph_domains_adversarial.full.bin
+- malformed_urls_adversarial.full.bin
+- filepaths_strings_adversarial.full.bin
+- emails_strings_adversarial.full.bin
+- hashes_strings_adversarial.full.bin
+- base64_strings_adversarial.full.bin
+- malformed_domain.full.exe
+- malformed_ip.full.exe
+- malformed_url.full.exe
+- franken_url_domain_ip.full.exe
+
+Tests for each sample:
 
 - End‑to‑end snapshot
 - Assertions that:
