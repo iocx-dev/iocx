@@ -114,14 +114,10 @@ v0.7.1 strengthens IOCX’s PE analysis layer with **six new structural heuristi
   - Entrypoint → section mapping validation
   - Data‑directory anomaly detection
   - Import‑directory validity checks
-- **Expanded adversarial PE corpus**
-  malformed imports, corrupted RVAs, invalid optional headers, truncated Rich headers, overlapping sections, franken‑PE hybrids
-- **Adversarial fixtures for *all* IOC categories**
-  crypto, homoglyph domains, malformed URLs, broken IPs, long paths, noisy hashes, invalid base64, deceptive emails
-- **Deterministic, JSON‑safe output**
-  all new samples snapshot‑validated
-- **No behavioural changes to extractors**
-  static‑only design preserved
+- **Expanded adversarial PE corpus**: malformed imports, corrupted RVAs, invalid optional headers, truncated Rich headers, overlapping sections, franken‑PE hybrids
+- **Adversarial fixtures for *all* IOC categories**: crypto, homoglyph domains, malformed URLs, broken IPs, long paths, noisy hashes, invalid base64, deceptive emails
+- **Deterministic, JSON‑safe output**: all new samples snapshot‑validated
+- **No behavioural changes to extractors**: static‑only design preserved
 
 This release improves IOCX’s **structural awareness**, **error resilience**, and **adversarial coverage**.
 
@@ -698,7 +694,7 @@ iocx/
 │
 ├── examples/        # Sample files + generators
 ├── docs/            # Detector contracts, overlap suppression rules, and plugin authoring guidelines
-├── tests/           # Unit, integration, fuzz, robustness, and performance tests
+├── tests/           # Unit, integration, fuzz, robustness, contract, and performance tests
 ├── iocx
     ├── detectors/   # Regex-based IOC detectors
     ├── parsers/     # PE parsing, string extraction
