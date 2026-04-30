@@ -222,7 +222,7 @@ Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section valid
 | **invalid_optional_header.pe32.full.exe** | Tests malformed PE32 optional header fields. [Appendix 3.15](/docs/testing/appendices/invalid_optional_header.pe32.full.exe.md)                                                                                 |
 | **long_paths_adversarial.full.bin**       | Tests extraction limits and boundary handling for extremely long path‑like strings. [Appendix 3.16](/docs/testing/appendices/long_paths_adversarial.full.exe.md)                                                |
 
-### **B. Adversarial IOC‑String Corpora (.full.bin)**
+### **B. Adversarial IOC‑String Corpora**
 
 These fixtures provide **full adversarial coverage for every IOC category**.
 
