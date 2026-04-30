@@ -197,7 +197,7 @@ Tests for each sample:
 - Assertions that the parser **does not crash**
 - Assertions that heuristics fire **predictably**
 
-## Layer 3 — Adversarial Inputs (6–10 binaries)
+## Layer 3 — Adversarial Inputs (20-30 binaries)
 
 Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section validation, and heuristic stability under malformed or hostile conditions.
 
@@ -321,18 +321,24 @@ No fixed bug ever returns.
 - Unusual subsystem
 - Sparse import table
 
-**Layer 3 — Adversarial (10 samples)**
+**Layer 3 — Adversarial (27 samples)**
 
 - Fake PE headers
-- Very long paths
+- Full heuristics and metadata anomalies
 - Unicode homoglyph domains
 - Malformed URLs
 - Mixed‑script IOCs
 - Deep escape sequences
-- Corrupted section table
 - Random entropy strings
-- Misleading import names
+- Malformed import table
+- Invalid section alignment
+- Corrupted data directories
+- Truncated rich header
+- Packed lookalikes
 - Broken RVAs
+- Overlapping sections
+- Invalid optional header
+- Very long paths
 
 **Layer 4 — Regression (unbounded)**
 
