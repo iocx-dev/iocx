@@ -1,66 +1,154 @@
-# v0.7.1 — Heuristics Engine Expansion & Structural Analysis Improvements
+# **v0.7.1 — Heuristics Engine Expansion & Structural Analysis Improvements**
+**Released: 2026‑05‑??**
 
-**Released: 2026‑04‑22**
+v0.7.1 delivers a major upgrade to IOCX’s **PE heuristics engine**, **extractor correctness**, and **adversarial‑input resilience**. This release introduces six new structural heuristics, broad extractor hardening, and a significantly expanded adversarial test suite — including **full adversarial coverage for every IOC category**.
 
-## Added
+---
 
-- Deterministic heuristics engine for PE data directory validation:
-   - data_directory_out_of_range
-   - data_directory_zero_rva_nonzero_size
-   - data_directory_overlap
-   - import_rva_invalid
-- Entrypoint range validation and optional header consistency checks.
-- TLS directory anomaly detection.
-- Internal data_directories analysis (not exposed in public output).
-- Adversarial testing layer to validate extraction accuracy and structural anomaly detection.
+# **Extractor Hardening**
 
-## Changed
+This release strengthens multiple IOC extractors with improved correctness, boundary handling, and adversarial‑text resilience. Updates span the **bare domain**, **strict URL**, **crypto**, and **hash** extractors, plus improved **URL normalisation**.
 
-- Heuristics now receive a unified internal analysis structure (`sections` + `data_directories`).
-- Public output remains stable except where new heuristics apply.
-- Improved section overlap detection and RVA range validation.
+## **Bare Domain Extractor**
 
-### Crypto Extractor Improvements
+### Improvements
+- Expanded **TLD allow‑list** (e.g., `.ly`, `.gg`, `.sh`, `.app`, `.dev`, `.xyz`, `.online`).
+- Expanded **BAD_TLD deny‑list** to prevent file extensions and config keys from being misclassified.
+- Refined **left/right boundary rules** to reduce false positives in noisy text.
+- Added **punycode homoglyph detection** for IDN and mixed‑script domains.
+- Improved regex clarity and stability to avoid pathological backtracking.
 
-- Added **Base58Check checksum validation** for legacy BTC addresses
-- Prevented extraction of near‑miss or malformed BTC Base58 strings
-- ETH extraction unchanged (already strict and correct)
+### Impact
+- Higher recall for real‑world domains.
+- Fewer false positives from filepaths and dotted log keys.
+- Better homoglyph‑aware metadata.
 
-This change significantly reduces false positives in BTC detection and aligns behaviour with the v0.7.1 adversarial requirements.
+---
 
-## Fixed
+## **Strict URL Extractor**
 
-- Removed internal fields (raw_address, virtual_address) from public section output.
-- Prevented internal data_directories from leaking into metadata.
+### Improvements
+- Added support for `ftp`, `ftps`, and `sftp`.
+- RFC‑compliant **userinfo parsing** (`user:pass@host`).
+- Full **punycode** domain support.
+- Improved **IPv6** handling (including zone indices).
+- More robust host matching aligned with the updated domain extractor.
+- Cleaner separation of path/query/fragment parsing.
+
+### Impact
+- More complete URL extraction.
+- Fewer truncated or malformed URLs.
+- Better handling of obfuscated or credential‑embedded URLs.
+
+---
+
+## **Crypto Extractor**
+
+### Improvements
+- Added **full Base58Check validation** for Bitcoin:
+  - Double‑SHA256 checksum verification.
+  - Version‑byte validation (`0x00`, `0x05`).
+  - Rejects malformed Base58 sequences.
+- Preserved Bech32/Taproot and ETH detection.
+
+### Impact
+- Dramatic reduction in Base58 false positives.
+- Only cryptographically valid BTC addresses are extracted.
+
+---
+
+## **Hash Extractor**
+
+### Improvements
+- Increased short‑hex minimum length from **8 → 10** characters.
+- Strict MD5/SHA1/SHA256/SHA512 detection unchanged.
+
+### Impact
+- Fewer false positives from small hex tokens.
+- Behaviour remains aligned with adversarial fixtures.
+
+---
+
+## **URL Normalisation**
+
+- `normalise_url()` now wraps `urlparse()` in safe error handling.
+- Malformed URLs return `None` instead of raising.
+
+### Impact
+- More robust behaviour on adversarial URL input.
+- Prevents crashes during bulk extraction.
+
+---
+
+# **Heuristics Engine Expansion (PE Structural Analysis)**
+
+To support the expanded adversarial PE corpus, v0.7.1 introduces **six new deterministic heuristics** for detecting malformed or inconsistent PE structures:
+
+- **Section overlap detection**
+  `_analyse_section_overlap`
+- **Section alignment validation**
+  `_analyse_section_alignment`
+- **Optional‑header consistency checks**
+  `_analyse_optional_header_consistency`
+- **Entrypoint → section mapping validation**
+  `_analyse_entrypoint_mapping`
+- **Data‑directory anomaly detection**
+  `_analyse_data_directory_anomalies`
+- **Import‑directory validity checks**
+  `_analyse_import_directory_validity`
+
+### Impact
+- Clearer, reason‑coded anomaly reporting.
+- No false positives on benign binaries.
+- Deterministic behaviour across malformed PE structures.
+
+---
+
+# **Added**
+
+### **1. Full adversarial fixtures for *all* IOC categories**
+New adversarial string corpora added for:
+
+- **crypto wallets** (BTC/ETH, reversed, embedded, noisy, base58‑adjacent)
+- **domains** (Unicode homoglyphs, mixed‑script lookalikes)
+- **URLs** (broken schemes, nested encodings, truncated fragments)
+- **IPs** (malformed IPv4/IPv6, concatenated segments, invalid scopes)
+- **filepaths** (MAX_PATH‑breaking Windows paths, malformed UNC prefixes)
+- **hashes** (near‑miss hex sequences, truncated digests)
+- **base64** (invalid padding, embedded noise, extremely long runs)
+- **emails** (Unicode variants, malformed local parts)
+
+Each fixture includes a deterministic snapshot.
+
+### **2. Expanded adversarial PE corpus**
+Fixtures include:
+
+- broken RVAs
+- overlapping/misaligned sections
+- corrupted data directories
+- malformed import tables
+- invalid optional headers (PE32 & PE32+)
+- truncated Rich headers
+- packed‑lookalike binaries
+- franken‑PE hybrids
+
+### **3. Heuristics engine upgrades**
+- New structural heuristics (see above)
+- Unified internal analysis structure (`sections` + `data_directories`)
+- Deterministic, JSON‑safe anomaly reporting
+
+---
+
+# **Fixed**
+
 - Improved stability when parsing malformed or adversarial PE files.
+- More robust handling of malformed URLs during normalisation.
 
-## Notes
+---
 
-- Updated contract snapshot for `heuristic_rich.full.exe` to reflect new heuristics.
-- The previous snapshot predates directory‑range and RVA‑validation logic.
+# **Notes**
 
-# v0.6.0 — Internal Improvements & Stability Work
+- Updated snapshot for `heuristic_rich.full.exe` to reflect new heuristics.
+- Previous snapshot predated directory‑range and RVA‑validation logic.
 
-(Retrospective summary)
-
-- Improved PE parsing robustness.
-- Added extended metadata extraction.
-- Added obfuscation detection layer.
-- Expanded contract test coverage.
-- General performance and stability improvements.
-
-# v0.5.0 — IOC Extraction Engine Enhancements
-
-(Retrospective summary)
-
-- Improved URL, domain, IP, and hash extraction.
-- Added base64 and cryptocurrency IOC detection.
-- Introduced layered analysis modes (basic, deep, full).
-
-# v0.4.0 and earlier — Initial Development
-
-(Retrospective summary)
-
-- Initial PE parsing pipeline.
-- First version of IOC extraction.
-- Core CLI and engine structure.
+---

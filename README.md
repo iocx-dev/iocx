@@ -12,7 +12,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-663_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-726_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
@@ -33,7 +33,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
   <sub>Static IOC extraction from a PE file using the IOCX CLI</sub>
 </p>
 
-# IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
+## IOCX — Static IOC Extraction for Binaries, Text, and Artifacts
 
 **Fast, safe, deterministic IOC extraction for DFIR, SOC automation, and large-scale threat analysis.**
 
@@ -57,10 +57,10 @@ IOCX is designed for environments where **safety, determinism, and automation** 
 - A plugin-friendly rule system
 - A stable JSON schema suitable for pipelines and long-term integrations
 
-### Key advantages
+## Key advantages
 
 - **Static‑only design** — never executes untrusted code
-- **Binary parsing** — PE-aware extraction with section analysis, entropy, and obfuscation hints
+- **Binary parsing** — PE-aware extraction with section analysis and structural heuristics
 - **Analysis level** — basic, deep, and full for performance-tuned workflows
 - **Deterministic behaviour** — stable output and predictable performance
 - **Extensible rule engine** — custom detectors, parsers, and plugins
@@ -68,16 +68,14 @@ IOCX is designed for environments where **safety, determinism, and automation** 
 - **Low dependency footprint** — safe for enterprise environments
 - **Pipeline-ready** — fast start‑up, fast throughput
 
----
-
 ## What IOCX *Is Not*
 
 To avoid confusion:
 
 - Not a sandbox
-- Not a malware emulator
 - Not a behavioural analysis tool
-- Not an enrichment engine (that lives in the MalX Cloud platform)
+- Not an emulator
+- Not an enrichment engine
 
 IOCX is **static extraction only**, by design.
 
@@ -89,7 +87,7 @@ IOCX is **static extraction only**, by design.
 - Safely inspect malware samples without execution
 
 ### Threat Intelligence Processing
-- Normalize indicators from feeds
+- Normalise indicators from feeds
 - Batch‑process unstructured text
 - Build enrichment pipelines on top of deterministic output
 
@@ -108,58 +106,132 @@ IOCX is **static extraction only**, by design.
 ### v0.7.0 — Deterministic Heuristics & Adversarial Testing Foundation
 
 - Deterministic heuristics: anti‑debug APIs, TLS anomalies, packer‑like behaviour, RWX sections, import anomalies.
-- Adversarial testing: added three initial Layer 3 samples to validate rich heuristics, entropy analysis and string‑based IOC extraction.
+- Adversarial testing: initial Layer-3 samples validating heuristics, entropy analysis and IOC extraction.
 - Contract testing: deterministic snapshots for sections, imports, heuristics, and IOCs.
-- Bug fix: resolved a crash caused by non‑UTF8 Rich Header bytes by introducing deep hex‑encoding sanitisation.
-- Docs: new deterministic‑output section and appendices for adversarial samples.
+- Bug fix: resolved a crash caused by non‑UTF8 Rich Header bytes
+- Docs: new deterministic‑output section and adversarial sample appendices.
 
 ### v0.6.0 — Stable Output Schema, Deterministic PE Metadata, Contract‑Safe Analysis Levels
 
-- Introduced a fully stable JSON schema across all analysis levels
-- Added strict structural guarantees for `iocs`, `metadata`, and `analysis` blocks
-- Normalised PE metadata fields for deterministic output (headers, TLS, optional header, signatures)
-- Ensured **all IOC categories always exist** (empty arrays when no matches)
-- Formalised analysis‑level behaviour:
-  - core behaviour → no analysis block
-  - basic → section layout + entropy
-  - deep → adds obfuscation heuristics
-  - full → adds extended metadata summaries
-- Added **snapshot‑contract tests** to prevent schema drift across releases
-- Improved PE parser consistency for imports, resources, and section metadata
-- Strengthened safety guarantees for CI/CD and large‑scale automation pipelines
-
-This release establishes the long‑term schema contract that downstream tools can rely on.
+- Fully stable JSON schema
+- Strict structural guarantees for `iocs`, `metadata`, and `analysis`
+- Normalised PE metadata for deterministic output
+- All IOC categories always present
+- Formalised analysis‑level behaviour
+- Snapshot‑contract tests to prevent schema drift
 
 ### v0.5.0 — Analysis Levels, PE Section Analysis, Obfuscation Hints
 
-- New analysis‑level system: basic, deep (default), and full (future‑ready)
+- New analysis‑level system
 - PE structural analysis: section layout, raw/virtual sizes, entropy
-- Obfuscation heuristics: abnormal section patterns, virtual‑only sections, entropy anomalies
-- Extended analysis stub for future packer/TLS/anti‑debug modules
-- Clean, stable JSON schema with optional analysis block
-- No‑flag mode remains fast and minimal for pipeline use
+- Obfuscation heuristics
+- Clean, stable JSON schema
 
 ### v0.4.0 — Plugin Architecture, Custom Detectors, Cleaner Internals
 
-- Introduced the plugin‑ready rule engine, enabling custom IOC detectors and parsers
-- Unified internal detection flow under a consistent, extensible interface
-- Added support for user‑defined regex detectors and lightweight parsing modules
-- Improved separation between core engine, detectors, and output formatting
-- Reduced coupling across modules to support long‑term extensibility
-- Maintained the same fast, deterministic performance profile
+- Plugin‑ready rule engine
+- Unified detection flow
+- Support for custom regex detectors
 
 ### v0.3.0 — Stronger Architecture, New Crypto IOC Detection
 
 - Ethereum & Bitcoin wallet detection
-- Improved architecture for long-term extensibility
-- Same blazing performance on multi-MB inputs
 
 ### v0.2.0 — High‑Reliability IP Detection
 
-Significant improvements to IPv4/IPv6 extraction in noisy, malformed, mixed-content environments
+- Major improvements to IPv4/IPv6 extraction
 
-## Real CLI Output (Chaos Corpus Sample)
+## **Performance Profiles**
 
+IOCX has **three distinct performance profiles**, each reflecting a different class of workload.
+This separation gives DFIR, SOC, and CI/CD users a realistic understanding of how the engine behaves across text, normal binaries, and adversarial samples.
+
+### **1. Raw IOC Extraction (Text, Logs, Buffers)**
+
+**Fast path — no PE parsing, no heuristics.**
+
+These benchmarks measure the raw detectors operating on flat buffers.
+They represent the maximum throughput of the IOC extraction engine.
+
+| Detector       | 1 MB Time | Throughput    |
+|----------------|-----------|---------------|
+| **Crypto**     | 0.0037 s  | **~270 MB/s** |
+| **Filepaths**  | 0.0040 s  | **~250 MB/s** |
+| **IP**         | 0.0064 s  | **~156 MB/s** |
+
+**Summary:**
+- **~150–300 MB/s** sustained throughput
+- **~0.003–0.006 s per MB**
+- Linear scaling from 100 KB → 1.5 MB
+- Worst‑case blobs (IPv6, ETH‑like, deep UNIX paths) remain sub‑millisecond to low‑millisecond
+
+This is ideal for SOC pipelines, log processing, and bulk text extraction.
+
+### **2. Typical PE Files (~39 KB)**
+
+**Normal Windows executables with standard imports and minimal data.**
+
+Represents the cost of full PE parsing + IOC extraction on a clean, realistic binary.
+
+- **Typical PE:** 0.0132 s
+- **Typical PE (with heuristics):** 0.0153 s
+- **Throughput:** **~6–15 MB/s** (full engine)
+- **Heuristics:** usually none or minimal
+
+This profile reflects what IOCX will see in CI/CD pipelines, internal tooling, and benign executables.
+
+### **3. Adversarial Dense PE (1.5 MB)**
+
+**Worst‑case full‑engine workload.**
+
+A synthetic PE designed to stress:
+
+- section scanning
+- RVA mapping
+- import/TLS analysis
+- heuristic engine
+- IOC extraction across large, dense regions
+
+- **Dense PE:** 0.1977 s
+- **Throughput:** **~7.6 MB/s**
+- **Triggers:** TLS anomalies, structural anomalies, anti‑debug patterns
+
+This demonstrates IOCX’s stability and predictability under adversarial conditions.
+
+### **4. Full Engine (Non‑PE) End‑to‑End Path**
+
+For completeness, the full engine path on raw data (including overhead):
+
+- **1 MB end‑to‑end:** 0.0411 s
+
+This includes engine setup, routing, and output formatting — not just detector throughput.
+
+### **Summary Table**
+
+| Workload Type                      | Size   | Time     | Throughput    | Notes                     |
+|------------------------------------|--------|----------|---------------|---------------------------|
+| **Raw IOC extraction (crypto)**    | 1 MB   | 0.0037 s | **~270 MB/s** | Fast path                 |
+| **Raw IOC extraction (filepaths)** | 1 MB   | 0.0040 s | **~250 MB/s** | Fast path                 |
+| **Raw IOC extraction (IP)**        | 1 MB   | 0.0064 s | **~156 MB/s** | Fast path                 |
+| **Typical PE**                     | 39 KB  | 0.0132 s | **6–15 MB/s** | Normal binaries           |
+| **Typical PE + heuristics**        | 39 KB  | 0.0153 s | **6–15 MB/s** | Full analysis             |
+| **Adversarial dense PE**           | 1.5 MB | 0.1977 s | **~7.6 MB/s** | Worst‑case                |
+| **Full engine (non‑PE)**           | 1 MB   | 0.0411 s | —             | Includes routing/overhead |
+
+### **Interpretation**
+
+- IOCX is **extremely fast** on raw text and log data (150–300 MB/s).
+- IOCX is **fast and predictable** on normal Windows binaries (~13–15 ms).
+- IOCX remains **stable and linear** even on adversarial PE files designed to stress the engine.
+- No pathological slowdowns, no exponential behaviour, no regex backtracking stalls.
+
+This three‑tier model provides a realistic, defensible performance profile for DFIR, SOC automation, and CI/CD environments.
+
+## Example JSON Output
+
+<details>
+<summary><strong>Show Example JSON Output</strong></summary>
+<br>
 ```json
 $ iocx chaos_corpus.json
 {
@@ -172,7 +244,6 @@ $ iocx chaos_corpus.json
     "domains": [],
     "ips": [
       "2001:db8::1",
-      "2001:db8::1:443",
       "10.0.0.1",
       "192.168.1.10",
       "fe80::dead:beef%eth0",
@@ -186,12 +257,15 @@ $ iocx chaos_corpus.json
     "hashes": [],
     "emails": [],
     "filepaths": [],
-    "base64": []
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
   },
   "metadata": {}
 }
 
 ```
+</details>
 <details>
 <summary><strong>Chaos Corpus: Input → Extracted Output → Explanation</strong></summary>
 <br>
@@ -209,63 +283,6 @@ $ iocx chaos_corpus.json
 | fe80::1%eth0fe80::2%eth1              | fe80::1%eth0fe80, ::2%eth1               | Concatenated IPv6 split up.                 |
 | 2001:db8::12001:db8::2                | 2001:db8::                               | Longest valid IPv6 prefix found.            |
 | 256.256.256:256                       | —                                        | Invalid indicator ignored.                  |
-</details>
-
-<details>
-<summary><strong>Performance Benchmarks (v0.2.0)</strong></summary>
-<br>
-
-All measurements from the latest performance suite:
-
-| Sample Type	               | Time     |
-|------------------------------|----------|
-| 1 MB mixed‑content sample	   | 0.0053s  |
-| Pathological IPv6 blob	   | 0.0055s  |
-| 100 KB sample	               | 0.0006s  |
-| 300 KB sample	               | 0.0017s  |
-| 600 KB sample	               | 0.0031s  |
-| 1 MB sample	               | 0.0055s  |
-
-- **Throughput:** ~200 MB/s
-- **Worst‑case IPv6 blob:** ~0.5 ms
-- **Linear scaling:** almost perfect from 100 KB → 1 MB
-</details>
-
-<details>
-<summary><strong>Performance Benchmarks (v0.3.0)</strong></summary>
-<br>
-
-All measurements from the latest performance suite:
-
-| Sample Type	               | Time     |
-|------------------------------|----------|
-|            **IP**            |          |
-| 1 MB mixed‑content sample	   | 0.0070s  |
-| Pathological IPv6 blob	   | 0.0004s  |
-| 100 KB sample	               | 0.0008s  |
-| 300 KB sample	               | 0.0021s  |
-| 600 KB sample	               | 0.0038s  |
-| 1 MB sample	               | 0.0068s  |
-|         **Filepath**         |          |
-| 1 MB mixed‑content sample	   | 0.0040s  |
-| Pathological deep unix path  | 0.0237s  |
-| 300 KB sample	               | 0.0011s  |
-| 600 KB sample	               | 0.0022s  |
-| 1000 KB sample               | 0.0038s  |
-| 1500 KB sample	           | 0.0055s  |
-|           **Crypto**         |          |
-| 1 MB mixed‑content sample	   | 0.0021s  |
-| Pathological ETH-like blob   | 0.0012s  |
-| 300 KB sample	               | 0.0006s  |
-| 600 KB sample	               | 0.0012s  |
-| 1000 KB sample               | 0.0020s  |
-| 1500 KB sample	           | 0.0031s  |
-
-- **Throughput:** ~200 MB/s
-- **Worst‑case IPv6 blob:** ~0.5 ms
-- **Worst‑case filepath blob:** ~23 ms
-- **Worst‑case crypto blob:** ~1 ms
-- **Linear scaling:** almost perfect from 100 KB → 1 MB
 </details>
 
 ## Project Identity & Naming
@@ -691,7 +708,7 @@ All test samples are:
 IOCX is engineered for high‑throughput, low‑latency analysis across normal, edge‑case, and adversarial inputs.
 We maintain strict performance thresholds enforced in CI to ensure the engine remains fast and predictable across releases.
 
-See the full performance guarantees here: [Performance Guarantees](/docs/performance.md)
+See [Performance Guarantees](/docs/performance.md)
 
 ## Contributing
 
