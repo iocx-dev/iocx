@@ -1,0 +1,24 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/emails_strings_adversarial.full.bin",
+  "type": "text",
+  "iocs": {
+    "urls": [],
+    "domains": [
+      "mple.com"
+    ],
+    "ips": [],
+    "hashes": [],
+    "emails": [
+      "contact@example.com",
+      "first.last@sub.domain.co.uk",
+      "user+tag@my-server.example",
+      "admin@example.org",
+      "abc123user@example.comxyz"
+    ],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {}
+}

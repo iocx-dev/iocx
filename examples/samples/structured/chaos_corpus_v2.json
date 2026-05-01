@@ -1,0 +1,182 @@
+[
+  {
+    "timestamp": "2026-04-27T10:00:00Z",
+    "event": "url.basic",
+    "raw": "User clicked http://example.com and then https://sub.example.co.uk/path?x=1#frag",
+    "note": "basic http/https with domains and path/query/fragment"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:01Z",
+    "event": "url.punycode",
+    "raw": "Malicious redirect to http://xn--e1afmkfd.xn--p1ai/login and bare domain xn--e1afmkfd.xn--p1ai seen in logs",
+    "note": "punycode URL + bare punycode domain"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:02Z",
+    "event": "url.with_userinfo",
+    "raw": "Attacker used https://user:pass@example.dev/admin and https://user@example.dev/profile",
+    "note": "userinfo with and without password"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:03Z",
+    "event": "url.ipv4_host",
+    "raw": "Beacon to http://192.168.0.10/ping and https://10.0.0.1:8443/status",
+    "note": "URLs with IPv4 hosts and ports"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:04Z",
+    "event": "url.ipv6_host",
+    "raw": "C2 over https://[2001:db8::1]/c2 and http://[fe80::1%eth0]:8080/tunnel",
+    "note": "URLs with IPv6 literal + zone index"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:05Z",
+    "event": "url.malformed_ipv6",
+    "raw": "Broken URL GET http://[2001:db8::g]:443/invalid and http://[::::]/bad should not yield valid IPs",
+    "note": "malformed IPv6 inside URL"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:06Z",
+    "event": "url.unsupported_scheme",
+    "raw": "Client attempted udp://example.com:53 and sftp://files.example.com/home which should not be treated as strict URLs",
+    "note": "unsupported schemes"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:07Z",
+    "event": "domain.bare_basic",
+    "raw": "Indicators: example.com, sub.domain.co.uk, test.online, foo.xyz",
+    "note": "simple bare domains"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:08Z",
+    "event": "domain.bare_with_punctuation",
+    "raw": "Seen in text: (example.com), [sub.example.io], :evil.dev; and trailing example.com/path and example.net?x=1",
+    "note": "bare domains with punctuation and / ? boundaries"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:09Z",
+    "event": "domain.not_tlds",
+    "raw": "Structured fields: network.connection, auth.failure, system.update, log.corruption should NOT be domains",
+    "note": "ensure no false positives from dotted fields"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:10Z",
+    "event": "domain.bad_tlds",
+    "raw": "File-like tokens: config.json, script.js, payload.exe, module.dll, data.bin must not be treated as domains",
+    "note": "BAD_TLDS suppression"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:11Z",
+    "event": "overlap.url_contains_domain",
+    "raw": "Text: http://example.com/path plus bare example.com in same line",
+    "note": "URL should suppress overlapping domain"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:12Z",
+    "event": "overlap.url_contains_ip",
+    "raw": "Text: https://156.65.42.8/access.php and standalone 156.65.42.8 later",
+    "note": "URL should suppress IP inside URL, standalone IP should survive"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:13Z",
+    "event": "ip.basic_ipv4",
+    "raw": "IPs: 1.2.3.4, 10.0.0.1, 192.168.1.10, 8.8.8.8",
+    "note": "basic IPv4 extraction"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:14Z",
+    "event": "ip.invalid_ipv4",
+    "raw": "Invalid IPv4: 256.256.256.256, 999.999.999.999, 10.0.0.999",
+    "note": "must not be extracted"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:15Z",
+    "event": "ip.with_ports",
+    "raw": "Endpoints: 1.2.3.4:80, 10.0.0.1:443, 192.168.1.10:65535, 192.168.1.10:999999",
+    "note": "valid ports vs invalid port"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:16Z",
+    "event": "ip.cidr",
+    "raw": "Networks: 10.0.0.0/8, 192.168.0.0/16, 2001:db8::/32",
+    "note": "CIDR extraction"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:17Z",
+    "event": "ip.ipv6_basic",
+    "raw": "IPv6: 2001:db8::1, ::1, fe80::1, fe80::dead:beef",
+    "note": "basic IPv6"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:18Z",
+    "event": "ip.ipv6_zone",
+    "raw": "Zone-indexed: fe80::1%eth0, fe80::2%eth1, fe80::3%en0",
+    "note": "zone indices"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:19Z",
+    "event": "ip.ipv6_bracketed",
+    "raw": "Bracketed: [2001:db8::1]:443, [fe80::1%eth0]:53, [2001:db8::g]:443",
+    "note": "valid + invalid bracketed IPv6"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:20Z",
+    "event": "ip.split_ipv4",
+    "raw": "Split IPv4: 192.168.\n1.10 and 10.0.\n0.1 in logs",
+    "note": "line breaks inside IPv4"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:21Z",
+    "event": "ip.split_ipv6",
+    "raw": "Split IPv6: 2001:db8::\n1 and fe80::\n1%eth\n0",
+    "note": "line breaks inside IPv6 and zone index"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:22Z",
+    "event": "ip.concatenated_ipv4",
+    "raw": "Concatenated: 192.168.1.110.0.0.1 should yield 192.168.1.110 and maybe 10.0.0.1 depending on salvage",
+    "note": "concatenated IPv4s"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:23Z",
+    "event": "ip.concatenated_ipv6",
+    "raw": "Concatenated: 2001:db8::12001:db8::2 and fe80::1%eth0fe80::2%eth1",
+    "note": "concatenated IPv6 with zone indices"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:24Z",
+    "event": "ip.invalid_mixed",
+    "raw": "Invalid: 2001:db8::g, ::ffff:999.999.999.999, [2001:db8::1, 2001:db8::1]",
+    "note": "must not produce valid IPs from malformed tokens"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:25Z",
+    "event": "overlap.domain_vs_ip",
+    "raw": "Text: api.example.com at 10.0.0.1 and bare example.com nearby",
+    "note": "domain and IP coexist without overlap"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:26Z",
+    "event": "overlap.domain_inside_url_path",
+    "raw": "URL: http://gateway.local/redirect?target=example.com and bare example.com later",
+    "note": "domain inside URL query should be suppressed, standalone should survive"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:27Z",
+    "event": "overlap.equal_range",
+    "raw": "Weird token: http://example.com exactly matches example.com? Maybe overlapping detectors.",
+    "note": "if any equal-range overlap occurs, first in sorted order should win"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:28Z",
+    "event": "url.deobfuscation",
+    "raw": "Obfuscated: hxxp://evil[.]dev/path and hxxps://sub[.]evil[.]dev, plus bare evil[.]dev",
+    "note": "deobfuscation + normalisation + suppression"
+  },
+  {
+    "timestamp": "2026-04-27T10:00:29Z",
+    "event": "domain.deobfuscation_only",
+    "raw": "Analyst notes: connect to api[.]example[.]com over TLS",
+    "note": "bare domain via deobfuscation only"
+  }
+]

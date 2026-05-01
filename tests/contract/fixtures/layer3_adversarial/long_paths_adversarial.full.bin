@@ -1,0 +1,6 @@
+C:\Windows\System32\cmd.exe
+C:\Program Files\TestApp\app.exe
+C:\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z\file.txt
+C:\very\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\nested\file.txt
+\\?\UNC\\server\share\folder\file.txt
+\\\server\share\badprefix\file.txt

@@ -1,0 +1,26 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/homoglyph_domains_adversarial.full.bin",
+  "type": "text",
+  "iocs": {
+    "urls": [],
+    "domains": [
+      "paypal.com",
+      "google.com",
+      "microsoft.com",
+      "example.org",
+      "l.com",
+      "ogle.com",
+      "xn--paypai-l2c.com",
+      "xn--g00gle-9za.com",
+      "gle.com"
+    ],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": []
+  },
+  "metadata": {}
+}

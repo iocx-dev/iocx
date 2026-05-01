@@ -3,23 +3,34 @@ from ....models import Detection
 
 URL_REGEX = re.compile(
     r"""
-    (?i) # case‑insensitive for scheme + host
+    (?i) # case-insensitive
     \b
-    (?:https?|ftp):// # protocol
-    (?:[A-Za-z0-9\-._~%]+@)? # optional userinfo
-    (?:
-        (?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,63} # domain
+    (?:https?|ftps?|sftp):// # scheme
+
+    (?:[A-Za-z0-9\-._~%!$&'()*+,;=:]+@)? # optional userinfo
+
+    ( # host
+        (?: # domain
+            (?:[A-Za-z0-9-]+\.)+
+            (?:xn--[A-Za-z0-9-]+|[A-Za-z]{2,63})
+        )
         |
-        \d{1,3}(?:\.\d{1,3}){3} # IPv4
+        (?:\d{1,3}(?:\.\d{1,3}){3}) # IPv4
         |
 
 
-\[[0-9A-Fa-f:]+\]
+\[ # IPv6 literal
+            [0-9A-Fa-f:.%]+ # allow IPv4-mapped, zone index
+        \]
 
-                    # IPv6
+
     )
+
     (?::\d{2,5})? # optional port
-    (?:/[^\s<>"']*)? # optional path/query/fragment
+
+    (?:/[^\s<>"']*)? # optional path
+    (?:\?[^\s<>"']*)? # optional query
+    (?:\#[^\s<>"']*)? # optional fragment (escaped #)
     """,
     re.VERBOSE,
 )

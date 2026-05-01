@@ -1,5 +1,5 @@
 import pytest
-from iocx.analysis.heuristics import analyse_pe_heuristics, _analyse_tls
+from iocx.analysis.heuristics import analyse_pe_heuristics, _analyse_tls, _map_rva_to_section, _analyse_section_overlap, _analyse_section_alignment, _analyse_optional_header_consistency, _analyse_data_directory_anomalies, _analyse_import_directory_validity
 from iocx.models import Detection
 
 
@@ -327,3 +327,143 @@ def test_tls_analysis_skips_incomplete_entries():
 
     # No detections should be produced
     assert detections == []
+
+
+def test_map_rva_to_section_skips_invalid_types():
+    sections = [
+        {"virtual_address": "not-an-int", "virtual_size": 100}, # triggers continue
+        {"virtual_address": 0x1000, "virtual_size": 0x200}, # valid section
+    ]
+
+    rva = 0x1100
+    result = _map_rva_to_section(sections, rva)
+
+    assert result == sections[1]
+
+
+def test_analyse_section_overlap_skips_invalid_inner_section():
+    sections = [
+        # a = valid section
+        {"name": ".text", "virtual_address": 0x1000, "virtual_size": 0x200},
+        # b = invalid section (triggers inner continue)
+        {"name": ".data", "virtual_address": "not-an-int", "virtual_size": 0x100},
+    ]
+
+    metadata = {}
+    analysis = {"sections": sections}
+
+    out = _analyse_section_overlap(metadata, analysis)
+
+    # No overlap detection should be produced
+    assert out == []
+
+
+def test_analyse_section_alignment_skips_invalid_section_fields():
+    metadata = {
+        "optional_header": {
+            "file_alignment": 0x200 # valid alignment
+        }
+    }
+
+    analysis = {
+        "sections": [
+            # This section triggers the `continue` branch
+            {"name": ".bad", "raw_address": "oops", "raw_size": 100},
+
+            # This section is valid and should be processed normally
+            {"name": ".text", "raw_address": 0x400, "raw_size": 0x200},
+        ]
+    }
+
+    out = _analyse_section_alignment(metadata, analysis)
+
+    # No misalignment here, so output should be empty
+    assert out == []
+
+
+def test_optional_header_consistency_skips_invalid_section_fields():
+    metadata = {
+        "optional_header": {
+            "size_of_image": 0x3000 # valid, positive int
+        }
+    }
+
+    analysis = {
+        "sections": [
+            # This section triggers the `continue` branch
+            {"name": ".bad", "virtual_address": "oops", "virtual_size": 100},
+
+            # This section is valid and should be processed
+            {"name": ".text", "virtual_address": 0x1000, "virtual_size": 0x200},
+        ]
+    }
+
+    out = _analyse_optional_header_consistency(metadata, analysis)
+
+    # max_end = 0x1000 + 0x200 = 0x1200 < size_of_image → no detection
+    assert out == []
+
+
+def test_data_directory_anomalies_skips_invalid_entries():
+    metadata = {
+        "optional_header": {
+            "size_of_image": 0x3000 # valid positive int
+        }
+    }
+
+    analysis = {
+        "data_directories": [
+            # This entry triggers the `continue` branch
+            {"name": "bad", "rva": "oops", "size": 100},
+
+            # This entry is valid and should be processed
+            {"name": "good", "rva": 0x1000, "size": 0x200},
+        ]
+    }
+
+    out = _analyse_data_directory_anomalies(metadata, analysis)
+
+    # No anomaly here because rva+size < size_of_image
+    assert out == []
+
+
+def test_data_directory_anomalies_skips_invalid_inner_directory():
+    metadata = {
+        "optional_header": {
+            "size_of_image": 0x3000 # valid, so the function enters the loop
+        }
+    }
+
+    analysis = {
+        "data_directories": [
+            # a = valid entry → outer loop does NOT continue
+            {"name": "A", "rva": 0x1000, "size": 0x200},
+
+            # b = invalid entry → triggers the inner continue
+            {"name": "B", "rva": "oops", "size": 0x100},
+        ]
+    }
+
+    out = _analyse_data_directory_anomalies(metadata, analysis)
+
+    # No overlap detection should be produced
+    assert out == []
+
+
+def test_import_directory_validity_skips_invalid_rva_or_size():
+    metadata = {}
+    analysis = {
+        "data_directories": [
+            # This entry is treated as the import directory (idx == 1)
+            # but has invalid types → triggers the continue
+            {"index": 1, "name": "import", "rva": "oops", "size": 100},
+        ],
+        # Must include at least one section or the function returns early
+        "sections": [{"name": ".text"}],
+    }
+
+    out = _analyse_import_directory_validity(metadata, analysis)
+
+    # No detection should be produced
+    assert out == []
+

@@ -1,0 +1,108 @@
+========================
+SECTION 1 — AUTH LOG + BASE64
+========================
+2025-11-03T12:41:22Z host1 sshd[1234]: Failed password for invalid user admin from 192.168.1.10 port 51432 ssh2
+2025-11-03T12:41:24Z host1 sshd[1234]: Failed password for invalid user test from 10.0.0.1 port 443 ssh2
+2025-11-03T12:41:30Z host1 sshd[1234]: Accepted password for bob from 8.8.8.8 port 51234 ssh2
+
+2025-11-03T12:42:01Z host1 bash[2222]: Suspicious command:
+echo "VGhpcyBpcyBhIHJlYWwgdGV4dCBJREMu" | base64 -d
+
+2025-11-03T12:42:05Z host1 bash[2222]: Possible encoded blob:
+echo "AQIDBAUGBwgJCgsMDQ4P" | base64 -d
+
+2025-11-03T12:42:10Z host1 bash[2222]: Another encoded value:
+echo "MTIzNDU2Nzg5MDEyMzQ1Ng==" | base64 -d
+
+
+========================
+SECTION 2 — WEB PROXY + URLS/DOMAINS
+========================
+2025-11-03T13:01:10Z proxy1 CONNECT example.com:443 "Mozilla/5.0"
+2025-11-03T13:01:11Z proxy1 GET http://EXAMPLE.com/Login?User=Admin&Token=ABC123 200
+2025-11-03T13:01:12Z proxy1 GET https://login.phish-site.net/index.php?User=admin 302
+2025-11-03T13:01:13Z proxy1 GET hxxp://evil[.]example[.]com/path/To/PayLoad 404
+2025-11-03T13:01:14Z proxy1 GET hxxps://update(.)config(.)json/installer 200
+
+2025-11-03T13:01:20Z proxy1 GET http://bit.ly/2abcDEF 301
+2025-11-03T13:01:21Z proxy1 GET http://sub.domain.co.uk/resource.js 200
+
+Note: user also opened config.json locally and checked startup.rdata and trace.log in the same session.
+
+
+========================
+SECTION 3 — CRYPTO + RANDOM DATA
+========================
+[wallet-monitor] Found outbound BTC address in traffic:
+1BoatSLRHtKNngkdXEeobR76b53LETtpyT
+
+[wallet-monitor] Suspicious strings:
+1BoatSLRHtKNngkdXEeobR76b53LETtpyt
+1OatSLRHtKNngkdXEeobR76b53LETtpy0
+3J98t1WpEZ73CNmQviecrnyiWrnqRhWNL
+
+[eth-monitor] ETH-like strings:
+0x0000000000000000000000000000000000000000
+0xDEADBEEFCAFEBABE000000000000000000000000
+
+
+========================
+SECTION 4 — IPV4 / IPV6 / PORTS
+========================
+2025-11-03T14:10:01Z fw1 ALLOW tcp 192.168.1.10:51432 -> 10.0.0.1:22
+2025-11-03T14:10:02Z fw1 ALLOW tcp 10.0.0.1:443 -> 8.8.8.8:53
+2025-11-03T14:10:03Z fw1 DENY tcp 999.999.999.999:12345 -> 10.0.0.1:80
+2025-11-03T14:10:04Z fw1 DENY tcp 256.0.0.1:443 -> 192.168.1.10:22
+2025-11-03T14:10:05Z fw1 ALLOW tcp [2001:db8::1]:443 -> [2001:db8::2]:80
+2025-11-03T14:10:06Z fw1 ALLOW tcp fe80::1%eth0 -> fe80::2%eth0
+2025-11-03T14:10:07Z fw1 DENY tcp 2001:::1 -> 2001:db8::1
+2025-11-03T14:10:08Z fw1 DENY tcp fe80::1%eth0%extra -> fe80::2%eth0
+
+2025-11-03T14:10:09Z fw1 ALLOW tcp 10.0.0.1:99999 -> 192.168.1.10:22
+
+
+========================
+SECTION 5 — HASHES + SHORT HEX
+========================
+[av] Detected known malware hash (MD5):
+d41d8cd98f00b204e9800998ecf8427e
+
+[av] Detected known malware hash (SHA1):
+da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+[av] Detected known malware hash (SHA256):
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+[av] Detected known malware hash (SHA512):
+cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+
+[ir] Truncated identifiers:
+deadbeefcafebabe
+0123456789abcdef01
+
+[ir] Hex noise:
+beef
+face
+012345
+1234abcd
+
+
+========================
+SECTION 6 — FILEPATHS / REGISTRY / MIXED
+========================
+User reported:
+"C:\Program Files\App\config.json" was modified after visiting example.com and bit.ly.
+
+System paths:
+C:\Windows\System32\drivers\etc\hosts
+/home/user/.config/app/config.json
+/var/log/syslog
+
+Registry-like:
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run
+HKCU\Software\Example\App
+
+Mixed tokens:
+fooexample.combar
+"user@example.com" logged in from 192.168.1.10
+"Visit example.com)," said the user.

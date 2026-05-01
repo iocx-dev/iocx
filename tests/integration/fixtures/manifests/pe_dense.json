@@ -1,0 +1,19 @@
+{
+    "fixture": "pe_dense",
+    "expected_iocs": [
+        "http://example.com/path",
+        "https://malicious.test/update",
+        "1.2.3.4",
+        "10.0.0.5",
+        "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+        "fe80::1ff:fe23:4567:890a",
+        "C:\\Windows\\System32\\cmd.exe",
+        "C:\\Users\\Public\\Downloads\\payload.exe",
+        "/tmp/runme.sh",
+        "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7k3qk4x",
+        "1BoatSLRHtKNngkdXEeobR76b53LETtpyT",
+        "0x1234567890abcdef1234567890abcdef12345678"
+    ],
+    "encoding": "ascii",
+    "location": "data-section"
+}

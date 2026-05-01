@@ -60,20 +60,20 @@ from iocx.detectors.extractors.hashes import extract
 
     # Short hex (8–31 chars)
     (
-        "short hex: deadbeef",
-        ["deadbeef"]
+        "short hex: 7c12ef9a44",
+        ["7c12ef9a44"]
     ),
 
     # Multiple short hex
     (
-        "ids: deadbeef cafebabe 1234abcd",
-        ["deadbeef", "cafebabe", "1234abcd"]
+        "ids: a3f91c0b2e 9B44EF1280 0012A4FFCC",
+        ["a3f91c0b2e", "9B44EF1280", "0012A4FFCC"]
     ),
 
     # GUID partial capture (by design)
     (
-        "GUID: 550e8400-e29b-41d4-a716-446655440000",
-        ["550e8400", "446655440000"]
+        "GUID: f2ab19c0de-e29b-41d4-a716-446655440000",
+        ["f2ab19c0de", "446655440000"]
     ),
 ])
 def test_hash_positive(text, expected):

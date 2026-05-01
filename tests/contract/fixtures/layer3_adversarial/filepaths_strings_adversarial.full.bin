@@ -1,0 +1,28 @@
+C:\Users\Public\document.txt
+D:\Program Files\App\bin.exe
+C:\Windows\System32\cmd.exe
+C:\Windows\System32\wscript.exe
+C:\Windows\System32\mshta.exe
+\\server01\share\folder\file.log
+\\10.0.0.5\data$\dump.bin
+/usr/local/bin/script.sh
+/opt/app/config.yaml
+/usr/bin/python3.11
+/usr/bin/openssl
+.\temp\run.cmd
+../logs/error.log
+~/projects/code/main.py
+~user/docs/readme.md
+%APPDATA%\MyApp\config.json
+$HOME/.config/tool/settings.ini
+C:\Users\Pub
+lic\broken.txt
+/usr/loc
+al/bin/bad.sh
+C:\Temp\my file.txt
+/var/log/my file.log
+network.connection.error
+auth.failure.reason
+http://example.com/path/file.txt
+xxx/usr/local/binxxx
+C:\Windows\System32evil

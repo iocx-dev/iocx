@@ -62,6 +62,7 @@ def run_fixture_test(name: str):
     "pe_rsrc",
     "pe_overlay",
     "pe_chaos",
+    "pe_dense",
 ])
 
 @pytest.mark.integration

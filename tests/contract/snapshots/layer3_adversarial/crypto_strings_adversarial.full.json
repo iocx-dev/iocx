@@ -1,0 +1,20 @@
+{
+  "file": "tests/contract/fixtures/layer3_adversarial/crypto_strings_adversarial.full.bin",
+  "type": "text",
+  "iocs": {
+    "urls": [],
+    "domains": [],
+    "ips": [],
+    "hashes": [],
+    "emails": [],
+    "filepaths": [],
+    "base64": [],
+    "crypto.btc": [],
+    "crypto.eth": [
+      "0x12ab34cd56ef78ab90cd12ef34ab56cd78ef90ab",
+      "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "0x00112233445566778899aabbccddeeff00112233"
+    ]
+  },
+  "metadata": {}
+}

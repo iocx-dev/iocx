@@ -9,6 +9,22 @@ from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 # ---------------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------------
+def sanitize_sections(sections):
+    """
+    Remove internal-only fields from section dictionaries before
+    returning them in public output.
+    """
+    sanitized = []
+    for sec in sections:
+        # Copy only the fields we want to expose
+        clean = {
+            k: v for k, v in sec.items()
+            if k not in ("raw_address", "virtual_address")
+        }
+        sanitized.append(clean)
+    return sanitized
+
+
 def sanitize(obj):
     """Recursively convert bytes → hex strings so JSON can serialize."""
     if obj is None:
@@ -214,6 +230,9 @@ def _parse_sections(pe):
         virt_size = getattr(s, "Misc_VirtualSize", 0)
         chars = getattr(s, "Characteristics", 0)
 
+        raw_addr = getattr(s, "PointerToRawData", 0)
+        virt_addr = getattr(s, "VirtualAddress", 0)
+
         try:
             data = s.get_data() or b""
         except Exception:
@@ -226,6 +245,8 @@ def _parse_sections(pe):
                 "virtual_size": virt_size,
                 "characteristics": chars,
                 "entropy": _entropy(data),
+                "raw_address": int(raw_addr),
+                "virtual_address": int(virt_addr),
             }
         )
 
@@ -382,6 +403,29 @@ def _parse_resources(pe):
     return resources, resource_strings
 
 
+def _parse_data_directories(pe):
+    dirs: list[dict[str, Any]] = []
+    opt = getattr(pe, "OPTIONAL_HEADER", None)
+    if not opt:
+        return dirs
+
+    for idx, dd in enumerate(getattr(opt, "DATA_DIRECTORY", [])):
+        name = getattr(dd, "name", None)
+        rva = getattr(dd, "VirtualAddress", 0)
+        size = getattr(dd, "Size", 0)
+
+        dirs.append(
+            {
+                "index": idx,
+                "name": name,
+                "rva": int(rva),
+                "size": int(size),
+            }
+        )
+
+    return dirs
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -439,3 +483,6 @@ def parse_pe(path):
 
 def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
     return _parse_sections(pe)
+
+def analyse_data_directories(pe) -> List[Dict[str, Any]]:
+    return _parse_data_directories(pe)

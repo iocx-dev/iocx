@@ -84,7 +84,7 @@ dev: $(STAMP_DEV)
 # ===========================
 .PHONY: test
 test: dev
-	$(PYTHON) -m pytest -q -m "not integration and not fuzz and not robustness and not performance"
+	$(PYTHON) -m pytest -q -m "not integration and not fuzz and not robustness and not performance and not contract"
 
 # ----------------------------------------
 # Integration tests only
@@ -132,7 +132,7 @@ test-coverage: dev
 .PHONY: test-contract
 test-contract: dev
 	@echo "Running contract tests..."
-	$(PYTEST) -m contract $(CONTRACT_DIR)
+	$(PYTEST) -m contract $(CONTRACT_DIR) -sv
 
 # ----------------------------------------
 # Static analysis and SCA

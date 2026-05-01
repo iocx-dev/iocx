@@ -1,7 +1,7 @@
 # Appendix 3.3 — Adversarial PE (string obfuscation) Specification
 
-- **File:** `string_obfuscation_tricks.bin`
-- **Layer: 3** `Adversarial PE (string obfuscation)`
+- **File:** `string_obfuscation_tricks.full.exe`
+- **Layer: 3** `Adversarial`
 
 # Purpose:
 
@@ -15,12 +15,12 @@
 - Contains a custom section named `.obfs`.
 - `.obfs` section entropy < 1.0.
 - Extracted URLs include:
-    - http://literal-ioc.test/path
-    - http://example.com/pathmoc.elpmaxh
-    - http://bad.test
-- Extracted IP: 198.51.100.42
+    - `http://literal-ioc.test/path`
+    - `http://example.com/pathmoc.elpmaxh`
+    - `http://bad.test`
+- Extracted IP: `198.51.100.42`
 - Anti-debug heuristics for:
-    - OutputDebugStringA
-    - IsDebuggerPresent
-    - QueryPerformanceCounter
+    - `OutputDebugStringA`
+    - `IsDebuggerPresent`
+    - `QueryPerformanceCounter`
 - Rich header must be present and fully hex-encoded.

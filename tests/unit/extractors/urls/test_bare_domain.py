@@ -10,7 +10,7 @@ from iocx.detectors.extractors.urls.bare_domain import extract_bare_domains
     # Basic valid domains
     ("example.com", ["example.com"]),
     ("sub.domain.co.uk", ["sub.domain.co.uk"]),
-    ("foo.bar", ["foo.bar"]),
+    ("iocx.dev", ["iocx.dev"]),
     ("my-site123.net", ["my-site123.net"]),
 
     # Multiple domains

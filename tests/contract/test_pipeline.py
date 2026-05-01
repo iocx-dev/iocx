@@ -54,6 +54,8 @@ def discover_fixtures():
 @pytest.mark.parametrize("fixture_path,snapshot_path,level", discover_fixtures())
 def test_contract_safe_pipeline(engine, fixture_path, snapshot_path, level):
 
+    print(f"\n> {fixture_path}")
+
     engine._analysis_level = level
     output = engine.extract(fixture_path)
 
