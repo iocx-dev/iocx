@@ -14,6 +14,7 @@ A deliberately corrupted **PE32** binary constructed to exercise IOCX’s handli
 - remain stable under extreme malformed conditions
 
 This sample is the **PE32 counterpart** to `franken_malformed_pe.full.exe` (PE32+), ensuring both architecture paths are hardened against complex, multi‑vector corruption.
+A **comparison between the Franken Malformed PE and PE32+** contract testing results can be viewed here: [Appendix 3.5.1](franken_malformed_pe_comparison_matrix.md)
 
 # Behaviours exercised
 

@@ -11,17 +11,17 @@ This release strengthens multiple IOC extractors with improved correctness, boun
 
 ## **Bare Domain Extractor**
 
-### Improvements
-- Expanded **TLD allow‑list** (e.g., `.ly`, `.gg`, `.sh`, `.app`, `.dev`, `.xyz`, `.online`).
-- Expanded **BAD_TLD deny‑list** to prevent file extensions and config keys from being misclassified.
-- Refined **left/right boundary rules** to reduce false positives in noisy text.
-- Added **punycode homoglyph detection** for IDN and mixed‑script domains.
-- Improved regex clarity and stability to avoid pathological backtracking.
+### **Improvements**
+- Expanded **TLD allow‑list** (e.g., `.ly`, `.gg`, `.sh`, `.app`, `.dev`, `.xyz`, `.online`) for broader real‑world coverage.
+- Strengthened **BAD_TLD deny‑list** to prevent file extensions, config keys, and log fields from being misclassified as domains.
+- Refined **boundary detection** to reduce false positives in noisy or punctuation‑heavy text.
+- Added **punycode + IDN homoglyph analysis**, including Unicode decoding, script classification, and confusable‑character detection.
+- Improved regex structure for **stability and predictable linear performance**, eliminating pathological backtracking cases.
 
-### Impact
-- Higher recall for real‑world domains.
-- Fewer false positives from filepaths and dotted log keys.
-- Better homoglyph‑aware metadata.
+### **Impact**
+- Higher recall for legitimate domains across modern TLDs.
+- Significant reduction in false positives from filepaths, dotted identifiers, and structured logs.
+- Richer, homoglyph‑aware metadata for downstream analysis and phishing detection.
 
 ---
 

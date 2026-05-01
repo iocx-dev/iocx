@@ -1,6 +1,6 @@
 import re
 from ....models import Detection
-from .punycode import _punycode_decodes_to_unicode, _decode_punycode, _detect_script, _contains_confusables
+from .homoglyph_punycode import _punycode_decodes_to_unicode, _decode_punycode, _detect_script, _contains_confusables
 
 REAL_TLDS = (
     "ae|ai|am|app|ar|au|be|bid|biz|blog|br|bz|ca|cam|cc|cf|ch|cl|click|cm|co|com|cz|"

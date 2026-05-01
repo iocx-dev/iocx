@@ -1,4 +1,4 @@
-# Appendix 3.TBD – Franken Malformed PE (PE32 vs PE32+) Comparison Matrix
+# Appendix 3.5.1 – Franken Malformed PE (PE32 vs PE32+) Comparison Matrix
 
 A consolidated behavioural matrix comparing IOCX’s handling of the **Franken malformed PE32** and **Franken malformed PE32+** fixtures.
 Both binaries deliberately introduce *multi‑vector structural corruption*, including overlapping sections, misaligned raw data, contradictory optional‑header fields, invalid directory RVAs, and unmappable entrypoints.
@@ -20,23 +20,23 @@ The Franken fixtures represent the **maximum‑stress adversarial cases** for v0
 
 # Combined Franken Matrix (PE32 vs PE32+)
 
-| Behaviour / Anomaly | **PE32 Franken** | **PE32+ Franken** | Notes |
-| --- | --- | --- | --- |
-| **Valid sections parsed** | ✔ ``.text``, ``.rdata``, ``.data``, ``.rsrc`` | ✔ ``.text``, ``.rdata``, ``.data``, ``.rsrc`` | Both fixtures contain valid section headers |
-| **Section overlap detected** | ✔ | ✔ | ``.text`` ↔ ``.rdata`` overlap in both |
-| **Raw misalignment detected** | ✔ ``.rdata``, ``.data`` | ✔ ``.rdata``, ``.data`` | Both detect identical misalignment patterns |
-| **Optional header inconsistent size** | ✔ | ✔ | ``SizeOfImage ``< ``max_section_end`` in both |
-| **Entrypoint out of bounds** | ✔ | ✔ | EP RVA = 0x3000 unmapped in both |
-| **Data directory out of range** | ✔ | ✔ | Import directory RVA > SizeOfImage |
-| **Zero‑RVA non‑zero directory** | ✔ | ✔ | Resource directory malformed in both |
-| **Import RVA invalid** | ✔ | ✔ | Same invalid import RVA in both |
-| **Obfuscation hint: abnormal section overlap** | ✔ | ✔ | Both emit the hint |
-| **Entropy computed** | ✔ | ✔ | All four sections analysed in both |
-| **Imports / resources / exports** | ✘ none | ✘ none | Expected |
-| **Rich header** | ✘ none | ✘ none | Expected |
-| **Signature metadata** | ✘ none | ✘ none | Expected |
-| **IOC extraction** | ✘ no false positives | ✘ no false positives | Expected |
-| **Architecture‑specific header parsing** | ✔ x86 | ✔ AMD64 | Both parse correctly |
+| Behaviour / Anomaly                            | **PE32 Franken**                               | **PE32+ Franken**                             | Notes                                         |
+|------------------------------------------------|------------------------------------------------|-----------------------------------------------|-----------------------------------------------|
+| **Valid sections parsed**                      | ✔ ``.text``, ``.rdata``, ``.data``, ``.rsrc`` | ✔ ``.text``, ``.rdata``, ``.data``, ``.rsrc`` | Both fixtures contain valid section headers   |
+| **Section overlap detected**                   | ✔                                             | ✔                                             | ``.text`` ↔ ``.rdata`` overlap in both        |
+| **Raw misalignment detected**                  | ✔ ``.rdata``, ``.data``                       | ✔ ``.rdata``, ``.data``                       | Both detect identical misalignment patterns   |
+| **Optional header inconsistent size**          | ✔                                             | ✔                                             | ``SizeOfImage ``< ``max_section_end`` in both |
+| **Entrypoint out of bounds**                   | ✔                                             | ✔                                             | EP RVA = 0x3000 unmapped in both              |
+| **Data directory out of range**                | ✔                                             | ✔                                             | Import directory RVA > SizeOfImage            |
+| **Zero‑RVA non‑zero directory**                | ✔                                             | ✔                                             | Resource directory malformed in both          |
+| **Import RVA invalid**                         | ✔                                             | ✔                                             | Same invalid import RVA in both               |
+| **Obfuscation hint: abnormal section overlap** | ✔                                             | ✔                                             | Both emit the hint                            |
+| **Entropy computed**                           | ✔                                             | ✔                                             | All four sections analysed in both            |
+| **Imports / resources / exports**              | ✘ none                                        | ✘ none                                         | Expected                                      |
+| **Rich header**                                | ✘ none                                        | ✘ none                                         | Expected                                      |
+| **Signature metadata**                         | ✘ none                                        | ✘ none                                         | Expected                                      |
+| **IOC extraction**                             | ✘ no false positives                          | ✘ no false positives                           | Expected                                      |
+| **Architecture‑specific header parsing**       | ✔ x86                                         | ✔ AMD64                                       | Both parse correctly                          |
 
 # Interpretation
 
