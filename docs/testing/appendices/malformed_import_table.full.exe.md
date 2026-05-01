@@ -1,11 +1,11 @@
-# Appendix 3.5 – Malformed Import Table Specification
+# Appendix 3.6 – Malformed Import Table Specification
 
 - **File:** `malformed_import_table.full.exe`
 - **Layer: 3** `Adversarial`
 
 # Purpose
 
-A synthetically generated PE file designed to validate IOCX’s behaviour when confronted with **corrupted, out‑of‑range, or non-sensical import directory metadata**. Unlike naturally malformed binaries, this sample is constructed to contain a single, *isolated structural fault*; a deliberately invalid `IMAGE_DIRECTORY_ENTRY_IMPORT RVA`—while keeping the rest of the PE layout minimally valid. This ensures deterministic triggering of import‑related heuristics without confounding side‑effects from other PE inconsistencies.
+A synthetically generated PE file designed to validate IOCX’s behaviour when confronted with **corrupted, out‑of‑range, or non-sensical import directory metadata**. Unlike naturally malformed binaries, this sample is constructed to contain a single, *isolated structural fault*; a deliberately invalid `IMAGE_DIRECTORY_ENTRY_IMPORT RVA`— while keeping the rest of the PE layout minimally valid. This ensures deterministic triggering of import‑related heuristics without confounding side‑effects from other PE inconsistencies.
 
 This sample exercises IOCX’s ability to:
 

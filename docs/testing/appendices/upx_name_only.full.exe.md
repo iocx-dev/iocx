@@ -1,4 +1,4 @@
-# Appendix 3.10 – UPX Name Only Specification
+# Appendix 3.11 – UPX Name Only Specification
 
 - **File:** `upx_name_only.full.exe`
 - **Layer: 3** — `Adversarial`

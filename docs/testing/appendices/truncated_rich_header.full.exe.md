@@ -1,4 +1,4 @@
-# Appendix 3.8 – Truncated Rich Header Specification
+# Appendix 3.9 – Truncated Rich Header Specification
 
 - **File:** `truncated_rich_header.full.exe`
 - **Layer: 3** `Adversarial`

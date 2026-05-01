@@ -1,4 +1,4 @@
-# Appendix 3.7 – Corrupted Data Directories Specification
+# Appendix 3.8 – Corrupted Data Directories Specification
 
 - **File:** `corrupted_data_directories.full.exe`
 - **Layer: 3** `Adversarial`

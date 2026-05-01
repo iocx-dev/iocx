@@ -1,4 +1,4 @@
-# Appendix 3.6 – Invalid Section Alignment Specification
+# Appendix 3.7 – Invalid Section Alignment Specification
 
 - **File:** `invalid_section_alignment.full.exe`
 - **Layer: 3** `Adversarial`

@@ -1,4 +1,4 @@
-# Appendix 3.TBD – Franken Malformed PE Specification (PE32)
+# Appendix 3.5 – Franken Malformed PE Specification (PE32)
 
 - **File:** `franken_malformed_pe.pe32.full.exe`
 - **Layer: 3** — `Adversarial`

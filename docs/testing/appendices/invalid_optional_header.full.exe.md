@@ -1,4 +1,4 @@
-# Appendix 3.TBC – Invalid Optional Header Specification (PE32+)
+# Appendix 3.14 – Invalid Optional Header Specification (PE32+)
 
 - **File:** `invalid_optional_header.full.exe`
 - **Layer: 3** — `Adversarial`

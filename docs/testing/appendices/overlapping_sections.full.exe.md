@@ -1,4 +1,4 @@
-# Appendix 3.12 – Overlapping Sections Specification
+# Appendix 3.13 – Overlapping Sections Specification
 
 - **File:** `overlapping_sections.full.exe`
 - **Layer: 3** — `Adversarial`

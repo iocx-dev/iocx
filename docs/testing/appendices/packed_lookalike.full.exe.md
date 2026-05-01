@@ -1,4 +1,4 @@
-# Appendix 3.9 – Packed Lookalike Specification
+# Appendix 3.10 – Packed Lookalike Specification
 
 - **File:** `packed_lookalike.full.exe`
 - **Layer: 3** — `Adversarial`

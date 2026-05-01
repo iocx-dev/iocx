@@ -1,4 +1,4 @@
-# Appendix 3.11 – Broken RVA Addresses Specification
+# Appendix 3.12 – Broken RVA Addresses Specification
 
 - **File:** `broken_rva_addresses.full.exe`
 - **Layer: 3** — `Adversarial`

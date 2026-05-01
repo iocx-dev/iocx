@@ -1,4 +1,4 @@
-# Appendix 3.13 – Crypto Strings Adversarial Specification
+# Appendix 3.17 – Crypto Strings Adversarial Specification
 
 - **File:** `crypto_strings_adversarial.full.bin`
 - **Layer: 3** — `Adversarial`

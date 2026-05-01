@@ -1,7 +1,7 @@
 # Appendix 3.2 — Crypto Entropy Payload Sample Specification
 
 - **File:** `crypto_entropy_payload.full.exe`
-- **Layer: 3** `Adversarial PE (high-entropy section)`
+- **Layer: 3** `Adversarial`
 
 ## Purpose:
 
