@@ -238,9 +238,11 @@ This includes engine setup, routing, and output formatting — not just detector
 | **Adversarial dense PE**           | 1.5 MB | 0.1977 s | **~7.6 MB/s** | Worst‑case                |
 | **Full engine (non‑PE)**           | 1 MB   | 0.0411 s | —             | Includes routing/overhead |
 
-<a href="docs/performance.md">
-  <img src="docs/performance-summary.svg" alt="IOCX Performance Profile">
-</a>
+<p align="center">
+  <a href="docs/performance.md">
+    <img src="docs/performance-summary.svg" alt="IOCX Performance Profile">
+  </a>
+</p>
 
 ### **Interpretation**
 
