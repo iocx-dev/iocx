@@ -1,6 +1,6 @@
 [project]
 name = "iocx"
-version = "0.7.1"
+version = "0.7.2"
 description = "Static IOC extraction engine for binaries, text, and logs."
 authors = [
     { name = "MalX Labs" }
@@ -32,6 +32,7 @@ classifiers = [
 dependencies = [
     "pefile>=2024.8.26",
     "python-magic>=0.4.27",
+    "idna>=3.6",
 ]
 
 [project.scripts]
