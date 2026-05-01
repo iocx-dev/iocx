@@ -14,6 +14,7 @@ The table below reflects measured performance on reference hardware under CI‑c
 
 | Subsystem                          | Input Type        | Size   | Time         | Throughput     |
 |------------------------------------|-------------------|--------|--------------|----------------|
+| **Raw IOC extraction (domains)**   | Text              | 1 MB   | **0.0033 s** | **~300 MB/s**  |
 | **Raw IOC extraction (crypto)**    | Text              | 1 MB   | **0.0037 s** | **~270 MB/s**  |
 | **Raw IOC extraction (filepaths)** | Text              | 1 MB   | **0.0040 s** | **~250 MB/s**  |
 | **Raw IOC extraction (IP)**        | Text              | 1 MB   | **0.0064 s** | **~156 MB/s**  |
@@ -44,11 +45,13 @@ Raw IOC extraction is the **fast path** (no PE parsing, no heuristics).
 
 ### **Measured Performance**
 ```
+domains !MB: 0.0033s
 crypto 1MB: 0.0037s
 filepaths 1MB: 0.0040s
 IP 1MB: 0.0064s
 IPv6 blob: 0.0004s
 ETH blob: 0.0012s
+Punycode blob: 0.0125s
 ```
 
 ### **Guarantee**
@@ -112,7 +115,25 @@ pathological ETH-like blob: 0.0012s
 
 ---
 
-# **6. Typical PE Analysis Guarantees**
+# **6. Domain Extraction Guarantees**
+
+### **Guaranteed Baseline**
+- **≤ 5 ms** for 1 MB mixed domain text
+- **≤ 15 ms** for pathological punycode-like blobs
+
+### **Measured Performance**
+```
+domains 1MB mixed-content: 0.0033s
+pathological punycode-like blob: 0.0125s
+```
+
+### **Guarantee**
+- domains detector remains sub‑millisecond
+- No catastrophic parsing behaviour
+
+---
+
+# **7. Typical PE Analysis Guarantees**
 
 ### **Guaranteed Baseline**
 - **≤ 20 ms** for a typical 30–60 KB PE
@@ -130,7 +151,7 @@ typical PE (heuristics): 0.0153s
 
 ---
 
-# **7. Malformed PE (“Franken”) Guarantees**
+# **8. Malformed PE (“Franken”) Guarantees**
 
 Malformed or adversarial PEs must not degrade performance.
 
@@ -150,7 +171,7 @@ engine franken PE: 0.0017s
 
 ---
 
-# **8. Adversarial Dense PE Guarantees**
+# **9. Adversarial Dense PE Guarantees**
 
 ### **Guaranteed Baseline**
 - **≤ 250 ms** for 1.5 MB adversarial PEs
@@ -167,7 +188,7 @@ dense PE (1.5MB): 0.1977s
 
 ---
 
-# **9. Scaling Guarantees**
+# **10. Scaling Guarantees**
 
 IOCX must maintain **strictly linear scaling** with respect to input size.
 
@@ -175,8 +196,8 @@ IOCX must maintain **strictly linear scaling** with respect to input size.
 ```
 300KB → ~0.001s
 600KB → ~0.002s
-1000KB → ~0.0038–0.0069s
-1500KB → ~0.0055–0.0080s
+1000KB → ~0.0029–0.0069s
+1500KB → ~0.0044–0.0080s
 ```
 
 ### **Guarantee**
@@ -185,7 +206,7 @@ IOCX must maintain **strictly linear scaling** with respect to input size.
 
 ---
 
-# **10. CI Enforcement**
+# **11. CI Enforcement**
 
 Performance tests enforce:
 
@@ -196,7 +217,7 @@ Performance tests enforce:
 
 ---
 
-# **11. Philosophy**
+# **12. Philosophy**
 
 IOCX is designed to be:
 

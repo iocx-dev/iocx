@@ -12,7 +12,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
     <img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white" alt="PyPI Version">
   </a>
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen" alt="Coverage">
-  <img src="https://img.shields.io/badge/tests-726_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-734_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python Version">
   <a href="https://github.com/iocx-dev/iocx/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/iocx-dev/iocx" alt="License">
@@ -184,6 +184,7 @@ They represent the maximum throughput of the IOC extraction engine.
 | **Crypto**     | 0.0037 s  | **~270 MB/s** |
 | **Filepaths**  | 0.0040 s  | **~250 MB/s** |
 | **IP**         | 0.0064 s  | **~156 MB/s** |
+| **Domains**    | 0.0033 s  | **~300 MB/s** |
 
 **Summary:**
 - **~150–300 MB/s** sustained throughput
@@ -236,6 +237,7 @@ This includes engine setup, routing, and output formatting — not just detector
 
 | Workload Type                      | Size   | Time     | Throughput    | Notes                     |
 |------------------------------------|--------|----------|---------------|---------------------------|
+| **Raw IOC extraction (domains)**   | 1 MB   | 0.0033 s | **~300 MB/s** | Fast path                 |
 | **Raw IOC extraction (crypto)**    | 1 MB   | 0.0037 s | **~270 MB/s** | Fast path                 |
 | **Raw IOC extraction (filepaths)** | 1 MB   | 0.0040 s | **~250 MB/s** | Fast path                 |
 | **Raw IOC extraction (IP)**        | 1 MB   | 0.0064 s | **~156 MB/s** | Fast path                 |

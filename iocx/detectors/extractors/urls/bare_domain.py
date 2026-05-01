@@ -1,7 +1,6 @@
 import re
-import functools
-import idna
 from ....models import Detection
+from .punycode import _punycode_decodes_to_unicode, _decode_punycode, _detect_script, _contains_confusables
 
 REAL_TLDS = (
     "ae|ai|am|app|ar|au|be|bid|biz|blog|br|bz|ca|cam|cc|cf|ch|cl|click|cm|co|com|cz|"
@@ -33,21 +32,18 @@ BARE_DOMAIN_REGEX = re.compile(
     re.VERBOSE | re.IGNORECASE,
 )
 
-@functools.lru_cache(maxsize=1024)
-def _punycode_decodes_to_unicode(domain: str) -> bool:
-    if domain[:4] != "xn--":
-        return False
-    try:
-        decoded = idna.decode(domain)
-        return True
-    except idna.IDNAError:
-        return True
-
 def extract_bare_domains(text: str):
     results: list[Detection] = []
 
     for m in BARE_DOMAIN_REGEX.finditer(text):
         domain = m.group(1)
+
+        unicode_decoded = _decode_punycode(domain)
+        unicode_flag = _punycode_decodes_to_unicode(domain)
+
+        script = _detect_script(unicode_decoded) if unicode_decoded else "Latin"
+        confusables = _contains_confusables(unicode_decoded) if unicode_decoded else False
+
         results.append(
             Detection(
                 value=domain,
@@ -55,9 +51,11 @@ def extract_bare_domains(text: str):
                 end=m.end(1),
                 category="domains",
                 metadata={
-                    "homoglyph_unicode": False,
-                    "homoglyph_punycode": _punycode_decodes_to_unicode(domain),
-                    "mixed_script": False
+                    "punycode": domain.lower().startswith("xn--"),
+                    "punycode_decodes_to_unicode": unicode_flag,
+                    "decoded_unicode": unicode_decoded,
+                    "contains_confusables": confusables,
+                    "script": script,
                 }
             )
         )
