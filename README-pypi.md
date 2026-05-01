@@ -24,7 +24,37 @@ IOCX is a fast, safe, deterministic engine for extracting Indicators of Compromi
 
 It performs **pure static analysis** — no execution, no sandboxing, no risk.
 
-## What's new in v0.7.0
+## What's new in v0.7.1
+
+### **Bare Domain Extractor Overhaul**
+- Expanded **TLD allow‑list** and strengthened **BAD_TLD deny‑list**
+- Refined boundary rules to reduce false positives in noisy text
+- Added **punycode decoding**, Unicode script classification, and homoglyph/confusable detection
+- Hardened regex for **predictable linear performance** under adversarial input
+- New metadata fields:
+  - `punycode`, `punycode_decodes_to_unicode`
+  - `decoded_unicode`
+  - `contains_confusables`
+  - `script`
+
+### **Performance guarantees**
+- **~150-300 MB/s** for individual detectors (domains, crypto, filepaths, IPs)
+- **Strict linear scaling** across all detectors
+- Pathological punycode, IPv6, and filepath inputs complete in **< 15 ms**
+- End‑to‑end engine throughput: **20-30 MB/s**
+
+### **Heuristic engine and adversarial fixture expansion**
+- Deterministic section overlap and alignment, optional header consistency, entrypoint mapping, data directory anomalies, and import directory validity heuristics
+- Adversarial fixtures covering all new heuristics and IOC subsystems.
+
+### **Documentation updates**
+- New adversarial appendices
+- New Performance guarantees
+- Expanded schema‑contract guidance
+
+## Recent changes
+
+### v0.7.0
 
 - **Deterministic heuristic engine**
 
@@ -45,8 +75,6 @@ Deep hex‑encoding of nested byte structures prevents JSON serialization failur
 - **Documentation updates**
 
 New appendices and deterministic‑output guidance.
-
-## Recent changes
 
 ### v0.6.0
 

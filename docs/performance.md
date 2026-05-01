@@ -24,7 +24,7 @@ The table below reflects measured performance on reference hardware under CI‑c
 | **Typical PE (with heuristics)**   | 39 KB PE          | 39 KB  | **0.0153 s** | ~6–15 MB/s     |
 | **Adversarial dense PE**           | 1.5 MB PE         | 1.5 MB | **0.1977 s** | **~7.6 MB/s**  |
 | **Malformed PE (“Franken”)**       | 64 KB PE          | 64 KB  | **0.0017 s** | N/A            |
-| **Full engine (non‑PE)**           | 1 MB text         | 1 MB   | **0.0411 s** | —              |
+| **Full engine (non‑PE)**           | 1 MB text         | 1 MB   | **0.0411 s** | **~24 MB/s**   |
 
 **Key takeaways:**
 

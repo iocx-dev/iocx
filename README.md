@@ -190,7 +190,7 @@ They represent the maximum throughput of the IOC extraction engine.
 - **~150–300 MB/s** sustained throughput
 - **~0.003–0.006 s per MB**
 - Linear scaling from 100 KB → 1.5 MB
-- Worst‑case blobs (IPv6, ETH‑like, deep UNIX paths) remain sub‑millisecond to low‑millisecond
+- Worst‑case blobs (IPv6, ETH‑like, deep UNIX paths, punycode-like) remain sub‑millisecond to low‑millisecond
 
 This is ideal for SOC pipelines, log processing, and bulk text extraction.
 
@@ -244,7 +244,7 @@ This includes engine setup, routing, and output formatting — not just detector
 | **Typical PE**                     | 39 KB  | 0.0132 s | **6–15 MB/s** | Normal binaries           |
 | **Typical PE + heuristics**        | 39 KB  | 0.0153 s | **6–15 MB/s** | Full analysis             |
 | **Adversarial dense PE**           | 1.5 MB | 0.1977 s | **~7.6 MB/s** | Worst‑case                |
-| **Full engine (non‑PE)**           | 1 MB   | 0.0411 s | —             | Includes routing/overhead |
+| **Full engine (non‑PE)**           | 1 MB   | 0.0411 s | **~24 MB/s**  | Includes routing/overhead |
 
 ### **Interpretation**
 
