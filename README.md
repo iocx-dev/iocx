@@ -105,9 +105,9 @@ IOCX is **static extraction only**, by design.
 
 ## Version Highlights
 
-### v0.7.1 — Adversarial Heuristics Expansion & Parser Hardening
+### v0.7.2 — Adversarial Heuristics Expansion & Parser Hardening
 
-v0.7.1 strengthens IOCX’s PE analysis layer with **six new structural heuristics** and introduces a broad adversarial corpus to validate them. This release focuses on robustness, determinism, and resilience against malformed binaries and hostile IOC‑like strings.
+v0.7.2 strengthens IOCX’s PE analysis layer with **six new structural heuristics** and introduces a broad adversarial corpus to validate them. This release focuses on robustness, determinism, and resilience against malformed binaries and hostile IOC‑like strings.
 
 - **New PE heuristics added**
   - Section overlap detection
@@ -119,6 +119,7 @@ v0.7.1 strengthens IOCX’s PE analysis layer with **six new structural heuristi
 - **Expanded adversarial PE corpus**: malformed imports, corrupted RVAs, invalid optional headers, truncated Rich headers, overlapping sections, franken‑PE hybrids
 - **Adversarial fixtures for *all* IOC categories**: crypto, homoglyph domains, malformed URLs, broken IPs, long paths, noisy hashes, invalid base64, deceptive emails
 - **Deterministic, JSON‑safe output**: all new samples snapshot‑validated
+- **Dependcy fix**: added missing `idna` dependency required for punycode and Unicode domain handling
 - **No behavioural changes to extractors**: static‑only design preserved
 
 This release improves IOCX’s **structural awareness**, **error resilience**, and **adversarial coverage**.
