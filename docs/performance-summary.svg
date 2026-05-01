@@ -1,0 +1,66 @@
+<svg width="640" height="260" viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title { font: 700 18px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .subtitle { font: 400 12px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+    .label { font: 600 11px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .value { font: 400 11px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .pill { font: 600 10px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .axis { stroke: #e5e7eb; stroke-width: 1; }
+    .bar-label { font: 600 10px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #374151; }
+    .bar-value { font: 400 10px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+  </style>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="640" height="260" rx="12" fill="#f9fafb" stroke="#e5e7eb"/>
+
+  <!-- Title -->
+  <text x="24" y="32" class="title">IOCX Performance Profile (v0.7.1)</text>
+  <text x="24" y="52" class="subtitle">Static IOC extraction and PE analysis — deterministic, adversarial-safe throughput</text>
+
+  <!-- Pills -->
+  <rect x="24" y="70" rx="10" ry="10" width="165" height="22" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="32" y="85" class="pill">150–300 MB/s raw IOC extraction</text>
+
+  <rect x="205" y="70" rx="10" ry="10" width="150" height="22" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="213" y="85" class="pill">~13–15 ms typical PE</text>
+
+  <rect x="373" y="70" rx="10" ry="10" width="210" height="22" fill="#fef3c7" stroke="#facc15"/>
+  <text x="381" y="85" class="pill">~0.197 s adversarial 1.5 MB PE</text>
+
+  <!-- Bars area frame -->
+  <rect x="24" y="104" width="592" height="132" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+
+  <!-- Axis -->
+  <line x1="140" y1="130" x2="600" y2="130" class="axis"/>
+  <line x1="140" y1="170" x2="600" y2="170" class="axis"/>
+  <line x1="140" y1="210" x2="600" y2="210" class="axis"/>
+
+  <!-- Legend -->
+  <text x="32" y="124" class="label">Workload</text>
+  <text x="32" y="140" class="value">Raw IOC (crypto)</text>
+  <text x="32" y="180" class="value">Raw IOC (filepaths)</text>
+  <text x="32" y="220" class="value">Raw IOC (IP)</text>
+
+  <!-- Scale labels -->
+  <text x="140" y="120" class="bar-label">0 MB/s</text>
+  <text x="260" y="120" class="bar-label">100</text>
+  <text x="380" y="120" class="bar-label">200</text>
+  <text x="500" y="120" class="bar-label">300</text>
+  <text x="590" y="120" class="bar-label">MB/s</text>
+
+  <!-- Bars (scaled to 300 MB/s max) -->
+  <!-- Crypto ~270 MB/s -->
+  <rect x="140" y="134" width="480" height="18" rx="4" fill="#22c55e"/>
+  <text x="146" y="147" class="bar-value">~270 MB/s (0.0037 s / 1 MB)</text>
+
+  <!-- Filepaths ~250 MB/s -->
+  <rect x="140" y="174" width="445" height="18" rx="4" fill="#3b82f6"/>
+  <text x="146" y="187" class="bar-value">~250 MB/s (0.0040 s / 1 MB)</text>
+
+  <!-- IP ~156 MB/s -->
+  <rect x="140" y="214" width="278" height="18" rx="4" fill="#f97316"/>
+  <text x="146" y="227" class="bar-value">~156 MB/s (0.0064 s / 1 MB)</text>
+
+  <!-- Footer note -->
+  <text x="24" y="248" class="subtitle">All timings measured on reference hardware under CI; scaling is strictly linear with input size.</text>
+</svg>
