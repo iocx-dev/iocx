@@ -166,6 +166,12 @@ This release improves IOCX’s **structural awareness**, **error resilience**, a
 IOCX has **three distinct performance profiles**, each reflecting a different class of workload.
 This separation gives DFIR, SOC, and CI/CD users a realistic understanding of how the engine behaves across text, normal binaries, and adversarial samples.
 
+<p align="center">
+  <a href="docs/performance.md">
+    <img src="docs/performance-summary.svg" alt="IOCX Performance Profile">
+  </a>
+</p>
+
 ### **1. Raw IOC Extraction (Text, Logs, Buffers)**
 
 **Fast path — no PE parsing, no heuristics.**
@@ -237,12 +243,6 @@ This includes engine setup, routing, and output formatting — not just detector
 | **Typical PE + heuristics**        | 39 KB  | 0.0153 s | **6–15 MB/s** | Full analysis             |
 | **Adversarial dense PE**           | 1.5 MB | 0.1977 s | **~7.6 MB/s** | Worst‑case                |
 | **Full engine (non‑PE)**           | 1 MB   | 0.0411 s | —             | Includes routing/overhead |
-
-<p align="center">
-  <a href="docs/performance.md">
-    <img src="docs/performance-summary.svg" alt="IOCX Performance Profile">
-  </a>
-</p>
 
 ### **Interpretation**
 
