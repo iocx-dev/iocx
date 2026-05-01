@@ -18,11 +18,11 @@
   <text x="24" y="52" class="subtitle">Static IOC extraction and PE analysis — deterministic, adversarial-safe throughput</text>
 
   <!-- Pills -->
-  <rect x="24" y="70" rx="10" ry="10" width="165" height="22" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <rect x="24" y="70" rx="10" ry="10" width="180" height="22" fill="#ecfdf5" stroke="#6ee7b7"/>
   <text x="32" y="85" class="pill">150–300 MB/s raw IOC extraction</text>
 
-  <rect x="205" y="70" rx="10" ry="10" width="150" height="22" fill="#eff6ff" stroke="#93c5fd"/>
-  <text x="213" y="85" class="pill">~13–15 ms typical PE</text>
+  <rect x="215" y="70" rx="10" ry="10" width="150" height="22" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="223" y="85" class="pill">~13–15 ms typical PE</text>
 
   <rect x="373" y="70" rx="10" ry="10" width="210" height="22" fill="#fef3c7" stroke="#facc15"/>
   <text x="381" y="85" class="pill">~0.197 s adversarial 1.5 MB PE</text>
@@ -46,19 +46,19 @@
   <text x="260" y="120" class="bar-label">100</text>
   <text x="380" y="120" class="bar-label">200</text>
   <text x="500" y="120" class="bar-label">300</text>
-  <text x="590" y="120" class="bar-label">MB/s</text>
+  <text x="580" y="120" class="bar-label">MB/s</text>
 
   <!-- Bars (scaled to 300 MB/s max) -->
   <!-- Crypto ~270 MB/s -->
-  <rect x="140" y="134" width="480" height="18" rx="4" fill="#22c55e"/>
+  <rect x="140" y="134" width="340" height="18" rx="4" fill="#22c55e"/>
   <text x="146" y="147" class="bar-value">~270 MB/s (0.0037 s / 1 MB)</text>
 
   <!-- Filepaths ~250 MB/s -->
-  <rect x="140" y="174" width="445" height="18" rx="4" fill="#3b82f6"/>
+  <rect x="140" y="174" width="315" height="18" rx="4" fill="#3b82f6"/>
   <text x="146" y="187" class="bar-value">~250 MB/s (0.0040 s / 1 MB)</text>
 
   <!-- IP ~156 MB/s -->
-  <rect x="140" y="214" width="278" height="18" rx="4" fill="#f97316"/>
+  <rect x="140" y="214" width="195" height="18" rx="4" fill="#f97316"/>
   <text x="146" y="227" class="bar-value">~156 MB/s (0.0064 s / 1 MB)</text>
 
   <!-- Footer note -->
