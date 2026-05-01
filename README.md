@@ -24,7 +24,7 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
     <img src="docs/testing/contract-tests.svg" alt="Contract tests">
   </a>
   <a href="docs/performance.md">
-    <img src="https://img.shields.io/badge/performance-150–300_MB%2Fs_IOC_|_~15ms_PE_|_0.197s_adv_PE-brightgreen" alt="Performance Summary">
+    <img src="https://img.shields.io/badge/performance-150–300_MB%2Fs_IOC_|_20-30MB%2Fs_throughput_|_~15ms_PE_|_0.197s_adv_PE-brightgreen" alt="Performance Summary">
   </a>
 </p>
 
