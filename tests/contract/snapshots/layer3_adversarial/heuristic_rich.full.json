@@ -668,18 +668,6 @@
         }
       },
       {
-        "value": "tls_callback_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "callback_outside_tls_range",
-          "callbacks": 5368754232,
-          "start_address": 5368758272,
-          "end_address": 5368758280
-        }
-      },
-      {
         "value": "anti_debug_heuristic",
         "start": 0,
         "end": 0,
@@ -754,6 +742,18 @@
           "reason": "data_directory_overlap",
           "directory_a": "IMAGE_DIRECTORY_ENTRY_IMPORT",
           "directory_b": "IMAGE_DIRECTORY_ENTRY_IAT"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "callback_outside_tls_range",
+          "callbacks": 5368754232,
+          "start_address": 5368758272,
+          "end_address": 5368758280
         }
       }
     ]
