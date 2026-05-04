@@ -124,6 +124,16 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
+          "reason": "entrypoint_out_of_bounds",
+          "entry_point": 2415919104
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "reason": "section_raw_misaligned",
           "section": ".text",
           "raw_address": 512,
@@ -140,16 +150,6 @@
           "reason": "optional_header_inconsistent_size",
           "size_of_image": 512,
           "max_section_end": 8192
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "entrypoint_out_of_bounds",
-          "entry_point": 2415919104
         }
       },
       {
