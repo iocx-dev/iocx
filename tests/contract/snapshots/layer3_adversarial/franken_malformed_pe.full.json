@@ -167,9 +167,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlap",
-          "section_a": ".text",
-          "section_b": ".rdata"
+          "reason": "entrypoint_out_of_bounds",
+          "entry_point": 12288
         }
       },
       {
@@ -204,21 +203,24 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_inconsistent_size",
-          "size_of_image": 8192,
-          "max_section_end": 11776
+          "reason": "section_overlap",
+          "section_a": ".text",
+          "section_b": ".rdata"
         }
       },
+
       {
         "value": "pe_structure_anomaly",
         "start": 0,
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
-          "entry_point": 12288
+          "reason": "optional_header_inconsistent_size",
+          "size_of_image": 8192,
+          "max_section_end": 11776
         }
       },
+
       {
         "value": "pe_structure_anomaly",
         "start": 0,
@@ -242,17 +244,6 @@
           "directory": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
           "rva": 0,
           "size": 256
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "import_rva_invalid",
-          "rva": 20480,
-          "size": 512
         }
       }
     ]
