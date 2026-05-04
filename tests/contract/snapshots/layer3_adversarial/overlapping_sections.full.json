@@ -166,17 +166,6 @@
           "size_of_image": 12288,
           "max_section_end": 14336
         }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "import_rva_invalid",
-          "rva": 0,
-          "size": 0
-        }
       }
     ]
   }
