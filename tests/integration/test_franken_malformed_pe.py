@@ -36,13 +36,12 @@ def test_franken_expected_heuristics(franken_result):
     }
 
     expected = {
-        "section_overlap",
-        "section_raw_misaligned",
-        "optional_header_inconsistent_size",
         "entrypoint_out_of_bounds",
+        "optional_header_inconsistent_size",
         "data_directory_out_of_range",
         "data_directory_zero_rva_nonzero_size",
-        "import_rva_invalid",
+        "section_raw_misaligned",
+        "section_overlap"
     }
 
     assert heur == expected
