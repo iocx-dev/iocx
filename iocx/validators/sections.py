@@ -27,6 +27,10 @@ def validate_sections(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Lis
     issues: List[StructuralIssue] = []
     sections: List[Dict[str, Any]] = analysis.get("sections", []) or []
 
+    # Needed for raw alignment checks
+    opt = metadata.get("optional_header") or {}
+    file_alignment = opt.get("file_alignment")
+
     for sec in sections:
         name = (sec.get("name") or "").strip()
         chars = sec.get("characteristics")
@@ -79,5 +83,51 @@ def validate_sections(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Lis
                 details={"section": name, "characteristics": chars},
             ))
 
-    return issues
+        # 6) Raw alignment check
+        raw_addr = sec.get("raw_address")
+        raw_size = sec.get("raw_size")
 
+        if (
+            isinstance(file_alignment, int)
+            and isinstance(raw_addr, int)
+            and isinstance(raw_size, int)
+            and file_alignment > 0
+        ):
+            if raw_addr % file_alignment != 0:
+                issues.append(StructuralIssue(
+                    issue=ReasonCodes.SECTION_RAW_MISALIGNED,
+                    details={
+                        "section": name,
+                        "raw_address": raw_addr,
+                        "raw_size": raw_size,
+                        "file_alignment": file_alignment,
+                    },
+                ))
+
+    # --- Section overlap detection (virtual ranges) ---
+    for i in range(len(sections)):
+        a = sections[i]
+        va_a = a.get("virtual_address")
+        vs_a = a.get("virtual_size")
+        if not isinstance(va_a, int) or not isinstance(vs_a, int):
+            continue
+        end_a = va_a + vs_a
+
+        for j in range(i + 1, len(sections)):
+            b = sections[j]
+            va_b = b.get("virtual_address")
+            vs_b = b.get("virtual_size")
+            if not isinstance(va_b, int) or not isinstance(vs_b, int):
+                continue
+            end_b = va_b + vs_b
+
+            if max(va_a, va_b) < min(end_a, end_b):
+                issues.append(StructuralIssue(
+                    issue=ReasonCodes.SECTION_OVERLAP,
+                    details={
+                        "section_a": a.get("name"),
+                        "section_b": b.get("name"),
+                    },
+                ))
+
+    return issues

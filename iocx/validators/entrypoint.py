@@ -74,14 +74,6 @@ def validate_entrypoint(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> L
             details={"entry_point": ep, "section": name, "reason": "beyond_virtual_size"},
         ))
 
-    # EP beyond raw bounds (truncated on disk)
-    if isinstance(raw, int) and isinstance(raw_size, int):
-        if ep >= raw + raw_size:
-            issues.append(StructuralIssue(
-                issue=ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION,
-                details={"entry_point": ep, "section": name, "reason": "beyond_raw_size"},
-            ))
-
     # --- D. EP must not point into overlays ---
     overlay_offset = analysis.get("overlay_offset")
     if isinstance(overlay_offset, int) and ep >= overlay_offset:

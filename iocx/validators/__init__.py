@@ -6,7 +6,6 @@ from .rva_graph import validate_rva_graph
 from .optional_header import validate_optional_header
 from .tls import validate_tls
 from .signature import validate_signature
-from .imports import validate_import_directory
 from .entropy import validate_entropy
 
 
@@ -38,10 +37,6 @@ def run_structural_validators(metadata: Dict[str, Any], analysis: Dict[str, Any]
         # Signature directory correctness
         "signature": validate_signature(metadata, analysis),
 
-        # Import directory RVA correctness
-        #"imports": validate_import_directory(metadata, analysis),
-
         # Entropy metrics (high entropy sections, overlays, uniform patterns)
         "entropy": validate_entropy(metadata, analysis),
     }
-
