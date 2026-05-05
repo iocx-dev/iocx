@@ -15,6 +15,11 @@ class ReasonCodes:
     ENTRYPOINT_IN_TRUNCATED_REGION = "entrypoint_in_truncated_region"
     ENTRYPOINT_IN_OVERLAY = "entrypoint_in_overlay"
 
+    ENTRYPOINT_ZERO_OR_NEGATIVE = "entrypoint_zero_or_negative"
+    ENTRYPOINT_IN_HEADERS = "entrypoint_in_headers"
+    ENTRYPOINT_IN_NON_CODE_SECTION = "entrypoint_in_non_code_section"
+    ENTRYPOINT_IN_DISCARDABLE_SECTION = "entrypoint_in_discardable_section"
+
     # --- RVA / directory inconsistencies ---
     DATA_DIRECTORY_OUT_OF_RANGE = "data_directory_out_of_range"
     DATA_DIRECTORY_OVERLAP = "data_directory_overlap"
