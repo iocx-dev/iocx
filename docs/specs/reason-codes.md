@@ -20,6 +20,8 @@
 | **SECTION_DISCARDABLE_CODE** | Section is executable AND discardable | `.text` with `MEM_EXECUTE | MEM_DISCARDABLE` | Per‑section |
 | **SECTION_FLAGS_INCONSISTENT** | Contradictory flags: code/write/exec without read | `.text` with `EXECUTE` but missing `READ` | Per‑section |
 
+---
+
 ## **ENTRYPOINT ANOMALIES**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
@@ -33,6 +35,23 @@
 | **ENTRYPOINT_IN_NON_CODE_SECTION** | EP inside `.rsrc`, `.reloc`, or non‑code section | EP inside `.rsrc` | Per‑file |
 | **ENTRYPOINT_IN_DISCARDABLE_SECTION** | EP inside discardable section | EP inside `.upx0` with discardable flag | Per‑file |
 
+---
+
+## **OPTIONAL HEADER ANOMALIES**
+
+| Reason Code | What Triggers It | Example Malformed Pattern | Scope |
+|------------|------------------|---------------------------|--------|
+| **OPTIONAL_HEADER_INCONSISTENT_SIZE** | `max(section_end)` exceeds `SizeOfImage` | `.rsrc` ends at `0x3800`, `SizeOfImage = 0x2000` | Per‑file |
+| **OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS** | `SizeOfHeaders` misaligned OR smaller than required header size | `SizeOfHeaders = 2048`, `FileAlignment = 16384` | Per‑file |
+| **OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT** | `SectionAlignment < FileAlignment` OR not power‑of‑two | `SectionAlignment = 4096`, `FileAlignment = 16384` | Per‑file |
+| **OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT** | Not power‑of‑two OR outside 512–64K range | `FileAlignment = 300` | Per‑file |
+| **OPTIONAL_HEADER_SIZE_FIELDS_INCONSISTENT** | SizeOfCode / SizeOfInit / SizeOfUninit smaller than section totals | `.text` raw = 0x600, `SizeOfCode = 0x200` | Per‑file |
+| **OPTIONAL_HEADER_IMAGE_BASE_MISALIGNED** | `ImageBase` not 64K aligned | `ImageBase = 0x12345` | Per‑file |
+| **OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES** | `NumDirs` < actual directories OR > 16 | `NumDirs = 1`, actual = 3 | Per‑file |
+| **OPTIONAL_HEADER_SIZE_OF_IMAGE_MISALIGNED** | `SizeOfImage % SectionAlignment != 0` | `SizeOfImage = 512`, `SectionAlignment = 4096` | Per‑file |
+
+---
+
 ## **RVA / DIRECTORY ANOMALIES**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
@@ -41,7 +60,8 @@
 | **DATA_DIRECTORY_OVERLAP** | Two directories’ RVA ranges overlap | Import and IAT overlap | Global |
 | **DATA_DIRECTORY_ZERO_RVA_NONZERO_SIZE** | RVA = 0 but Size > 0 | Resource RVA = 0, Size = 256 | Per‑directory |
 | **IMPORT_RVA_INVALID** | Import RVA not mapped to any section | Import RVA = 0x9000 | Per‑directory |
-| **OPTIONAL_HEADER_INCONSISTENT_SIZE** | SizeOfImage < max(section_end) | SizeOfImage = 0x2000, max end = 0x3800 | Per‑file |
+
+---
 
 ## **TLS ANOMALIES**
 
@@ -49,11 +69,15 @@
 |------------|------------------|-----------------|--------|
 | **TLS_CALLBACK_OUTSIDE_RANGE** | TLS callback RVA not inside TLS directory range | Callback = 0x5000, TLS range = 0x4000–0x4100 | Per‑file |
 
+---
+
 ## **SIGNATURE ANOMALIES**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
 | **SIGNATURE_FLAG_SET_BUT_NO_METADATA** | IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY set but no signature present | DllCharacteristics bit set, no WIN_CERTIFICATE | Per‑file |
+
+---
 
 ## **ENTROPY ANOMALIES**
 
@@ -62,6 +86,8 @@
 | **ENTROPY_HIGH_SECTION** | Section entropy above threshold | `.text` entropy = 7.9 | Per‑section |
 | **ENTROPY_HIGH_OVERLAY** | Overlay entropy above threshold | Overlay = compressed blob | Per‑file |
 | **ENTROPY_UNIFORM_ACROSS_SECTIONS** | All sections have similar high entropy | Packed binary | Per‑file |
+
+---
 
 ## **PACKER HEURISTICS (Interpretation Layer)**
 

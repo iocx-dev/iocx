@@ -33,7 +33,16 @@ class ReasonCodes:
     DATA_DIRECTORY_OVERLAP = "data_directory_overlap"
     DATA_DIRECTORY_ZERO_RVA_NONZERO_SIZE = "data_directory_zero_rva_nonzero_size"
     IMPORT_RVA_INVALID = "import_rva_invalid"
+
+    # --- Optional header anomalies ---
     OPTIONAL_HEADER_INCONSISTENT_SIZE = "optional_header_inconsistent_size"
+    OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS = "optional_header_invalid_size_of_headers"
+    OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT = "optional_header_invalid_section_alignment"
+    OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT = "optional_header_invalid_file_alignment"
+    OPTIONAL_HEADER_SIZE_FIELDS_INCONSISTENT = "optional_header_size_fields_inconsistent"
+    OPTIONAL_HEADER_IMAGE_BASE_MISALIGNED = "optional_header_image_base_misaligned"
+    OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES = "optional_header_invalid_number_of_rva_and_sizes"
+    OPTIONAL_HEADER_SIZE_OF_IMAGE_MISALIGNED = "optional_header_size_of_image_misaligned"
 
     # --- TLS anomalies ---
     TLS_CALLBACK_OUTSIDE_RANGE = "callback_outside_tls_range"
