@@ -130,6 +130,18 @@
           "raw_size": 4096,
           "file_alignment": 512
         }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "section_overlaps_headers",
+          "section": ".text",
+          "raw_address": 291,
+          "size_of_headers": 512
+        }
       }
     ]
   }

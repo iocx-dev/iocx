@@ -739,6 +739,50 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
+          "reason": "section_overlaps_headers",
+          "section": ".bss",
+          "raw_address": 0,
+          "size_of_headers": 1536
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "section_out_of_order_raw",
+          "raw_addresses": [
+            1536,
+            8192,
+            8704,
+            10752,
+            13312,
+            17408,
+            18432,
+            0,
+            19456,
+            21504,
+            22016,
+            22528,
+            23040,
+            24576,
+            70144,
+            78336,
+            86016,
+            88576,
+            89600,
+            95744,
+            100864
+          ]
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "reason": "data_directory_overlap",
           "directory_a": "IMAGE_DIRECTORY_ENTRY_IMPORT",
           "directory_b": "IMAGE_DIRECTORY_ENTRY_IAT"

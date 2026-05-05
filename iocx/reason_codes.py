@@ -2,12 +2,20 @@ class ReasonCodes:
     # --- Section anomalies ---
     SECTION_RWX = "section_rwx"
     SECTION_NON_EXECUTABLE_CODE_LIKE = "section_non_executable_code_like"
-    SECTION_EXEC_IN_SUSPICIOUS_NAME = "section_exec_in_suspicious_name"
     SECTION_NAME_NON_ASCII = "section_name_non_ascii"
     SECTION_NAME_EMPTY_OR_PADDING = "section_name_empty_or_padding"
     SECTION_IMPOSSIBLE_FLAGS = "section_impossible_flags"
     SECTION_OVERLAP = "section_overlap"
     SECTION_RAW_MISALIGNED = "section_raw_misaligned"
+
+    SECTION_RAW_OVERLAP = "section_raw_overlap"
+    SECTION_OVERLAPS_HEADERS = "section_overlaps_headers"
+    SECTION_OUT_OF_ORDER_RAW = "section_out_of_order_raw"
+    SECTION_OUT_OF_ORDER_VIRTUAL = "section_out_of_order_virtual"
+    SECTION_ZERO_LENGTH = "section_zero_length"
+    SECTION_DISCARDABLE_CODE = "section_discardable_code"
+    SECTION_FLAGS_INCONSISTENT = "section_flags_inconsistent"
+    SECTION_CODELIKE_NAME_NOT_EXECUTABLE = "section_codelike_name_not_executable"
 
     # --- Entrypoint issues ---
     ENTRYPOINT_OUT_OF_BOUNDS = "entrypoint_out_of_bounds"
