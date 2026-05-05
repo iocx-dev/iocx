@@ -125,7 +125,9 @@
         "category": "pe_heuristic",
         "metadata": {
           "reason": "entrypoint_out_of_bounds",
-          "entry_point": 2415919104
+          "entry_point": 2415919104,
+          "size_of_image": 512,
+          "position": "beyond_size_of_image"
         }
       },
       {
