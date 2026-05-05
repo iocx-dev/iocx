@@ -12,6 +12,7 @@ from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
 from .analysis.obfuscation import analyse_obfuscation
 from .analysis.extended import analyse_extended
+from .validators import run_structural_validators
 from .analysis.heuristics import analyse_pe_heuristics
 
 @dataclass
@@ -115,6 +116,7 @@ class Engine:
         obf = []
         extended = None
         heuristics = []
+        structural = []
 
         # BASIC: section layout + entropy
         if analysis_level in ("basic", "deep", "full"):
@@ -138,6 +140,8 @@ class Engine:
                 "obfuscation": [asdict(d) for d in obf],
             }
 
+            structural = run_structural_validators(metadata, analysis_dict)
+            analysis_dict["structural"] = structural
             heuristics = analyse_pe_heuristics(metadata, analysis_dict)
 
         raw = self._run_detectors(path, text)
