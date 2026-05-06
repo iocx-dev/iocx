@@ -22,12 +22,15 @@ IOCX is designed with security and simplicity in mind. The tool processes untrus
 
 ### Minimal Runtime Dependencies
 
-To reduce supply‑chain risk and minimise the attack surface, IOCX intentionally uses only two runtime dependencies:
+To reduce supply‑chain risk and minimise the attack surface, IOCX intentionally uses only a small set of well‑audited runtime dependencies. Each dependency is selected for deterministic behaviour, stability, and ecosystem maturity.
 
-- pefile - PE parsing
-- python-magic - file‑type detection
+Current runtime dependencies:
 
-No additional libraries are required for core functionality.
+- **pefile** — PE parsing and structural inspection
+- **python‑magic** — file‑type detection via signature analysis
+- **idna** — punycode decoding and Unicode domain normalisation (added in v0.7.2)
+
+No additional libraries are required for core functionality. IOCX performs no dynamic execution, no network access, and no deserialisation of untrusted data.
 
 ### Automated Security Scanning
 
