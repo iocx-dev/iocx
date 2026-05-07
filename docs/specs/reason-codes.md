@@ -73,7 +73,16 @@
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **TLS_CALLBACK_OUTSIDE_RANGE** | TLS callback RVA not inside TLS directory range | Callback = 0x5000, TLS range = 0x4000–0x4100 | Per‑file |
+| **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
+| **[TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
+| **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible) | Start = `0x6000`, End = `0x6000` | Per‑file |
+| **TLS_ZERO_LENGTH_DIRECTORY** | TLS directory exists but `start == end` (zero‑length region) | Start = `0x7000`, End = `0x7000` | Per‑file |
+| **TLS_CALLBACKS_MISSING** | TLS directory is non‑empty but callback pointer is `0` | Start = `0x4000`, End = `0x4100`, Callbacks = `0` | Per‑file |
+| **TLS_CALLBACK_NOT_MAPPED_TO_SECTION** | Callback RVA does not fall inside any section’s VA range | Callback = `0x90000000` (no section covers it) | Per‑file |
+| **TLS_CALLBACK_IN_NON_EXECUTABLE_SECTION** | Callback RVA maps to a section lacking `IMAGE_SCN_MEM_EXECUTE` | Callback in `.data` or `.rdata` | Per‑file |
+| **TLS_CALLBACK_IN_HEADERS** | Callback RVA falls inside the PE headers (`< SizeOfHeaders`) | Callback = `0x200`, SizeOfHeaders = `0x600` | Per‑file |
+| **TLS_CALLBACK_IN_OVERLAY** | Callback RVA maps to a raw offset beyond the last section (overlay) | Raw offset = `0x1F000`, overlay starts at `0x1E000` | Per‑file |
+| **TLS_CALLBACK_ARRAY_NOT_TERMINATED** *(optional future rule)* | Callback array exists but is not 0‑terminated | Callback list ends with non‑zero RVA | Per‑file |
 
 ---
 

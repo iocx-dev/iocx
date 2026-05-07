@@ -51,7 +51,19 @@ class ReasonCodes:
     OPTIONAL_HEADER_SIZE_OF_IMAGE_MISALIGNED = "optional_header_size_of_image_misaligned"
 
     # --- TLS anomalies ---
+    TLS_MULTIPLE_DIRECTORIES = "tls_multiple_directories"
+    TLS_INVALID_RANGE = "tls_invalid_range"
+    TLS_ZERO_LENGTH_DIRECTORY = "tls_zero_length_directory"
+    TLS_CALLBACKS_MISSING = "tls_callbacks_missing"
+
     TLS_CALLBACK_OUTSIDE_RANGE = "callback_outside_tls_range"
+    TLS_CALLBACK_NOT_MAPPED_TO_SECTION = "tls_callback_not_mapped_to_section"
+    TLS_CALLBACK_IN_NON_EXECUTABLE_SECTION = "tls_callback_in_non_executable_section"
+    TLS_CALLBACK_IN_HEADERS = "tls_callback_in_headers"
+    TLS_CALLBACK_IN_OVERLAY = "tls_callback_in_overlay"
+
+    # (future extension)
+    TLS_CALLBACK_ARRAY_NOT_TERMINATED = "tls_callback_array_not_terminated"
 
     # --- Signature anomalies ---
     SIGNATURE_FLAG_SET_BUT_NO_METADATA = "signature_flag_set_but_no_metadata"
