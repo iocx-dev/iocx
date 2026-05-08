@@ -67,6 +67,16 @@ class ReasonCodes:
 
     # --- Signature anomalies ---
     SIGNATURE_FLAG_SET_BUT_NO_METADATA = "signature_flag_set_but_no_metadata"
+    SIGNATURE_PRESENT_BUT_FLAG_NOT_SET = "signature_present_but_flag_not_set"
+
+    SIGNATURE_MULTIPLE_CERTIFICATES = "signature_multiple_certificates"
+
+    SIGNATURE_INVALID_LENGTH = "signature_invalid_length"
+    SIGNATURE_INVALID_REVISION = "signature_invalid_revision"
+    SIGNATURE_INVALID_TYPE = "signature_invalid_type"
+
+    SIGNATURE_OUT_OF_FILE_BOUNDS = "signature_out_of_file_bounds"
+    SIGNATURE_OVERLAPS_OTHER_DATA = "signature_overlaps_other_data"
 
     # --- Entropy anomalies ---
     ENTROPY_HIGH_SECTION = "entropy_high_section"

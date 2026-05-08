@@ -90,7 +90,14 @@
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **SIGNATURE_FLAG_SET_BUT_NO_METADATA** | IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY set but no signature present | DllCharacteristics bit set, no WIN_CERTIFICATE | Per‑file |
+| **SIGNATURE_FLAG_SET_BUT_NO_METADATA** | `IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY` set but no WIN_CERTIFICATE metadata present | Flag = 1, `signatures = []` | Per‑file |
+| **SIGNATURE_PRESENT_BUT_FLAG_NOT_SET** | Certificate metadata exists but the integrity flag is not set | `signatures = [ … ]`, flag = 0 | Per‑file |
+| **SIGNATURE_MULTIPLE_CERTIFICATES** | More than one WIN_CERTIFICATE structure present | Two or more entries in `signatures` | Per‑file |
+| **SIGNATURE_INVALID_LENGTH** | `dwLength` smaller than the WIN_CERTIFICATE header (8 bytes) or otherwise nonsensical | `dwLength = 4` | Per‑certificate |
+| **SIGNATURE_INVALID_REVISION** | `wRevision` not equal to 0x0100 or 0x0200 | `wRevision = 0x9999` | Per‑certificate |
+| **SIGNATURE_INVALID_TYPE** | `wCertificateType` not X.509 (1) or PKCS#7 (2) | `certificate_type = 0x1234` | Per‑certificate |
+| **SIGNATURE_OUT_OF_FILE_BOUNDS** | Certificate offset + size exceeds file size or begins before 0 | Offset = 0x200000, FileSize = 0x180000 | Per‑certificate |
+| **SIGNATURE_OVERLAPS_OTHER_DATA** | Certificate overlaps a section, overlay, or other critical region | Certificate at raw 0x4000 overlaps `.text` | Per‑certificate |
 
 ---
 
