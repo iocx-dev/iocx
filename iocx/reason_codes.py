@@ -83,6 +83,14 @@ class ReasonCodes:
     ENTROPY_HIGH_OVERLAY = "entropy_high_overlay"
     ENTROPY_UNIFORM_ACROSS_SECTIONS = "entropy_uniform_across_sections"
 
+    ENTROPY_VERY_LOW_SECTION = "entropy_very_low_section"
+
+    ENTROPY_HIGH_RESOURCES = "entropy_high_resources"
+    ENTROPY_HIGH_RELOCATIONS = "entropy_high_relocations"
+    ENTROPY_HIGH_IMPORTS = "entropy_high_imports"
+    ENTROPY_HIGH_TLS = "entropy_high_tls"
+    ENTROPY_HIGH_CERTIFICATE = "entropy_high_certificate"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

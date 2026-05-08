@@ -105,9 +105,15 @@
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **ENTROPY_HIGH_SECTION** | Section entropy above threshold | `.text` entropy = 7.9 | Per‑section |
-| **ENTROPY_HIGH_OVERLAY** | Overlay entropy above threshold | Overlay = compressed blob | Per‑file |
-| **ENTROPY_UNIFORM_ACROSS_SECTIONS** | All sections have similar high entropy | Packed binary | Per‑file |
+| **ENTROPY_HIGH_SECTION** | Section entropy ≥ 7.5 and size ≥ 1 KB | `.text` entropy = 7.9 | Per‑section |
+| **ENTROPY_HIGH_OVERLAY** | Overlay entropy ≥ 7.5 and size ≥ 1 KB | Overlay entropy = 7.8 | Per‑file |
+| **ENTROPY_UNIFORM_ACROSS_SECTIONS** | All sections have high entropy with very low variance | Mean = 7.7, stddev = 0.05 | Per‑file |
+| **ENTROPY_VERY_LOW_SECTION** | Large section with entropy ≤ 0.2 (zero‑filled / padding abuse) | `.data` entropy = 0.03 | Per‑section |
+| **ENTROPY_HIGH_RESOURCES** | Resource directory entropy ≥ 7.5 | `.rsrc` entropy = 7.9 | Per‑region |
+| **ENTROPY_HIGH_RELOCATIONS** | Relocation table entropy ≥ 7.5 | `.reloc` entropy = 7.8 | Per‑region |
+| **ENTROPY_HIGH_IMPORTS** | Import table entropy ≥ 7.5 | Import blob entropy = 7.7 | Per‑region |
+| **ENTROPY_HIGH_TLS** | TLS directory entropy ≥ 7.5 | TLS entropy = 7.9 | Per‑region |
+| **ENTROPY_HIGH_CERTIFICATE** | Certificate blob entropy ≥ 7.5 | WIN_CERTIFICATE entropy = 7.8 | Per‑region |
 
 ---
 
