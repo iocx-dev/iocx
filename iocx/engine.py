@@ -7,6 +7,7 @@ from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections
 from .parsers.string_extractor import extract_strings
+from .parsers.pe_resources import build_resource_structure
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
@@ -133,16 +134,26 @@ class Engine:
         if analysis_level == "full":
             extended = analyse_extended(pe, metadata, text)
 
+            file_size = len(pe.__data__)
+            overlay_offset = pe.get_overlay_data_start_offset()
+            if overlay_offset is None:
+                # No overlay → treat overlay as starting at EOF
+                overlay_offset = file_size
+
             analysis_dict = {
                 "sections": section_analysis["sections"],
                 "data_directories": section_analysis["data_directories"],
                 "extended": extended or [],
                 "obfuscation": [asdict(d) for d in obf],
+                "file_size": file_size,
+                "overlay_offset": overlay_offset,
             }
 
+            metadata["resources_struct"] = build_resource_structure(pe)  # Internal-only
             structural = run_structural_validators(metadata, analysis_dict)
             analysis_dict["structural"] = structural
             heuristics = analyse_pe_heuristics(metadata, analysis_dict)
+            metadata.pop("resources_struct", None)
 
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)

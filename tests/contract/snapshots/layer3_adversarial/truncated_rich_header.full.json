@@ -117,6 +117,19 @@
         }
       }
     ],
-    "heuristics": []
+    "heuristics": [
+    {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "entrypoint_in_overlay",
+          "entry_point": 4096,
+          "entry_point_file_offset": 512,
+          "overlay_offset": 392
+        }
+      }
+    ]
   }
 }

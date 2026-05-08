@@ -6,7 +6,6 @@ from iocx.validators.schema import StructuralIssue
 def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
-    # Internal structural resource tree
     resources = metadata.get("resources_struct")
     if not resources:
         return issues # No resource directory → no issues
@@ -50,13 +49,18 @@ def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Li
     def validate_directory(dir_node: Dict[str, Any]) -> None:
         rva = dir_node["rva"]
         size = dir_node["size"]
+
+        # Skip if the directory is not inside .rsrc
+        if not rva_in_rsrc(rva, size):
+            return
+
         entries = dir_node["entries"]
 
-        # Directory bounds
-        if not rva_in_rsrc(rva, size):
+        # Zero-length directory
+        if size == 0:
             issues.append(StructuralIssue(
-                issue=ReasonCodes.RESOURCE_DIRECTORY_OUT_OF_BOUNDS,
-                details={"rva": rva, "size": size},
+                issue=ReasonCodes.RESOURCE_DIRECTORY_ZERO_LENGTH,
+                details={"rva": rva},
             ))
             return
 
@@ -72,7 +76,6 @@ def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Li
         # Entries
         for entry in entries:
             if entry["is_directory"]:
-                # Directory entry
                 target = entry["directory"]
                 target_rva = target["rva"]
 
@@ -93,6 +96,14 @@ def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Li
             data_size = entry["data_size"]
             data_raw = entry["raw_offset"]
 
+            # Zero-size data
+            if data_size == 0:
+                issues.append(StructuralIssue(
+                    issue=ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS,
+                    details={"data_rva": data_rva, "data_size": data_size},
+                ))
+                continue
+
             # RVA bounds
             if not rva_in_rsrc(data_rva, data_size):
                 issues.append(StructuralIssue(
@@ -109,7 +120,7 @@ def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Li
                 ))
                 continue
 
-            # Overlay overlap
+            # Overlay overlap (inclusive check)
             if data_raw <= overlay_offset < data_raw + data_size:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.RESOURCE_DATA_OVERLAPS_OTHER_DATA,
@@ -139,13 +150,12 @@ def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Li
                     break
 
     # ---------------------------------------------------------
-    # Entry point: root directory
+    # Validate root directory
     # ---------------------------------------------------------
-    root = resources["root"]
-    validate_directory(root)
+    validate_directory(resources["root"])
 
     # ---------------------------------------------------------
-    # Optional: string table validation
+    # String table validation
     # ---------------------------------------------------------
     for st in resources.get("string_tables", []):
         rva = st["rva"]

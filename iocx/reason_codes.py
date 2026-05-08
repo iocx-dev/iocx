@@ -91,6 +91,18 @@ class ReasonCodes:
     ENTROPY_HIGH_TLS = "entropy_high_tls"
     ENTROPY_HIGH_CERTIFICATE = "entropy_high_certificate"
 
+    # --- Resource directory anomalies ---
+    RESOURCE_DIRECTORY_OUT_OF_BOUNDS = "resource_directory_out_of_bounds"
+    RESOURCE_DIRECTORY_LOOP = "resource_directory_loop"
+    RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
+
+    # --- Resource data anomalies ---
+    RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"
+    RESOURCE_DATA_OVERLAPS_OTHER_DATA = "resource_data_overlaps_other_data"
+
+    # --- Resource string-table anomalies ---
+    RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"
