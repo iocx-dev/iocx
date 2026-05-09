@@ -10,7 +10,7 @@ from .resources import validate_resources
 from .entropy import validate_entropy
 
 
-def run_structural_validators(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> Dict[str, Any]:
+def run_structural_validators(internal, metadata, analysis):
     """
     Run all structural validators in a deterministic order and return the
     complete structural analysis dictionary. This output is attached to
@@ -18,29 +18,41 @@ def run_structural_validators(metadata: Dict[str, Any], analysis: Dict[str, Any]
 
     Each validator must return a List[StructuralIssue].
     """
+    def call(validator):
+        deps = getattr(validator, "_depends_on", ("metadata", "analysis"))
+
+        args = []
+        if "internal" in deps:
+            args.append(internal)
+        if "metadata" in deps:
+            args.append(metadata)
+        if "analysis" in deps:
+            args.append(analysis)
+
+        return validator(*args)
 
     return {
         # Entrypoint mapping correctness
-        "entrypoint": validate_entrypoint(metadata, analysis),
+        "entrypoint": call(validate_entrypoint),
 
         # Section flags, names, alignment, overlap, impossible combinations
-        "sections": validate_sections(metadata, analysis),
+        "sections": call(validate_sections),
 
         # Optional header consistency (e.g., SizeOfImage)
-        "optional_header": validate_optional_header(metadata, analysis),
+        "optional_header": call(validate_optional_header),
 
         # RVA graph consistency (directory bounds, overlaps, out-of-range)
-        "data_directories": validate_rva_graph(metadata, analysis),
+        "data_directories": call(validate_rva_graph),
 
         # TLS callback range correctness
-        "tls": validate_tls(metadata, analysis),
+        "tls": call(validate_tls),
 
         # Signature directory correctness
-        "signature": validate_signature(metadata, analysis),
+        "signature": call(validate_signature),
 
         # Resource directory correctness
-        "resources": validate_resources(metadata, analysis),
+        "resources": call(validate_resources),
 
         # Entropy metrics (high entropy sections, overlays, uniform patterns)
-        "entropy": validate_entropy(metadata, analysis),
+        "entropy": call(validate_entropy),
     }

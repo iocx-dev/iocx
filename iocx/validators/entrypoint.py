@@ -1,6 +1,9 @@
 from typing import Dict, Any, List, Optional
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 IMAGE_SCN_CNT_CODE = 0x00000020
 IMAGE_SCN_MEM_EXECUTE = 0x20000000
@@ -42,7 +45,8 @@ def _map_rva_to_file_offset(sections: List[Dict[str, Any]], rva: int) -> Optiona
     return None
 
 
-def validate_entrypoint(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_entrypoint(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     # --- Extract entrypoint from extended header ---

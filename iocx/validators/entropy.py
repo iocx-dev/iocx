@@ -1,6 +1,9 @@
 from typing import Dict, Any, List
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 HIGH_ENTROPY_THRESHOLD = 7.5
 LOW_ENTROPY_THRESHOLD = 0.2
@@ -9,8 +12,8 @@ MIN_SECTION_SIZE_FOR_LOW_ENTROPY = 16384 # 16 KB – very conservative
 MIN_OVERLAY_SIZE_FOR_ENTROPY = 1024
 UNIFORM_STDDEV_THRESHOLD = 0.15
 
-
-def validate_entropy(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_entropy(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
     sections: List[Dict[str, Any]] = analysis.get("sections", []) or []
 

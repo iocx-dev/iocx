@@ -1,13 +1,17 @@
 from typing import Dict, Any, List
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 
 def _is_power_of_two(x: int) -> bool:
     return x > 0 and (x & (x - 1)) == 0
 
 
-def validate_optional_header(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_optional_header(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     opt = metadata.get("optional_header") or {}

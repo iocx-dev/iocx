@@ -1,9 +1,12 @@
 from typing import Dict, Any, List, Set
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.internal_schema import InternalMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
-
-def validate_resources(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("internal", "analysis")
+def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     resources = metadata.get("resources_struct")

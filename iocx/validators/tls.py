@@ -1,6 +1,9 @@
 from typing import Dict, Any, List, Optional
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 
 def _map_rva_to_section(sections, rva) -> Optional[Dict[str, Any]]:
@@ -13,7 +16,8 @@ def _map_rva_to_section(sections, rva) -> Optional[Dict[str, Any]]:
     return None
 
 
-def validate_tls(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_tls(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     tls_entries = [

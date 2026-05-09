@@ -15,6 +15,9 @@ from .analysis.obfuscation import analyse_obfuscation
 from .analysis.extended import analyse_extended
 from .validators import run_structural_validators
 from .analysis.heuristics import analyse_pe_heuristics
+from .schemas.internal_schema import InternalMetadata
+from .schemas.analysis import AnalysisDict
+from .schemas.public_metadata import PublicMetadata
 
 @dataclass
 class EngineConfig:
@@ -64,6 +67,8 @@ class Engine:
 
         self._analysis_level = self.config.analysis_level
 
+        self._internal_metadata: InternalMetadata = InternalMetadata()
+
     # ---------- Public API ----------
 
     def extract(self, path_or_text: str) -> Dict[str, Any]:
@@ -90,7 +95,7 @@ class Engine:
 
     # ---------- Pipeline stages ----------
 
-    def _get_pe_metadata(self, path: str):
+    def _get_pe_metadata(self, path: str) -> Tuple[Any, PublicMetadata]:
         if not self.config.enable_cache:
             return parse_pe(path)
         if path not in self.cache.pe_metadata:
@@ -108,6 +113,7 @@ class Engine:
 
     def _pipeline_pe(self, path: str) -> Dict[str, Any]:
         pe, metadata = self._get_pe_metadata(path)
+        metadata: PublicMetadata
         strings = self._get_strings(path)
         strings.extend(metadata.get("resource_strings", []))
         text = "\n".join(strings)
@@ -140,7 +146,7 @@ class Engine:
                 # No overlay → treat overlay as starting at EOF
                 overlay_offset = file_size
 
-            analysis_dict = {
+            analysis_dict: AnalysisDict = {
                 "sections": section_analysis["sections"],
                 "data_directories": section_analysis["data_directories"],
                 "extended": extended or [],
@@ -149,11 +155,11 @@ class Engine:
                 "overlay_offset": overlay_offset,
             }
 
-            metadata["resources_struct"] = build_resource_structure(pe)  # Internal-only
-            structural = run_structural_validators(metadata, analysis_dict)
+            self._internal_metadata["resources_struct"] = build_resource_structure(pe)
+            internal: InternalMetadata = self._internal_metadata
+            structural = run_structural_validators(internal, metadata, analysis_dict)
             analysis_dict["structural"] = structural
             heuristics = analyse_pe_heuristics(metadata, analysis_dict)
-            metadata.pop("resources_struct", None)
 
         raw = self._run_detectors(path, text)
         iocs = self._post_process(raw)

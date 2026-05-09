@@ -1,6 +1,9 @@
 from typing import Dict, Any, List
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 # PE section characteristics flags (subset)
 IMAGE_SCN_CNT_CODE = 0x00000020
@@ -24,7 +27,8 @@ def _is_padding_name(name: str) -> bool:
     return stripped == ""
 
 
-def validate_sections(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_sections(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
     sections: List[Dict[str, Any]] = analysis.get("sections", []) or []
 

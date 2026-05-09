@@ -2,13 +2,17 @@ from typing import Dict, Any, List
 
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
+from iocx.schemas.public_metadata import PublicMetadata
+from iocx.schemas.analysis import AnalysisDict
+from .decorators import depends_on
 
 
 # No directories are strictly required to be non-zero.
 REQUIRED_NONZERO_DIRS: set[str] = set()
 
 
-def validate_rva_graph(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[StructuralIssue]:
+@depends_on("metadata", "analysis")
+def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     dirs = analysis.get("data_directories") or metadata.get("data_directories") or []
