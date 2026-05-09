@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Any, Dict, List, Optional
 from iocx.models import Detection
 from iocx.reason_codes import ReasonCodes

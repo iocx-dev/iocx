@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from urllib.parse import urlparse, urlunparse
 
 def normalise_url(url: str) -> str:

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Protocol, List
 from .metadata import PluginMetadata
 from iocx.models import Detection, PluginContext

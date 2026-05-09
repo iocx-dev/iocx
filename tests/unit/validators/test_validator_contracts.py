@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import inspect
 from iocx.validators import STRUCTURAL_VALIDATORS
 from iocx.validators.schema import StructuralIssue

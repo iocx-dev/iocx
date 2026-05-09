@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import pytest
 import base64
 from iocx.detectors.extractors.base64 import extract

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 # Manually import each detector module so they register themselves
 from . import urls
 from . import ips
