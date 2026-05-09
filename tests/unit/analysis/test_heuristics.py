@@ -42,7 +42,7 @@ def test_packer_high_entropy_section():
         ]
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     d = _find(dets, "packer_suspected", "high_entropy_section")
@@ -73,7 +73,7 @@ def test_packer_upx_section_name():
         ]
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     d = _find(dets, "packer_suspected", "packer_section_name")
@@ -108,7 +108,7 @@ def test_tls_callback_outside_range():
         ],
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     d = _find(dets, "pe_structure_anomaly", "callback_outside_tls_range")
@@ -141,7 +141,7 @@ def test_anti_debug_imports_and_rwx_section():
         ]
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     assert _find(dets, "anti_debug_heuristic", "anti_debug_api_import")
@@ -173,7 +173,7 @@ def test_import_anomalies_large_and_ordinal_ratio():
 
     analysis = build_analysis(sections=[{"name": ".text"}])
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     assert _find(dets, "import_anomaly", "large_import_table")
@@ -205,7 +205,7 @@ def test_import_anomaly_uncommon_dll_for_gui():
         ],
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     d = _find(dets, "import_anomaly", "uncommon_dll_for_gui_subsystem")
@@ -225,7 +225,7 @@ def test_signature_flag_without_metadata():
 
     analysis = build_analysis(sections=[{"name": ".text"}])
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     assert _find(dets, "pe_structure_anomaly", "signature_flag_set_but_no_metadata")
@@ -287,7 +287,7 @@ def test_synthetic_triggers_all_heuristics():
         ],
     )
 
-    analysis["structural"] = run_structural_validators(metadata, analysis)
+    analysis["structural"] = run_structural_validators({}, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     expected = {

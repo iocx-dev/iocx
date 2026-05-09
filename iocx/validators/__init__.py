@@ -9,6 +9,24 @@ from .signature import validate_signature
 from .resources import validate_resources
 from .entropy import validate_entropy
 
+STRUCTURAL_VALIDATORS = {
+    # Entrypoint mapping correctness
+    "entrypoint": validate_entrypoint,
+    # Section flags, names, alignment, overlap, impossible combinations
+    "sections": validate_sections,
+    # Optional header consistency (e.g., SizeOfImage)
+    "optional_header": validate_optional_header,
+    # RVA graph consistency (directory bounds, overlaps, out-of-range)
+    "data_directories": validate_rva_graph,
+    # TLS callback range correctness
+    "tls": validate_tls,
+    # Signature directory correctness
+    "signature": validate_signature,
+    # Resource directory correctness
+    "resources": validate_resources,
+    # Entropy metrics (high entropy sections, overlays, uniform patterns)
+    "entropy": validate_entropy,
+}
 
 def run_structural_validators(internal, metadata, analysis):
     """
@@ -31,28 +49,4 @@ def run_structural_validators(internal, metadata, analysis):
 
         return validator(*args)
 
-    return {
-        # Entrypoint mapping correctness
-        "entrypoint": call(validate_entrypoint),
-
-        # Section flags, names, alignment, overlap, impossible combinations
-        "sections": call(validate_sections),
-
-        # Optional header consistency (e.g., SizeOfImage)
-        "optional_header": call(validate_optional_header),
-
-        # RVA graph consistency (directory bounds, overlaps, out-of-range)
-        "data_directories": call(validate_rva_graph),
-
-        # TLS callback range correctness
-        "tls": call(validate_tls),
-
-        # Signature directory correctness
-        "signature": call(validate_signature),
-
-        # Resource directory correctness
-        "resources": call(validate_resources),
-
-        # Entropy metrics (high entropy sections, overlays, uniform patterns)
-        "entropy": call(validate_entropy),
-    }
+    return {name: call(fn) for name, fn in STRUCTURAL_VALIDATORS.items()}
