@@ -98,6 +98,7 @@ class ReasonCodes:
     RESOURCE_DIRECTORY_OUT_OF_BOUNDS = "resource_directory_out_of_bounds"
     RESOURCE_DIRECTORY_LOOP = "resource_directory_loop"
     RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
+    RESOURCE_DIRECTORY_ZERO_LENGTH = "resource_directory_zero_length"
 
     # --- Resource data anomalies ---
     RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"

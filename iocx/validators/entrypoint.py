@@ -15,12 +15,32 @@ IMAGE_SCN_MEM_DISCARDABLE = 0x02000000
 
 
 def _map_rva_to_section(sections: List[Dict[str, Any]], rva: int) -> Optional[Dict[str, Any]]:
+    """
+    Map an RVA to a section.
+
+    Prefer raw-backed mapping when raw fields are available (so truncated or
+    zero-length virtual regions can still be associated with a section), but
+    fall back to virtual-address mapping when only VA/VS are present.
+    """
     for sec in sections:
         va = sec.get("virtual_address")
         vs = sec.get("virtual_size")
+        raw = sec.get("raw_address")
+        raw_size = sec.get("raw_size")
+
+        # 1) If we have raw info, use raw-backed mapping
+        if isinstance(va, int) and isinstance(raw, int) and isinstance(raw_size, int):
+            delta = rva - va
+            if 0 <= delta < raw_size:
+                return sec
+            # continue to next section; no VA fallback here to avoid ambiguity
+            continue
+
+        # 2) Fallback: pure VA/VS mapping when no raw info
         if isinstance(va, int) and isinstance(vs, int):
             if va <= rva < va + vs:
                 return sec
+
     return None
 
 

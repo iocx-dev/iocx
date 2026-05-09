@@ -3,7 +3,7 @@
 
 import pytest
 
-from iocx.analysis.heuristics import analyse_pe_heuristics
+from iocx.analysis.heuristics import analyse_pe_heuristics, _analyse_structural
 from iocx.validators import run_structural_validators
 
 
@@ -309,3 +309,32 @@ def test_synthetic_triggers_all_heuristics():
     seen = {(d.value, d.metadata.get("reason")) for d in dets}
     for pair in expected:
         assert pair in seen, f"Missing heuristic {pair}"
+
+
+def test_analyse_structural_top_level_return():
+    analysis = {"structural": 123} # not a dict → triggers early return
+    result = _analyse_structural(analysis)
+    assert result == []
+
+
+def test_analyse_structural_continue_non_list_issues():
+    analysis = {
+        "structural": {
+            "weird_category": "not-a-list" # triggers first continue
+        }
+    }
+    result = _analyse_structural(analysis)
+    assert result == []
+
+
+def test_analyse_structural_continue_non_dict_issue():
+    analysis = {
+        "structural": {
+            "cat": [
+                "not-a-dict", # triggers second continue
+                123, # also triggers second continue
+            ]
+        }
+    }
+    result = _analyse_structural(analysis)
+    assert result == []

@@ -99,7 +99,7 @@ def build_resource_structure(pe) -> Dict[str, Any]:
                                         "size": d.Size,
                                     }
                                 )
-    except Exception:
+    except Exception: # pragma: no cover
         pass
 
     return {

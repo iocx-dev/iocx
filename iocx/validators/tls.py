@@ -58,16 +58,16 @@ def validate_tls(metadata: PublicMetadata, analysis: AnalysisDict) -> List[Struc
     # ---------------------------------------------------------
     # 2) Range sanity
     # ---------------------------------------------------------
-    if start >= end:
+    if start == end:
         issues.append(StructuralIssue(
-            issue=ReasonCodes.TLS_INVALID_RANGE,
+            issue=ReasonCodes.TLS_ZERO_LENGTH_DIRECTORY,
             details={"start_address": start, "end_address": end},
         ))
         return issues
 
-    if start == end:
+    if start > end:
         issues.append(StructuralIssue(
-            issue=ReasonCodes.TLS_ZERO_LENGTH_DIRECTORY,
+            issue=ReasonCodes.TLS_INVALID_RANGE,
             details={"start_address": start, "end_address": end},
         ))
         return issues
