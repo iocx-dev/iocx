@@ -289,61 +289,140 @@ print(results)
 
 # Example Output
 
+> IOCX produces structured, deterministic JSON that includes IOCs, PE metadata, section analysis, heuristics, and obfuscation indicators.
+>
+> The example below is an abridged output from a real adversarial PE sample. It demonstrates the shape and depth of the schema while keeping the size manageable for documentation purposes.
+
 <details>
 <summary><strong>Show Example JSON Output</strong></summary>
 
 ```json
-{$ iocx chaos_corpus.json
 {
-  "file": "examples/samples/structured/chaos_corpus.json",
-  "type": "text",
-  "iocs": {
-    "urls": [
-      "http://[2001:db8::1]:443"
-    ],
-    "domains": [],
-    "ips": [
-      "2001:db8::1",
-      "10.0.0.1",
-      "192.168.1.10",
-      "fe80::dead:beef%eth0",
-      "1.2.3.4",
-      "fe80::1%eth0",
-      "192.168.1.110",
-      "fe80::1%eth0fe80",
-      "::2%eth1",
-      "2001:db8::"
-    ],
-    "hashes": [],
-    "emails": [],
-    "filepaths": [],
-    "base64": [],
-    "crypto.btc": [],
-    "crypto.eth": []
-  },
-  "metadata": {}
+    "file": "heuristic_rich.full.exe",
+    "type": "PE",
+    "iocs": {
+        "urls": ["http://not-a-real-domain.test/payload"],
+        "domains": ["example-malware.com"],
+        "ips": ["192.0.2.123"],
+        "hashes": [
+            "abcd1234ef567890abcd1234ef567890",
+            "1234567890",
+            "3333333333333333"
+        ],
+        "filepaths": [
+            "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/crtexe.c",
+            "/usr/x86_64-w64-mingw32/include",
+            "/usr/src/mingw-w64-11.0.1-3build1/mingw-w64-crt/crt/pseudo-reloc.c"
+        ]
+    },
+    "metadata": {
+        "file_type": "PE",
+        "imports": ["KERNEL32.dll", "msvcrt.dll", "USER32.dll"],
+        "sections": [
+            ".text", ".data", ".rwx", ".rdata",
+            "UPX0", ".pdata", ".xdata", ".tls"
+        ],
+        "resources": [],
+        "resource_strings": [],
+        "delayed_imports": [],
+        "bound_imports": [],
+        "exports": [],
+        "signatures": [],
+        "has_signature": false,
+        "tls": {
+            "start_address": 5368758272,
+            "end_address": 5368758280,
+            "callbacks": 5368754232
+        },
+        "header": {
+            "entry_point": 5088,
+            "image_base": 5368709120,
+            "machine": "AMD64",
+            "subsystem": "Windows GUI"
+        },
+        "optional_header": {
+            "section_alignment": 4096,
+            "file_alignment": 512,
+            "size_of_image": 155648
+        }
+    },
+    "analysis": {
+        "sections": [
+            { "name": ".text", "entropy": 5.92 },
+            { "name": ".rwx", "entropy": 0 },
+            { "name": "UPX0", "entropy": 0.34 },
+            { "name": ".rdata", "entropy": 4.03 }
+        ],
+        "obfuscation": [
+            {
+                "value": "abnormal_section_layout_virtual_only",
+                "category": "obfuscation_hint",
+                "metadata": {
+                    "section": ".bss",
+                    "raw_size": 0,
+                    "virtual_size": 384
+                }
+            }
+        ],
+        "extended": [
+            {
+                "value": "summary",
+                "category": "pe_metadata",
+                "metadata": {
+                    "dll_count": 3,
+                    "import_count": 45,
+                    "resource_count": 0,
+                    "has_tls": true,
+                    "has_signature": false
+                }
+            }
+        ],
+        "heuristics": [
+            {
+                "value": "packer_suspected",
+                "metadata": {
+                    "reason": "packer_section_name",
+                    "section": "UPX0"
+                }
+            },
+            {
+                "value": "anti_debug_heuristic",
+                "metadata": {
+                    "reason": "anti_debug_api_import",
+                    "dll": "kernel32.dll",
+                    "function": "CheckRemoteDebuggerPresent"
+                }
+            },
+            {
+                "value": "anti_debug_heuristic",
+                "metadata": {
+                    "reason": "timing_api_import",
+                    "dll": "kernel32.dll",
+                    "function": "GetTickCount"
+                }
+            },
+            {
+                "value": "pe_structure_anomaly",
+                "metadata": {
+                    "reason": "section_overlaps_headers",
+                    "section": ".bss",
+                    "raw_address": 0,
+                    "size_of_headers": 1536
+                }
+            },
+            {
+                "value": "pe_structure_anomaly",
+                "metadata": {
+                    "reason": "data_directory_overlap",
+                    "directory_a": "IMAGE_DIRECTORY_ENTRY_IMPORT",
+                    "directory_b": "IMAGE_DIRECTORY_ENTRY_IAT"
+                }
+            }
+        ]
+    }
 }
-
 ```
 
-</details>
-<details>
-<summary><strong>Chaos Corpus: Input → Extracted Output → Explanation</strong></summary>
-<br>
-
-| Input                                 | Extracted Output                         | Explanation                                 |
-|---------------------------------------|------------------------------------------|---------------------------------------------|
-| fe80::dead:beef%eth0/garbage          | fe80::dead:beef%eth0                     | Salvaged valid IPv6, junk ignored.          |
-| xxx192.168.1.10yyy                    | 192.168.1.10                             | IPv4 inside junk text.                      |
-| DROP:client=10.0.0.1;;;ERR            | 10.0.0.1                                 | IPv4 from noisy log field.                  |
-| [2001:db8::1]::::443                  | 2001:db8::1                              | IPv6 and IPv6+port extracted.               |
-|                                       | 2001:db8::1:443                          |                                             |
-| GET http://[2001:db8::1]:443/index    | http://[2001:db8::1]:443                 | URL with IPv6 parsed correctly.             |
-| udp://[fe80::1%eth0]::::53            | fe80::1%eth0                             | Concatenated IPv6 split up.                 |
-| 192.168.1.110.0.0.1                   | 192.168.1.110                            | Combined IP segment salvaged.               |
-| fe80::1%eth0fe80::2%eth1              | fe80::1%eth0fe80, ::2%eth1               | Concatenated IPv6 split up.                 |
-| 2001:db8::12001:db8::2                | 2001:db8::                               | Longest valid IPv6 prefix found.            |
-| 256.256.256:256                       | —                                        | Invalid indicator ignored.                  |
 </details>
 
 ---
