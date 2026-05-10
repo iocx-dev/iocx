@@ -33,11 +33,11 @@ Any other repositories using the name "iocx" are **not affiliated** with this pr
 
 Modern malware is **adversarial by default** — malformed, evasive, and engineered to break naive extractors.
 
-- Regex‑only tools fail under real adversarial pressure
-- Sandboxes are unsafe and unusable in CI/CD
-- Binary‑unaware scripts collapse under malformed PEs
+- **Binary‑unaware tools** collapse under malformed PEs
+- **Sandboxes** are unsafe and unusable in CI/CD
+- **Reproducibility** is essential for automated pipelines
 
-**IOCX is built for the world we actually live in.**
+**IOCX is built for environments where correctness and determinism actually matter.**
 
 ---
 
@@ -74,11 +74,11 @@ iocx suspicious.exe -a deep
 
 Security teams face three persistent problems:
 
-1. **Regex‑only extractors break under adversarial input**
-2. **Sandboxing is unsafe, slow, and unsuitable for CI/CD**
-3. **Most tools cannot parse binaries or reason about PE structure**
+1. **Regex extractors** break under adversarial input
+2. **Sandboxing** is unsafe, slow, and unsuitable for automation
+3. **Most IOC tools** are inconsistent, slow, or produce subtly different output between runs
 
-IOCX solves all three with a **deterministic, static‑only engine** designed for automation, safety, and scale.
+IOCX solves this with a **deterministic, static‑only engine** designed for automation, safety, and scale.
 
 ---
 
