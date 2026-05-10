@@ -547,25 +547,17 @@ The name **IOCX** refers exclusively to the official engine published on:
 
 # Roadmap
 
-### **Q2 2026**
-- Plugin sandboxing for untrusted detectors
-- Extended PE heuristics (delay‑load, CFG, reloc anomalies)
-- Domain‑specific suppression rules (OSINT, DFIR, TI)
+IOCX development focuses on stability, extensibility, and deeper static‑analysis coverage.
+The items below represent ongoing areas of work and exploration.
 
-### **Q3 2026**
-- ELF + Mach‑O metadata extraction
-- Multi‑artifact batch mode
-- IOCX‑server (stateless HTTP extraction API)
-
-### **Q4 2026**
-- YARA‑compatible output mode
-- IOCX‑cloud corpus for adversarial samples
-- Threat‑intel enrichment hooks (opt‑in)
-
-### **2027+**
-- Full binary‑agnostic static analysis layer
-- Cross‑platform plugin marketplace
-- Multi‑language bindings (Rust, Go, Node)
+- **Extended PE heuristics** (delay‑load behaviour, structural anomalies, relocation patterns)
+- **Selective suppression rules** for OSINT, DFIR, and threat‑intel workflows
+- **ELF and Mach‑O metadata extraction**
+- **Batch analysis mode** for multi‑artifact workflows
+- **YARA‑style output modes** and enrichment hooks
+- **Binary‑agnostic static analysis**
+- **Cross‑platform plugin ecosystem**
+- **Language bindings** for Rust, Go, and Node.js
 
 ---
 
