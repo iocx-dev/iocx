@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 #!/usr/bin/env python3
 """
 Generate synthetic PE fixtures for >=v.0.6.0 IOCX tests.

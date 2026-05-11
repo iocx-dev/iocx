@@ -160,6 +160,27 @@ flowchart TD
 | **D**  | Denial of Service      | Regex backtracking attacks           | Pre‑compiled safe regex patterns        |
 | **E**  | Elevation of Privilege | Plugin system abused                 | ``--dev`` mode opt‑in; no auto‑loading  |
 
+#### **Third‑Party Components (Domain Decoding)**
+
+IOCX uses the `idna` library for punycode decoding and Unicode domain normalization. This expands the dependency surface slightly, but the risk profile remains low:
+
+- Pure‑Python implementation with no native extensions
+- No network access or external lookups
+- Deterministic transformations only
+- Widely used across the Python ecosystem
+- Included in adversarial testing for malformed punycode, invalid labels, and Unicode edge cases
+
+**Threat considerations:**
+
+| STRIDE | Threat                 | Description                                             | Mitigation                                                                  |
+|--------|------------------------|---------------------------------------------------------|-----------------------------------------------------------------------------|
+| **S**  | Spoofing               | Unicode domains crafted to appear visually similar      | Confusable detection; script classification; punycode round‑trip validation |
+| **T**  | Tampering              | Malformed punycode strings attempting to break decoding | Exception handling; bounded decoding; adversarial fixtures                  |
+| **R**  | Repudiation            | Incorrect decoding results                              | Deterministic transformations; snapshot tests                               |
+| **I**  | Information Disclosure | None — no external communication                        | Local‑only processing                                                       |
+| **D**  | Denial of Service      | Extremely long or malformed labels                      | Length caps; strict punycode validation                                     |
+| **E**  | Elevation of Privilege | None — no execution or dynamic loading                  | Pure‑function transformations only                                          |
+
 ### 6. Local Cache
 
 | STRIDE | Threat                 | Description                   | Mitigation                                   |

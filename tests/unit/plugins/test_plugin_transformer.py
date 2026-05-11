@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from iocx.engine import Engine, EngineConfig
 
 def test_plugin_transformer_runs_first(tmp_path, monkeypatch):

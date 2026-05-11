@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from ...registry import register_detector
 from ....models import Detection
 from .strict_url import extract_strict_urls

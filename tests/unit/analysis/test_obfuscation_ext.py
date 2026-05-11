@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import pytest
 from iocx.analysis.obfuscation import analyse_obfuscation, _detect_high_entropy_sections, _looks_like_rot13, _non_printable_ratio, _detect_string_obfuscation
 from iocx.analysis.extended import analyse_extended

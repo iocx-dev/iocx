@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import re
 from ....models import Detection
 from .homoglyph_punycode import _punycode_decodes_to_unicode, _decode_punycode, _detect_script, _contains_confusables

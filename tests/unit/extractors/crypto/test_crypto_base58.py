@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from iocx.detectors.extractors.crypto import extract, base58check_decode
 from iocx.models import Detection
 import pytest

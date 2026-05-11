@@ -6,20 +6,24 @@ IOCX is part of the MalX Labs ecosystem — a family of modern, deterministic, d
 We welcome contributions of all kinds: bug fixes, static‑analysis improvements, new extractors, documentation updates, and thoughtful design discussions.
 This guide explains how to contribute effectively while keeping IOCX predictable, secure, and maintainable.
 
+---
+
 ## Project Philosophy
 
 IOCX is intentionally:
 
-- Minimal — extremely small dependency footprint
-- Secure — safe handling of untrusted input
-- Deterministic — no network access, no non-deterministic behaviour
-- Extensible — new static‑analysis modules can be added cleanly
+- **Minimal** — extremely small dependency footprint
+- **Secure** — safe handling of untrusted input
+- **Deterministic** — no network access, no non‑deterministic behaviour
+- **Extensible** — new static‑analysis modules can be added cleanly
 
 All contributions must align with these principles.
 
+---
+
 ## Core vs Plugins
 
-IOCX has a strict boundary between core functionality and plugin‑based extensions.
+IOCX has a strict boundary between **core functionality** and **plugin‑based extensions**.
 This keeps the core predictable and universally safe while allowing users to extend IOCX for their own environments.
 
 ### What Belongs in the Core
@@ -51,7 +55,7 @@ Plugins are for functionality that is:
 - optional or environment‑specific
 - based on external data
 - organisation‑specific
-- user-maintained
+- user‑maintained
 - likely to evolve independently
 
 Examples:
@@ -64,6 +68,8 @@ Examples:
 If the information comes from the user’s environment, it belongs in a plugin.
 
 This separation keeps IOCX clean, predictable, and safe to run anywhere.
+
+---
 
 ## How to Contribute
 
@@ -80,12 +86,12 @@ Open an issue or submit a PR with:
 Regex‑based extractors live under:
 
 ```
-detectors/extractors/
+iocx/detectors/extractors/
 ```
 
 Please include:
 
-- a clear, well-scoped regex
+- a clear, well‑scoped regex
 - validation logic
 - test cases
 - example inputs
@@ -102,7 +108,7 @@ Enhancements to metadata extraction, imports, sections, or resources are welcome
 
 - static
 - deterministic
-- dependency-minimal
+- dependency‑minimal
 
 ### Add synthetic test samples
 
@@ -113,48 +119,50 @@ See the “Testing” section below.
 
 Better examples, diagrams, and explanations are always appreciated.
 
-### Contribution Process
+---
 
-1. Fork the repository
+## Contribution Process
+
+1. **Fork the repository**
 
 ```bash
 git clone https://github.com/iocx-dev/iocx.git
-
 ```
 
-2. Create a feature branch
+2. **Create a feature branch**
 
 ```bash
 git checkout -b feature/my-improvement
-
 ```
 
-3. Install locally
+3. **Install locally**
 
 ```bash
 pip install -e .
 ```
 
-4. Run tests
+4. **Run tests**
 
 ```bash
 pytest
 ```
 
-5. Run security checks
+5. **Run security checks**
 
 ```bash
 bandit -r iocx -lll
 pip-audit --skip-editable
 ```
 
-6. Open a Pull Request
+6. **Open a Pull Request**
 
-- Target the main branch
+- Target the `main` branch
 - Describe what you changed and why
 - Link any related issues
 
 CI will run automatically.
+
+---
 
 ## Testing
 
@@ -162,18 +170,18 @@ IOCX is designed to be **safe to develop on any machine**.
 
 ### Do NOT:
 
-- Upload or commit real malware
-- Submit password‑protected malware archives
-- Include malicious payloads or exploit code
-- Add samples requiring execution to analyse
+- upload or commit real malware
+- submit password‑protected malware archives
+- include malicious payloads or exploit code
+- add samples requiring execution to analyse
 
 ### Do:
 
-- Use synthetic PE files
-- Embed fake IOCs inside harmless executables
-- Use benign Windows binaries for structural testing
-- Use public test files like EICAR or GTUBE
-- Add text files containing mixed IOCs
+- use synthetic PE files
+- embed fake IOCs inside harmless executables
+- use benign Windows binaries for structural testing
+- use public test files like EICAR or GTUBE
+- add text files containing mixed IOCs
 
 If unsure, open an issue before submitting.
 
@@ -183,32 +191,37 @@ All new features should include tests.
 Bug fixes should include a test that reproduces the issue.
 
 Tests live in:
-```plaintext
+
+```
 tests/
 ```
 
 We use pytest.
 
+---
+
 ## Adding New Extractors
 
 Extractors live in:
 
-```plaintext
+```
 iocx/detectors/extractors/
 ```
 
 To add one:
 
-- Create a new file in that directory
-- Follow existing patterns
-- Ensure it registers itself on import
-- Add tests under `tests/unit/extractors/`
+- create a new file in that directory
+- follow existing patterns
+- ensure it registers itself on import
+- add tests under `tests/unit/extractors/`
 
 Extractors must be:
 
 - deterministic
 - side‑effect‑free
 - safe for untrusted input
+
+---
 
 ## Code Style
 
@@ -225,20 +238,48 @@ ruff check iocx
 black iocx
 ```
 
+---
+
 ## Security
 
 If you discover a security issue, do not open a GitHub issue.
+Follow the instructions in `SECURITY.md`.
 
-Follow the instructions in SECURITY.md.
+---
 
 ## Code of Conduct
 
 Be respectful, constructive, and supportive.
 We aim for a collaborative, professional environment.
 
-## License
+---
 
-By contributing, you agree that your contributions are licensed under the project's MIT License.
+## Licensing of Contributions
+
+By contributing to IOCX, you agree that:
+
+- Your contributions are licensed under the **Mozilla Public License 2.0 (MPL‑2.0)**.
+- You grant the project maintainers the right to **dual‑license your contributions** under commercial terms as part of the IOCX open‑core model.
+- You retain copyright to your contributions.
+
+This ensures:
+
+- the open‑source core remains healthy
+- improvements remain open
+- commercial customers can use IOCX under proprietary terms
+- your work is properly attributed
+
+By submitting a contribution, you certify that you have the right to do so and that your contribution does not violate any third-party rights.
+
+---
+
+## Trademark Notice
+
+Contributors may not use the IOCX name in a way that implies endorsement.
+See [TRADEMARK_POLICY.md](TRADEMARK_POLICY.md) for details.
+See [LICENSE](LICENSE) for full MPL-2.0 terms.
+
+---
 
 ## Thank You
 

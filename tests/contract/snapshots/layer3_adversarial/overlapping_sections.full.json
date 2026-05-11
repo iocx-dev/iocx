@@ -151,6 +151,29 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
+          "reason": "entrypoint_in_overlay",
+          "entry_point": 4096,
+          "entry_point_file_offset": 512,
+          "overlay_offset": 392
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "section_raw_overlap",
+          "section_a": ".text",
+          "section_b": ".data"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "reason": "section_overlap",
           "section_a": ".text",
           "section_b": ".data"
@@ -165,17 +188,6 @@
           "reason": "optional_header_inconsistent_size",
           "size_of_image": 12288,
           "max_section_end": 14336
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "import_rva_invalid",
-          "rva": 0,
-          "size": 0
         }
       }
     ]

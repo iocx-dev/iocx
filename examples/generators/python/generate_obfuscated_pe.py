@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 """
 generate_obfuscated_pe.py
 Creates a harmless Windows PE file containing embedded fake IOCs.

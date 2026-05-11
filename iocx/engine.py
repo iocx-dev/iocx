@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from __future__ import annotations
 import os
 import logging
@@ -7,12 +10,17 @@ from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections
 from .parsers.string_extractor import extract_strings
+from .parsers.pe_resources import build_resource_structure
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
 from .analysis.obfuscation import analyse_obfuscation
 from .analysis.extended import analyse_extended
+from .validators import run_structural_validators
 from .analysis.heuristics import analyse_pe_heuristics
+from .schemas.internal_schema import InternalMetadata
+from .schemas.analysis import AnalysisDict
+from .schemas.public_metadata import PublicMetadata
 
 @dataclass
 class EngineConfig:
@@ -62,6 +70,8 @@ class Engine:
 
         self._analysis_level = self.config.analysis_level
 
+        self._internal_metadata: InternalMetadata = InternalMetadata()
+
     # ---------- Public API ----------
 
     def extract(self, path_or_text: str) -> Dict[str, Any]:
@@ -88,7 +98,7 @@ class Engine:
 
     # ---------- Pipeline stages ----------
 
-    def _get_pe_metadata(self, path: str):
+    def _get_pe_metadata(self, path: str) -> Tuple[Any, PublicMetadata]:
         if not self.config.enable_cache:
             return parse_pe(path)
         if path not in self.cache.pe_metadata:
@@ -106,6 +116,7 @@ class Engine:
 
     def _pipeline_pe(self, path: str) -> Dict[str, Any]:
         pe, metadata = self._get_pe_metadata(path)
+        metadata: PublicMetadata
         strings = self._get_strings(path)
         strings.extend(metadata.get("resource_strings", []))
         text = "\n".join(strings)
@@ -115,6 +126,7 @@ class Engine:
         obf = []
         extended = None
         heuristics = []
+        structural = []
 
         # BASIC: section layout + entropy
         if analysis_level in ("basic", "deep", "full"):
@@ -131,13 +143,25 @@ class Engine:
         if analysis_level == "full":
             extended = analyse_extended(pe, metadata, text)
 
-            analysis_dict = {
+            file_size = len(pe.__data__)
+            overlay_offset = pe.get_overlay_data_start_offset()
+            if overlay_offset is None:
+                # No overlay → treat overlay as starting at EOF
+                overlay_offset = file_size
+
+            analysis_dict: AnalysisDict = {
                 "sections": section_analysis["sections"],
                 "data_directories": section_analysis["data_directories"],
                 "extended": extended or [],
                 "obfuscation": [asdict(d) for d in obf],
+                "file_size": file_size,
+                "overlay_offset": overlay_offset,
             }
 
+            self._internal_metadata["resources_struct"] = build_resource_structure(pe)
+            internal: InternalMetadata = self._internal_metadata
+            structural = run_structural_validators(internal, metadata, analysis_dict)
+            analysis_dict["structural"] = structural
             heuristics = analyse_pe_heuristics(metadata, analysis_dict)
 
         raw = self._run_detectors(path, text)

@@ -114,6 +114,39 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
+          "reason": "optional_header_invalid_size_of_headers",
+          "size_of_headers": 2048,
+          "file_alignment": 16384
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "optional_header_invalid_section_alignment",
+          "section_alignment": 4096,
+          "file_alignment": 16384
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "optional_header_size_of_image_misaligned",
+          "size_of_image": 512,
+          "section_alignment": 4096
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_EXPORT",
           "rva": 4096,

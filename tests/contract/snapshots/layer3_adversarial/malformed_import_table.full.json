@@ -124,11 +124,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
-          "directory": "IMAGE_DIRECTORY_ENTRY_IMPORT",
-          "rva": 3735928559,
-          "size": 512,
-          "size_of_image": 12288
+          "reason": "entrypoint_in_overlay",
+          "entry_point": 4096,
+          "entry_point_file_offset": 512,
+          "overlay_offset": 392
         }
       },
       {
@@ -137,9 +136,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "import_rva_invalid",
+          "reason": "data_directory_out_of_range",
+          "directory": "IMAGE_DIRECTORY_ENTRY_IMPORT",
           "rva": 3735928559,
-          "size": 512
+          "size": 512,
+          "size_of_image": 12288
         }
       }
     ]

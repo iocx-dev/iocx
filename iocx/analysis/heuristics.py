@@ -1,6 +1,9 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Any, Dict, List, Optional
 from iocx.models import Detection
-
+from iocx.reason_codes import ReasonCodes
 
 # Thresholds
 HIGH_ENTROPY_THRESHOLD = 7.5
@@ -36,6 +39,12 @@ UNCOMMON_DLLS = {
     "hal.dll",
 }
 
+_SKIP_ENTROPY = {
+    ReasonCodes.ENTROPY_HIGH_SECTION,
+    ReasonCodes.ENTROPY_HIGH_OVERLAY,
+    ReasonCodes.ENTROPY_UNIFORM_ACROSS_SECTIONS,
+}
+
 
 def _det(value: str, reason: str, metadata: Optional[Dict[str, Any]] = None) -> Detection:
     return Detection(
@@ -49,32 +58,25 @@ def _det(value: str, reason: str, metadata: Optional[Dict[str, Any]] = None) -> 
 
 def _get_extended(analysis: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
     return [
-        e for e in analysis["extended"]
+        e for e in analysis.get("extended", [])
         if isinstance(e, dict)
         and e.get("value") == key
         and isinstance(e.get("metadata"), dict)
     ]
 
 
-def _map_rva_to_section(sections: List[Dict[str, Any]], rva: int) -> Optional[Dict[str, Any]]:
-    for sec in sections:
-        va = sec.get("virtual_address")
-        vs = sec.get("virtual_size")
-        if not isinstance(va, int) or not isinstance(vs, int):
-            continue
-        if va <= rva < va + vs:
-            return sec
-    return None
-
-
 def _analyse_packer(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
     out: List[Detection] = []
 
-    for sec in analysis["sections"]:
+    for sec in analysis.get("sections", []):
         name = (sec.get("name") or "").lower()
 
         if "upx" in name:
-            out.append(_det("packer_suspected", "packer_section_name", {"section": sec["name"]}))
+            out.append(_det(
+                "packer_suspected",
+                "packer_section_name",
+                {"section": sec.get("name")},
+            ))
 
         entropy = sec.get("entropy")
         raw_size = sec.get("raw_size")
@@ -85,37 +87,11 @@ def _analyse_packer(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[
                     "packer_suspected",
                     "high_entropy_section",
                     {
-                        "section": sec["name"],
+                        "section": sec.get("name"),
                         "entropy": float(entropy),
                         "raw_size": raw_size,
                     },
                 ))
-
-    return out
-
-
-def _analyse_tls(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    for entry in _get_extended(analysis, "tls_directory"):
-        meta = entry["metadata"]
-        start = meta.get("start_address")
-        end = meta.get("end_address")
-        callbacks = meta.get("callbacks")
-
-        if start is None or end is None or callbacks is None:
-            continue
-
-        if not (start <= callbacks < end):
-            out.append(_det(
-                "tls_callback_anomaly",
-                "callback_outside_tls_range",
-                {
-                    "callbacks": callbacks,
-                    "start_address": start,
-                    "end_address": end,
-                },
-            ))
 
     return out
 
@@ -141,7 +117,8 @@ def _analyse_anti_debug(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> L
                 {"dll": dll, "function": func},
             ))
 
-    for sec in analysis["sections"]:
+    # RWX sections are now structurally validated, but still interesting for anti-debug
+    for sec in analysis.get("sections", []):
         chars = sec.get("characteristics")
         if not isinstance(chars, int):
             continue
@@ -153,7 +130,7 @@ def _analyse_anti_debug(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> L
             out.append(_det(
                 "anti_debug_heuristic",
                 "rwx_section",
-                {"section": sec["name"], "characteristics": chars},
+                {"section": sec.get("name"), "characteristics": chars},
             ))
 
     return out
@@ -202,237 +179,38 @@ def _analyse_import_anomalies(metadata: Dict[str, Any], analysis: Dict[str, Any]
     return out
 
 
-def _analyse_signature(metadata: Dict[str, Any]) -> List[Detection]:
+def _analyse_structural(analysis: Dict[str, Any]) -> List[Detection]:
+    """
+    Interpret structural validator output from analysis["structural"] and
+    surface it as pe_structure_anomaly detections.
+    """
     out: List[Detection] = []
 
-    has_sig = bool(metadata.get("has_signature"))
-    sigs = metadata.get("signatures") or []
+    structural = analysis.get("structural") or {}
+    if not isinstance(structural, dict):
+        return out
 
-    if has_sig and not sigs:
-        out.append(_det(
-            "signature_anomaly",
-            "signature_flag_set_but_no_metadata",
-        ))
-
-    return out
-
-
-def _analyse_section_overlap(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-    sections = analysis.get("sections", [])
-
-    for i in range(len(sections)):
-        a = sections[i]
-        va_a = a.get("virtual_address")
-        vs_a = a.get("virtual_size")
-        if not isinstance(va_a, int) or not isinstance(vs_a, int):
+    for category, issues in structural.items():
+        if not isinstance(issues, list):
             continue
-        end_a = va_a + vs_a
 
-        for j in range(i + 1, len(sections)):
-            b = sections[j]
-            va_b = b.get("virtual_address")
-            vs_b = b.get("virtual_size")
-            if not isinstance(va_b, int) or not isinstance(vs_b, int):
+        for issue in issues:
+            if not isinstance(issue, dict):
                 continue
-            end_b = va_b + vs_b
 
-            if max(va_a, va_b) < min(end_a, end_b):
-                out.append(
-                    _det(
-                        "pe_structure_anomaly",
-                        "section_overlap",
-                        {"section_a": a.get("name"), "section_b": b.get("name")},
-                    )
-                )
+            reason = issue.get("issue")
+            details = issue.get("details") or {}
 
-    return out
+            if reason in _SKIP_ENTROPY:
+                continue
 
+            metadata = {**details}
 
-def _analyse_section_alignment(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    opt = metadata.get("optional_header") or {}
-    file_alignment = opt.get("file_alignment")
-    if not isinstance(file_alignment, int) or file_alignment <= 0:
-        return out
-
-    for sec in analysis.get("sections", []):
-        raw_addr = sec.get("raw_address")
-        raw_size = sec.get("raw_size")
-        if not isinstance(raw_addr, int) or not isinstance(raw_size, int):
-            continue
-
-        if raw_addr % file_alignment != 0 or raw_size % file_alignment != 0:
-            out.append(
-                _det(
-                    "pe_structure_anomaly",
-                    "section_raw_misaligned",
-                    {
-                        "section": sec.get("name"),
-                        "raw_address": raw_addr,
-                        "raw_size": raw_size,
-                        "file_alignment": file_alignment,
-                    },
-                )
-            )
-
-    return out
-
-
-def _analyse_optional_header_consistency(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    opt = metadata.get("optional_header") or {}
-    size_of_image = opt.get("size_of_image")
-    if not isinstance(size_of_image, int) or size_of_image <= 0:
-        return out
-
-    max_end = 0
-    for sec in analysis.get("sections", []):
-        va = sec.get("virtual_address")
-        vs = sec.get("virtual_size")
-        if not isinstance(va, int) or not isinstance(vs, int):
-            continue
-        max_end = max(max_end, va + vs)
-
-    if max_end > size_of_image:
-        out.append(
-            _det(
+            out.append(_det(
                 "pe_structure_anomaly",
-                "optional_header_inconsistent_size",
-                {"size_of_image": size_of_image, "max_section_end": max_end},
-            )
-        )
-
-    return out
-
-
-def _analyse_entrypoint_mapping(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    header_ext = _get_extended(analysis, "header")
-    if not header_ext:
-        return out
-
-    ep = header_ext[0]["metadata"].get("entry_point")
-    if not isinstance(ep, int):
-        return out
-
-    sections = analysis.get("sections", [])
-    if not sections:
-        return out
-
-    if _map_rva_to_section(sections, ep) is None:
-        out.append(
-            _det(
-                "pe_structure_anomaly",
-                "entrypoint_out_of_bounds",
-                {"entry_point": ep},
-            )
-        )
-
-    return out
-
-
-def _analyse_data_directory_anomalies(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    dirs = analysis.get("data_directories") or metadata.get("data_directories")
-    opt = metadata.get("optional_header") or {}
-    size_of_image = opt.get("size_of_image")
-
-    if not isinstance(size_of_image, int) or not isinstance(dirs, list):
-        return out
-
-    # Out-of-range and zero/size mismatch
-    for d in dirs:
-        rva = d.get("rva")
-        size = d.get("size")
-        name = d.get("name") or d.get("index")
-        if not isinstance(rva, int) or not isinstance(size, int):
-            continue
-
-        if size > 0 and rva == 0:
-            out.append(
-                _det(
-                    "pe_structure_anomaly",
-                    "data_directory_zero_rva_nonzero_size",
-                    {"directory": name, "rva": rva, "size": size},
-                )
-            )
-
-        if rva + size > size_of_image:
-            out.append(
-                _det(
-                    "pe_structure_anomaly",
-                    "data_directory_out_of_range",
-                    {
-                        "directory": name,
-                        "rva": rva,
-                        "size": size,
-                        "size_of_image": size_of_image,
-                    },
-                )
-            )
-
-    # Overlaps
-    for i in range(len(dirs)):
-        a = dirs[i]
-        rva_a = a.get("rva")
-        size_a = a.get("size")
-        if not isinstance(rva_a, int) or not isinstance(size_a, int):
-            continue
-        end_a = rva_a + size_a
-
-        for j in range(i + 1, len(dirs)):
-            b = dirs[j]
-            rva_b = b.get("rva")
-            size_b = b.get("size")
-            if not isinstance(rva_b, int) or not isinstance(size_b, int):
-                continue
-            end_b = rva_b + size_b
-
-            if max(rva_a, rva_b) < min(end_a, end_b):
-                out.append(
-                    _det(
-                        "pe_structure_anomaly",
-                        "data_directory_overlap",
-                        {
-                            "directory_a": a.get("name") or a.get("index"),
-                            "directory_b": b.get("name") or b.get("index"),
-                        },
-                    )
-                )
-
-    return out
-
-
-def _analyse_import_directory_validity(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
-    out: List[Detection] = []
-
-    dirs = analysis.get("data_directories") or metadata.get("data_directories")
-    sections = analysis.get("sections", [])
-    if not isinstance(dirs, list) or not sections:
-        return out
-
-    for d in dirs:
-        name = (d.get("name") or "").lower()
-        idx = d.get("index")
-        if name == "import" or idx == 1:
-            rva = d.get("rva")
-            size = d.get("size")
-            if not isinstance(rva, int) or not isinstance(size, int):
-                continue
-
-            if _map_rva_to_section(sections, rva) is None:
-                out.append(
-                    _det(
-                        "pe_structure_anomaly",
-                        "import_rva_invalid",
-                        {"rva": rva, "size": size},
-                    )
-                )
+                reason or "unknown_structural_issue",
+                metadata,
+            ))
 
     return out
 
@@ -440,17 +218,12 @@ def _analyse_import_directory_validity(metadata: Dict[str, Any], analysis: Dict[
 def analyse_pe_heuristics(metadata: Dict[str, Any], analysis: Dict[str, Any]) -> List[Detection]:
     out: List[Detection] = []
 
+    # Behavioural / semantic heuristics
     out.extend(_analyse_packer(metadata, analysis))
-    out.extend(_analyse_tls(metadata, analysis))
     out.extend(_analyse_anti_debug(metadata, analysis))
     out.extend(_analyse_import_anomalies(metadata, analysis))
-    out.extend(_analyse_signature(metadata))
 
-    out.extend(_analyse_section_overlap(metadata, analysis))
-    out.extend(_analyse_section_alignment(metadata, analysis))
-    out.extend(_analyse_optional_header_consistency(metadata, analysis))
-    out.extend(_analyse_entrypoint_mapping(metadata, analysis))
-    out.extend(_analyse_data_directory_anomalies(metadata, analysis))
-    out.extend(_analyse_import_directory_validity(metadata, analysis))
+    # Structural anomalies
+    out.extend(_analyse_structural(analysis))
 
     return out

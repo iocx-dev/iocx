@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 from pathlib import Path
 from iocx.engine import Engine, EngineConfig
 

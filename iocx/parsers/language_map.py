@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 PRIMARY_LANG = {
     0x01: "ar", 0x02: "bg", 0x03: "ca", 0x04: "zh", 0x05: "cs",
     0x06: "da", 0x07: "de", 0x08: "el", 0x09: "en", 0x0A: "es",

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import os
 import pytest
 
@@ -329,9 +332,15 @@ def test_pipeline_pe_full_analysis(monkeypatch):
     monkeypatch.setitem(engine._pipeline_pe.__globals__, "analyse_extended", fake_extended)
 
     # --- Patch Engine internal methods ---
+    class FakePE:
+        __data__ = b"\x00" * 4096
+        def get_overlay_data_start_offset(self):
+            return None
+
+    engine._get_pe = lambda path: FakePE
 
     engine._get_pe_metadata = lambda path: (
-        {"pe": True},
+        FakePE(),
         {"resource_strings": ["resA"], "meta": "x"},
     )
 
