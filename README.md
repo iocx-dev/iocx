@@ -200,6 +200,14 @@ Fast path — no PE parsing.
 <summary><strong>Show Version History</strong></summary>
 <br>
 
+### **v0.7.3 — Structural Correctness & Deterministic Heuristics**
+- Major hardening of all PE structural validators
+- Deterministic, snapshot‑stable behaviour
+- Clear, consistent ReasonCodes
+- Stronger heuristics built on structural truth
+
+---
+
 ### **v0.7.2 — Dependency Fix**
 - Added missing `idna` dependency
 - No behavioural or schema changes
