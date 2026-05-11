@@ -1,7 +1,7 @@
 # **IOCX Trademark Policy**
 **Version 1.0**
 
-“IOCX” is a trademark owned by Peter Weaver.
+“IOCX” is a trademark owned by Peter James Weaver.
 This policy explains how the name may be used in open‑source and commercial contexts.
 
 ## Permitted Use
@@ -21,6 +21,7 @@ You may **not** use the IOCX name in a way that:
 - suggests endorsement, affiliation, or official status
 - brands a fork, derivative, or competing product as “IOCX”
 - creates confusion about what is or isn’t the official project
+- uses confusingly similar names (e.g., “IOCX‑Pro”, “IOCX‑Plus”)
 
 Forks must use different names.
 

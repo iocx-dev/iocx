@@ -277,7 +277,7 @@ By submitting a contribution, you certify that you have the right to do so and t
 
 Contributors may not use the IOCX name in a way that implies endorsement.
 See [TRADEMARK_POLICY.md](TRADEMARK_POLICY.md) for details.
-See [LICENSE](LICENSE.md) for full MPL-2.0 terms.
+See [LICENSE](LICENSE) for full MPL-2.0 terms.
 
 ---
 

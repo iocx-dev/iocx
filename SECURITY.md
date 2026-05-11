@@ -156,7 +156,7 @@ For enterprise security inquiries, contact: **security@malx.io**
 
 ## Trademark Notice
 
-“IOCX” is a trademark of Peter Weaver.
-See TRADEMARK_POLICY.md for permitted and restricted use of the IOCX name.
+“IOCX” is a trademark of Peter James Weaver.
+See [TRADEMARK_POLICY](TRADEMARK_POLICY.md) for permitted and restricted use of the IOCX name.
 
 IOCX is licensed under the Mozilla Public License 2.0 (MPL-2.0).

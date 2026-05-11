@@ -1,5 +1,52 @@
+# v0.7.3 — Structural Correctness & Deterministic Heuristics
+**Released: 2026‑05‑11**
+
+## Added
+- Comprehensive structural validation across all PE subsystems
+- New checks for entrypoint mapping, section flags, RVA graph consistency, TLS callbacks, and certificate bounds
+- Region‑specific entropy validation
+- Deterministic structural anomaly surfacing in heuristics layer
+- Extensive new structural and heuristic tests
+- Snapshot tests ensuring deterministic output
+
+## Changed
+- Reworked entrypoint validator with correct RVA→file offset mapping
+- Expanded section validator with overlap, ordering, and flag‑consistency checks
+- Strengthened optional header validation (alignment, size fields, directory count)
+- Hardened RVA graph validator (bounds, mapping, overlap)
+- Improved TLS validator (range, callbacks, mapping)
+- Improved signature validator (symmetry, bounds, type/revision checks)
+- Refined entropy validator (low entropy, region entropy, uniformity)
+
+## Fixed
+- Conceptual inconsistencies around RVA vs file offsets
+- Redundant or contradictory structural checks
+- Missing structural anomalies in several validators
+- Inconsistent or unclear ReasonCodes
+- Edge‑case crashes on malformed or truncated binaries
+
+## Removed
+- No removals in this release
+
+## Notes
+- v0.7.3 remains strictly static-only
+- No dynamic analysis, unpacking, emulation, or new dependencies introduced
+
+---
+
+# v0.7.2 — Dependency fix
+**Released: 2026‑05‑01**
+
+## Added
+- Required `idna` dependency for punycode and Unicode domain handling
+- No behavioural changes to extractors
+- No schema changes
+- Fully compatible with v0.7.1
+
+---
+
 # **v0.7.1 — Heuristics Engine Expansion & Structural Analysis Improvements**
-**Released: 2026‑05‑??**
+**Released: 2026‑05‑01**
 
 v0.7.1 delivers a major upgrade to IOCX’s **PE heuristics engine**, **extractor correctness**, and **adversarial‑input resilience**. This release introduces six new structural heuristics, broad extractor hardening, and a significantly expanded adversarial test suite — including **full adversarial coverage for every IOC category**.
 
