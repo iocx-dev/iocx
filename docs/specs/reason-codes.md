@@ -101,6 +101,32 @@
 
 ---
 
+## ** RESOURCE ANOMALIES**
+
+### **Resource Directory Anomalies**
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **RESOURCE_DIRECTORY_OUT_OF_BOUNDS** | A resource directory RVA/size lies outside the `.rsrc` section or outside `SizeOfImage` | Directory RVA = `0x90000000`, `.rsrc` ends at `0x400000` | Per‑file |
+| **RESOURCE_DIRECTORY_LOOP** | Recursive directory traversal detects a cycle (malformed or malicious resource tree) | Directory A → B → A | Per‑file |
+| **RESOURCE_DIRECTORY_ZERO_LENGTH** | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
+
+### **Resource Entry / Data Anomalies**
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource entry points to a data entry outside the `.rsrc` section or outside `SizeOfImage` | Entry RVA = `0x80000000` | Per‑file |
+| **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
+| **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | Two resource data blobs overlap in raw or virtual space | Data A: `0x2000–0x2400`, Data B: `0x2300–0x2500` | Per‑file |
+
+### **Resource String‑Table Anomalies**
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **RESOURCE_STRING_TABLE_CORRUPT** | String table length, offsets, or UTF‑16 entries are malformed or out of bounds | String count = 32 but table only contains 10 entries | Per‑file |
+
+---
+
 ## **ENTROPY ANOMALIES**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
