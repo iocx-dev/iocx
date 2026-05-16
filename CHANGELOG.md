@@ -1,4 +1,4 @@
-# **v0.7.4 — Advanced Directory Parsing & Metadata Expansion**
+# **v0.7.4 — Advanced Directory Parsing & Metadata Expansion** test
 
 IOCX v0.7.4 expands static PE coverage with support for advanced directories, extended metadata extraction, and deterministic structural validation. This release improves correctness across modern compiler outputs while preserving IOCX’s static‑only, zero‑execution design.
 
