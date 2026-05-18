@@ -77,6 +77,14 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
             ))
             continue
 
+        # 3b) Zero-size directory with non-zero RVA → malformed
+        if size == 0 and rva != 0:
+            issues.append(StructuralIssue(
+                issue=ReasonCodes.DATA_DIRECTORY_ZERO_SIZE_NONZERO_RVA,
+                details={"directory": name, "rva": rva, "size": size},
+            ))
+            continue
+
         # 4) Directory in headers
         if isinstance(size_of_headers, int) and rva < size_of_headers:
             issues.append(StructuralIssue(
@@ -103,10 +111,38 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
             for va_start, va_end, sec_name in section_ranges:
                 if va_start <= rva < va_end:
                     sec = next(s for s in sections if s.get("name") == sec_name)
-                    raw_offset = sec.get("raw_address") + (rva - va_start)
+                    base_raw = sec.get("raw_address")
+
+                    if not isinstance(base_raw, int):
+                        break
+
+                    raw_offset = base_raw + (rva - va_start)
+
+                     # RVA→raw consistency check
+                    sec_raw_start = base_raw
+                    sec_raw_end = base_raw + sec.get("raw_size", 0)
+
+                    if not (sec_raw_start <= raw_offset < sec_raw_end):
+                        issues.append(StructuralIssue(
+                            issue=ReasonCodes.DATA_DIRECTORY_RAW_MISMATCH,
+                            details={
+                                "directory": name,
+                                "rva": rva,
+                                "raw_offset": raw_offset,
+                                "section": sec_name,
+                                "section_raw_start": sec_raw_start,
+                                "section_raw_end": sec_raw_end,
+                            },
+                        ))
+                        continue
+
                     break
 
-            if isinstance(raw_offset, int) and raw_offset >= overlay_offset:
+            # raw mapping safety — skip overlay check if raw_offset invalid
+            if raw_offset is None:
+                continue
+
+            if raw_offset >= overlay_offset:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.DATA_DIRECTORY_IN_OVERLAY,
                     details={"directory": name, "rva": rva, "raw_offset": raw_offset},

@@ -33,6 +33,7 @@ class ReasonCodes:
 
     # --- RVA / directory inconsistencies ---
     DATA_DIRECTORY_ZERO_RVA_NONZERO_SIZE = "data_directory_zero_rva_nonzero_size"
+    DATA_DIRECTORY_ZERO_SIZE_NONZERO_RVA = "data_directory_zero_size_nonzero_rva"
     DATA_DIRECTORY_OUT_OF_RANGE = "data_directory_out_of_range"
     DATA_DIRECTORY_OVERLAP = "data_directory_overlap"
     DATA_DIRECTORY_ZERO_SIZE_UNEXPECTED = "data_directory_zero_size_unexpected"
@@ -41,6 +42,7 @@ class ReasonCodes:
     DATA_DIRECTORY_IN_OVERLAY = "data_directory_in_overlay"
     DATA_DIRECTORY_NOT_MAPPED_TO_SECTION = "data_directory_not_mapped_to_section"
     DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS = "data_directory_spans_multiple_sections"
+    DATA_DIRECTORY_RAW_MISMATCH = "data_directory_raw_mismatch"
     IMPORT_RVA_INVALID = "import_rva_invalid"
 
     # --- Optional header anomalies ---
