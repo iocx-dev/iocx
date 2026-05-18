@@ -1,3 +1,71 @@
+# **v0.7.4 — Advanced Directory Parsing & Metadata Expansion**
+
+IOCX v0.7.4 expands static PE coverage with support for advanced directories, extended metadata extraction, and deterministic structural validation. This release improves correctness across modern compiler outputs while preserving IOCX’s static‑only, zero‑execution design.
+
+## **Added**
+
+- Full **Load Config Directory** parsing
+  - Guard CF metadata
+  - Security cookie
+  - SEH table
+  - compiler version hints
+  - deterministic error handling for malformed structures
+
+- **Delay‑Load Import** parsing
+  - descriptor parsing
+  - INT/IAT validation
+  - delayed import name extraction
+  - structured errors for malformed descriptors
+
+- Full **TLS Directory** support
+  - TLS callbacks
+  - raw data boundaries
+  - callback array validation
+  - safe handling of zero‑length TLS regions
+
+- Extended Optional Header metadata
+  - subsystem
+  - DLL characteristics
+  - loader flags
+  - Win32 version values
+  - stack/heap reserve & commit sizes
+
+- New deterministic reason codes for malformed directories
+  - `malformed_load_config`
+  - `malformed_tls_directory`
+  - `malformed_delay_load_imports`
+  - `invalid_directory_size`
+  - `invalid_directory_rva`
+
+## **Improved**
+
+- Directory invariant validation
+  - RVA‑to‑section mapping
+  - size boundary checks
+  - overlap detection
+  - deterministic handling of zero‑length directories
+
+- Snapshot coverage expanded for all new metadata
+- Parser stability and JSON‑safety across malformed inputs
+
+## **Testing**
+
+- New fixtures under `layer2_edge/`
+- Adversarial malformed samples under `layer3_adversarial/`
+- Deterministic snapshot tests for all new directory types
+
+## **Not Included (Intentional)**
+
+- no dynamic execution
+- no unpacking or emulation
+- no behavioural tracing
+- no ML/AI models
+- no sandboxing
+- no network access
+- no disassembly or CFG reconstruction
+
+---
+
 # v0.7.3 — Structural Correctness & Deterministic Heuristics
 **Released: 2026‑05‑11**
 
