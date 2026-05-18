@@ -4,6 +4,27 @@ IOCX v0.7.4 expands static PE coverage with support for advanced directories, ex
 
 ## **Added**
 
+- New RVA‑graph invariant: **DATA_DIRECTORY_ZERO_SIZE_NONZERO_RVA**
+  Detects directories that simultaneously indicate presence (non‑zero RVA) and absence (zero size).
+  Implemented with primary‑error semantics to suppress downstream mapping checks.
+
+- New RVA‑graph invariant: **DATA_DIRECTORY_RAW_MISMATCH**
+  Flags directories whose RVA maps into a section’s virtual range but whose computed raw offset falls outside the section’s raw data.
+  Includes a dedicated reason code and validator‑level consistency check.
+
+- Raw‑mapping safety guard to prevent invalid raw‑offset calculations when sections have no raw data.
+
+- Two adversarial fixtures exercising the new invariants:
+  - `directory_zero_size_nonzero_rva.full.exe`
+  - `directory_raw_mismatch.full.exe`
+
+## **Documentation**
+
+- Updated the RVA / Directory Anomalies table with the new reason code and behavioural notes.
+
+
+--- Initial commit ---
+
 - Full **Load Config Directory** parsing
   - Guard CF metadata
   - Security cookie

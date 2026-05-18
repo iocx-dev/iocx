@@ -255,3 +255,61 @@ def test_rva_graph_directory_overlap_inner_continue():
 
     # No overlap issue should be produced because the inner loop continues
     assert ReasonCodes.DATA_DIRECTORY_OVERLAP not in make_issue_list(issues)
+
+
+def test_rva_graph_raw_mapping_safety_breaks_on_missing_raw_address():
+    """
+    Ensures overlay detection is skipped when a section has no raw data.
+    """
+
+    metadata = {
+        "optional_header": {
+            "size_of_image": 0x3000,
+            "size_of_headers": 0x200,
+        },
+        "data_directories": [
+            {
+                "name": "IMAGE_DIRECTORY_ENTRY_IMPORT",
+                "rva": 0x1000, # inside .text VA range
+                "size": 0x100,
+            }
+        ],
+    }
+
+    analysis = {
+        "overlay_offset": 0x180, # would normally trigger overlay
+        "sections": [
+            {
+                "name": ".text",
+                "virtual_address": 0x1000,
+                "virtual_size": 0x1000,
+                # CRITICAL: raw_address missing → triggers break
+                # "raw_address": 0x200,
+                "raw_size": 0x200,
+            }
+        ]
+    }
+
+    issues = validate_rva_graph(metadata, analysis)
+
+    # --- Assertions ---
+    # No overlay anomaly should fire because raw_offset is never computed.
+    assert not any(
+        i.issue == ReasonCodes.DATA_DIRECTORY_IN_OVERLAY
+        for i in issues
+    )
+
+    # No raw mismatch either (same reason)
+    assert not any(
+        i.issue == ReasonCodes.DATA_DIRECTORY_RAW_MISMATCH
+        for i in issues
+    )
+
+    # Directory *is* mapped to a section, so no NOT_MAPPED_TO_SECTION
+    assert not any(
+        i.issue == ReasonCodes.DATA_DIRECTORY_NOT_MAPPED_TO_SECTION
+        for i in issues
+    )
+
+    # Should be completely clean
+    assert issues == []
