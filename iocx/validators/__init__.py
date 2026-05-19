@@ -6,6 +6,7 @@ from typing import Dict, Any
 from .sections import validate_sections
 from .entrypoint import validate_entrypoint
 from .rva_graph import validate_rva_graph
+from .load_config_directory import validate_load_config_directory
 from .optional_header import validate_optional_header
 from .tls import validate_tls
 from .signature import validate_signature
@@ -21,6 +22,8 @@ STRUCTURAL_VALIDATORS = {
     "optional_header": validate_optional_header,
     # RVA graph consistency (directory bounds, overlaps, out-of-range)
     "data_directories": validate_rva_graph,
+    # Load config directory
+    "load_config_directory": validate_load_config_directory,
     # TLS callback range correctness
     "tls": validate_tls,
     # Signature directory correctness

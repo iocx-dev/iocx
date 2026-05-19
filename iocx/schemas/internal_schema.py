@@ -41,3 +41,4 @@ class ResourcesStruct(TypedDict):
 
 class InternalMetadata(TypedDict, total=False):
     resources_struct: ResourcesStruct
+    optional_header_magic: int

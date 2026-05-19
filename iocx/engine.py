@@ -11,6 +11,8 @@ from .utils import detect_file_type, FileType
 from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections
 from .parsers.string_extractor import extract_strings
 from .parsers.pe_resources import build_resource_structure
+from .parsers.pe_load_config import analyse_load_config
+from .parsers.pe_optional_header import extract_optional_header_metadata
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
@@ -156,9 +158,11 @@ class Engine:
                 "obfuscation": [asdict(d) for d in obf],
                 "file_size": file_size,
                 "overlay_offset": overlay_offset,
+                "load_config": analyse_load_config(pe, section_analysis["data_directories"]),
             }
 
             self._internal_metadata["resources_struct"] = build_resource_structure(pe)
+            self._internal_metadata.update(extract_optional_header_metadata(pe))
             internal: InternalMetadata = self._internal_metadata
             structural = run_structural_validators(internal, metadata, analysis_dict)
             analysis_dict["structural"] = structural

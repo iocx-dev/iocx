@@ -185,6 +185,110 @@ TLS callbacks are a common malware trick; this validator ensures the structure i
 
 ---
 
+# **2.9 Load Config Directory Validator**
+### *Validates the integrity, completeness, and internal consistency of the Load Configuration Directory.*
+
+The Load Config Directory is one of the most security‑sensitive structures in a PE file.
+It contains metadata used by:
+
+- Control Flow Guard (CFG)
+- Structured Exception Handling (SEH)
+- Security cookie placement
+- Compiler‑generated hardening features
+
+Because of this, IOCX treats the Load Config Directory as a **first‑class structural subsystem**, validating its layout, bounds, and internal relationships with the same deterministic rigor as imports, TLS, and resources.
+
+This validator enforces:
+
+## **• Minimum size requirements (PE32 vs PE32+)**
+
+The Load Config Directory must meet Microsoft’s documented minimum size:
+
+- **0x48 bytes** for PE32
+- **0x70 bytes** for PE32+
+
+Anything smaller is structurally invalid, even if the file contains partial fields.
+
+## **• Truncation detection using actual file length**
+
+IOCX computes the number of bytes that *could* be parsed based on the real file size, not section metadata.
+
+This detects:
+
+- truncated load config directories
+- directories that claim a size larger than the file
+- malformed or intentionally corrupted binaries
+
+This is a deterministic structural fact, not a heuristic.
+
+## **• Guard CF metadata consistency**
+
+Control Flow Guard fields must be **all zero** or **all valid**.
+Mixed zero/non‑zero states indicate corruption or tampering.
+
+The validator detects:
+
+- inconsistent GuardCFCheckFunctionPointer
+- inconsistent GuardCFDispatchFunctionPointer
+- inconsistent GuardCFFunctionTable
+- inconsistent GuardCFFunctionCount
+
+This prevents CFG‑related heuristics from being misled by malformed metadata.
+
+## **• Security cookie placement and permissions**
+
+The security cookie RVA must:
+
+- map to a real section
+- lie inside writable memory
+- not lie inside overlay data
+
+This ensures the cookie is structurally valid before heuristics interpret its presence.
+
+## **• SEH table integrity**
+
+The SEH handler table must:
+
+- have a non‑zero count
+- have a valid RVA
+- fit entirely within `SizeOfImage`
+- map to a real section
+- not lie inside overlay data
+
+This prevents malformed SEH metadata from polluting higher‑level analysis.
+
+## **• Header and directory consistency**
+
+The validator ensures:
+
+- the directory entry exists
+- the RVA and size are non‑zero
+- the directory does not lie inside headers
+- the directory does not exceed `SizeOfImage`
+
+These checks align with the RVA Graph validator and ensure structural coherence across subsystems.
+
+## **Why this validator matters**
+
+The Load Config Directory is a prime target for:
+
+- packers
+- obfuscators
+- malformed binaries
+- adversarial tampering
+
+By validating it deterministically, IOCX ensures:
+
+- CFG metadata is trustworthy
+- SEH metadata is trustworthy
+- security cookie placement is trustworthy
+- heuristics never interpret corrupted structures
+- structural anomalies become deterministic signals
+
+This validator closes one of the most subtle structural attack surfaces in the PE format.
+
+---
+
 # **3. Deterministic Heuristics Layer**
 ### *Heuristics interpret structural truth — they never override it.*
 

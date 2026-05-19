@@ -109,6 +109,20 @@ class ReasonCodes:
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
 
+    # --- Load Config Directory structural issues ---
+    LOAD_CONFIG_TOO_SMALL = "load_config_too_small"
+    LOAD_CONFIG_TRUNCATED = "load_config_truncated"
+
+    # Guard CF metadata consistency
+    LOAD_CONFIG_GUARD_CF_INCONSISTENT = "load_config_guard_cf_inconsistent"
+
+    # Security cookie issues
+    LOAD_CONFIG_COOKIE_INVALID = "load_config_cookie_invalid"
+    LOAD_CONFIG_COOKIE_IN_OVERLAY = "load_config_cookie_in_overlay"
+
+    # SEH table issues
+    LOAD_CONFIG_SEH_INVALID = "load_config_seh_invalid"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

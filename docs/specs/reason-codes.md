@@ -145,6 +145,19 @@
 
 ---
 
+## **LOAD CONFIG DIRECTORY ANOMALIES**
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **LOAD_CONFIG_TOO_SMALL** | Declared Load Config size is smaller than the architecture‑required minimum (0x48 for PE32, 0x70 for PE32+) | PE32+ Load Config Size = 0x40 | Per‑directory *(primary error, parsing suppressed)* |
+| **LOAD_CONFIG_TRUNCATED** | Raw data ends before the declared Load Config structure size; parser cannot read all required fields | Directory Size = 0x70 but only 0x30 bytes available in section | Per‑directory |
+| **LOAD_CONFIG_GUARD_CF_INCONSISTENT** | Guard CF metadata fields are partially zero and partially non‑zero; invalid hybrid state | GuardCFCheckFunctionPointer = 0x1000, GuardCFFunctionCount = 0 | Per‑directory |
+| **LOAD_CONFIG_COOKIE_INVALID** | Security cookie RVA does not map to a valid writable section, or maps outside image bounds | Cookie RVA = 0x9000, no section covers it | Per‑directory |
+| **LOAD_CONFIG_COOKIE_IN_OVERLAY** | Security cookie maps to a raw offset ≥ overlay start | Cookie raw offset = 0x6000, overlay starts at 0x5800 | Per‑directory |
+| **LOAD_CONFIG_SEH_INVALID** | SEH table is missing, unmapped, out of range, or overlaps overlay; or SEHCount > 0 but SEHTableRVA = 0 | SEHCount = 4, SEHTableRVA = 0 | Per‑directory |
+
+---
+
 ## **PACKER HEURISTICS (Interpretation Layer)**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
