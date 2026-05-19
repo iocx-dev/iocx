@@ -38,15 +38,14 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ---
 
-## Version highlights (v0.7.3)
+## Version highlights (v0.7.4)
 
-- Major hardening of all PE structural validators
-- Deterministic, snapshot‑stable output across malformed binaries
-- Stronger section, entrypoint, RVA‑graph, TLS, and signature checks
-- Corrected RVA→file‑offset mapping for overlay detection
-- Improved entropy analysis with clearer, conservative signals
-- Cleaner, consistent `ReasonCodes` across the engine
-- Expanded structural + heuristic test coverage
+- Full **Load Config Directory** validation
+- Optional Header metadata extraction for downstream heuristics
+- Structural anomaly heuristics (GuardCF, unmapped cookie, SEH issues)
+- Faster PE Analysis
+- Raw IOC extraction still world-class
+- Zero regressions
 
 ---
 

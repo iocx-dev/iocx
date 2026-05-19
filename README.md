@@ -200,6 +200,12 @@ Fast path — no PE parsing.
 <summary><strong>Show Version History</strong></summary>
 <br>
 
+### **v0.7.4 — Advanced Directory Parsing**
+- Full **Load Config Directory** validation
+- Optional Header metadata extraction for downstream heuristics
+- Structural anomaly heuristics (GuardCF, unmapped cookie, SEH issues)
+- Faster PE Analysis
+
 ### **v0.7.3 — Structural Correctness & Deterministic Heuristics**
 - Major hardening of all PE structural validators
 - Deterministic, snapshot‑stable behaviour
