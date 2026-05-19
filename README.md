@@ -166,31 +166,31 @@ Predictable even under worst‑case adversarial load.
 **150–300 MB/s** sustained throughput
 Fast path — no PE parsing.
 
-| Detector | 1 MB Time | Throughput |
-|----------|-----------|------------|
-| Crypto | 0.0037 s | ~270 MB/s |
-| Filepaths | 0.0040 s | ~250 MB/s |
-| IP | 0.0064 s | ~156 MB/s |
-| Domains | 0.0033 s | ~300 MB/s |
+| Detector  | 1 MB Time | Throughput |
+|-----------|-----------|------------|
+| Crypto    | 0.0037 s  | ~270 MB/s  |
+| Filepaths | 0.0040 s  | ~250 MB/s  |
+| IP        | 0.0064 s  | ~156 MB/s  |
+| Domains   | 0.0033 s  | ~300 MB/s  |
 
 ---
 
 ### **2. Typical PE Files (~39 KB)**
-- **0.0132 s** (typical)
-- **0.0153 s** (with heuristics)
+- **0.0128 s** (typical)
+- **0.0151 s** (with heuristics)
 - **6–15 MB/s** throughput
 
 ---
 
 ### **3. Adversarial Dense PE (1.5 MB)**
-- **0.1977 s**
+- **0.196 s**
 - **~7.6 MB/s** throughput
 - Triggers TLS anomalies, structural anomalies, anti‑debug patterns
 
 ---
 
 ### **4. Full Engine (Non‑PE)**
-- **1 MB:** 0.0411 s
+- **1 MB:** 0.041 s
 
 ---
 
