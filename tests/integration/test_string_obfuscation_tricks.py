@@ -44,11 +44,31 @@ def test_string_obfuscation_sections(string_obfuscation_tricks_result):
 @pytest.mark.integration
 def test_string_obfuscation_heuristics(string_obfuscation_tricks_result):
     result = string_obfuscation_tricks_result
-    heur = {h["metadata"]["function"] for h in result["analysis"]["heuristics"]}
 
-    assert "OutputDebugStringA" in heur
-    assert "IsDebuggerPresent" in heur
-    assert "QueryPerformanceCounter" in heur
+    heuristics = result["analysis"]["heuristics"]
+
+    # Extract only API-based heuristics (those that have a "function" field)
+    api_funcs = {
+        h["metadata"]["function"]
+        for h in heuristics
+        if "function" in h["metadata"]
+    }
+
+    # Expected MSVC CRT imports
+    assert api_funcs == {"QueryPerformanceCounter", "IsDebuggerPresent", "OutputDebugStringA"}
+
+    # Extract structural anomaly reasons
+    structural_reasons = {
+        h["metadata"]["reason"]
+        for h in heuristics
+        if h["value"] == "pe_structure_anomaly"
+    }
+
+    # These anomalies are expected for this test binary
+    assert structural_reasons == {
+        "load_config_guard_cf_inconsistent",
+        "unmapped",
+    }
 
 
 @pytest.mark.integration
