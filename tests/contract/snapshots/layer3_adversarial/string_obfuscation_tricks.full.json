@@ -641,6 +641,29 @@
           "dll": "kernel32.dll",
           "function": "QueryPerformanceCounter"
         }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "load_config_guard_cf_inconsistent",
+          "check": 5368717712,
+          "dispatch": 5368717728,
+          "table": 0,
+          "count": 0
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "unmapped",
+          "cookie_rva": 5368721472
+        }
       }
     ]
   }
