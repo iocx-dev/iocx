@@ -18,10 +18,28 @@ IOCX v0.7.4 expands static PE coverage with support for advanced directories, ex
   - `directory_zero_size_nonzero_rva.full.exe`
   - `directory_raw_mismatch.full.exe`
 
+- Full **Load Config Directory** parsing
+  - Guard CF metadata
+  - Security cookie
+  - SEH table
+  - compiler version hints
+  - deterministic error handling for malformed structures
+
+- Two adversarial fixtures exercising the new Load Config Directory validator:
+  - `load_config_malformed_size_too_small.full.exe`
+  - `load_config_malformed_truncated.full.exe`
+
+## Changed
+
+- Load config directory validator surfaced new anomalies in the following contract tests:
+   - Crypto Entropy Payload
+   - Franken URL Domain IP
+   - Malformed Domain / IP / URL
+   - String Obfuscation Tricks
+
 ## **Documentation**
 
 - Updated the RVA / Directory Anomalies table with the new reason code and behavioural notes.
-
 
 --- Initial commit ---
 

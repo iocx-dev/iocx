@@ -331,9 +331,13 @@ def test_pipeline_pe_full_analysis(monkeypatch):
         return {"extended_key": 123}
     monkeypatch.setitem(engine._pipeline_pe.__globals__, "analyse_extended", fake_extended)
 
+    class FakeOptionalHeader:
+        Magic = 0x10b # PE32
+
     # --- Patch Engine internal methods ---
     class FakePE:
         __data__ = b"\x00" * 4096
+        OPTIONAL_HEADER = FakeOptionalHeader()
         def get_overlay_data_start_offset(self):
             return None
 
