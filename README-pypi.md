@@ -1,8 +1,10 @@
 # **IOCX — Deterministic, Zero‑Risk IOC Extraction for Modern Security Pipelines**
 ### Official IOCX Project
 
-**IOCX** is a high‑performance, deterministic static analysis engine for extracting Indicators of Compromise (IOCs) from binaries and text.
-It exists for one reason: **to provide a fast, safe, predictable IOC extractor that DFIR teams and automation pipelines can trust.**
+**IOCX** is a deterministic, high‑performance static analysis engine for extracting high-signal Indicators of Compromise (IOCs) from binaries, text, and logs.
+It’s built for DFIR teams, SOC automation, CI/CD pipelines, and large‑scale threat‑intel ingestion.
+
+**Why it matters:** IOCX guarantees snapshot‑stable output, zero‑risk static analysis, and predictable performance even under adversarial input — something regex‑only extractors simply can’t provide.
 
 - **PyPI:** [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
 - **GitHub:** [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
