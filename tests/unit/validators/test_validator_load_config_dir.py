@@ -1,3 +1,6 @@
+# Copyright (c) 2026 MalX Labs and contributors
+# SPDX-License-Identifier: MPL-2.0
+
 import pytest
 from iocx.validators.load_config_directory import validate_load_config_directory, _map_rva_to_raw
 from iocx.reason_codes import ReasonCodes
