@@ -37,8 +37,12 @@ def test_analyse_load_config_zero_rva_or_size():
 
 
 def test_analyse_load_config_rva_mapping_fails():
+    class FakeOptionalHeader:
+        Magic = 0x10b # PE32
+
     class FakePE:
         __data__ = b"\x00" * 100
+        OPTIONAL_HEADER = FakeOptionalHeader()
         def get_offset_from_rva(self, rva):
             return None # force early return
 

@@ -33,24 +33,37 @@ def analyse_load_config(pe, data_directories) -> LoadConfigInfo:
 
     if not isinstance(rva, int) or not isinstance(declared_size, int):
         return {"parsed_size": 0}
-    if rva == 0 or declared_size == 0:
+    if rva == 0:
         return {"parsed_size": 0}
 
     # ---------------------------------------------------------
     # Map RVA → raw offset
     # ---------------------------------------------------------
-    raw_offset = pe.get_offset_from_rva(rva)
+    raw_offset = None
+
+    # Range check
+    size_of_image = getattr(pe.OPTIONAL_HEADER, "SizeOfImage", None)
+    if size_of_image is not None and (rva < 0 or rva >= size_of_image):
+        raw_offset = None
+    else:
+        try:
+            raw_offset = pe.get_offset_from_rva(rva)
+        except PEFormatError:
+            raw_offset = None
+
     if raw_offset is None:
-        return {"parsed_size": 0}
+        # Unmapped directory: nothing parseable, but we still return a dict
+        # so the validator can flag "unmapped" / "negative RVA" etc.
+        parsed_size = 0
+    else:
+        # ---------------------------------------------------------
+        # Compute available bytes from actual file size
+        # ---------------------------------------------------------
+        file_end = len(pe.__data__)
+        available = max(0, file_end - raw_offset)
 
-    # ---------------------------------------------------------
-    # Compute available bytes from actual file size
-    # ---------------------------------------------------------
-    file_end = len(pe.__data__)
-    available = max(0, file_end - raw_offset)
-
-    # parsed_size = what we COULD have parsed
-    parsed_size = min(available, declared_size)
+        # parsed_size = what we COULD have parsed
+        parsed_size = min(available, max(0, declared_size))
 
     # ---------------------------------------------------------
     # Try to extract fields from pefile if available

@@ -25,9 +25,14 @@ IOCX v0.7.4 expands static PE coverage with support for advanced directories, ex
   - compiler version hints
   - deterministic error handling for malformed structures
 
-- Two adversarial fixtures exercising the new Load Config Directory validator:
+- Adversarial fixtures exercising the new Load Config Directory validator:
   - `load_config_malformed_size_too_small.full.exe`
   - `load_config_malformed_truncated.full.exe`
+  - `load_config_malformed_cookie_in_overlay.full.exe`
+  - `load_config_malformed_cookie_invalid.full.exe`
+  - `load_config_malformed_guard_cf_inconsistent.full.exe`
+  - `load_config_malformed_seh_invalid.full.exe`
+  - `load_config_malformed_size_exceeds_section.full.exe`
 
 ## Changed
 
