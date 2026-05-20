@@ -336,60 +336,129 @@ static void build_opt_size_of_image_too_small(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_size_of_image_too_small";
+
+    /*
+     * Max section end = 0x4000 (baseline)
+     * Make SizeOfImage smaller than that.
+     */
+    f->size_of_image = 0x2000; /* too small */
 }
 
 static void build_opt_size_of_headers_misaligned(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_size_of_headers_misaligned";
+
+    /*
+     * SizeOfHeaders % FileAlignment != 0
+     * FileAlignment = 0x200 → misaligned = 0x300
+     */
+    f->size_of_headers = 0x300;
 }
 
 static void build_opt_size_of_headers_too_small(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_size_of_headers_too_small";
+
+    /*
+     * SizeOfHeaders < header_end
+     * header_end ≈ 0x400 baseline → make it smaller
+     */
+    f->size_of_headers = 0x100;
 }
 
 static void build_opt_section_alignment_invalid(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_section_alignment_invalid";
+
+    /*
+     * SectionAlignment < FileAlignment OR not power-of-two.
+     * FileAlignment = 0x200 → choose 0x180 (not power-of-two).
+     */
+    f->section_alignment = 0x180;
 }
 
 static void build_opt_file_alignment_invalid(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_file_alignment_invalid";
+
+    /*
+     * FileAlignment must be power-of-two between 512 and 64K.
+     * Choose 0x300 (not power-of-two).
+     */
+    f->file_alignment = 0x300;
 }
 
 static void build_opt_size_fields_too_small(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_size_fields_too_small";
+
+    /*
+     * These fields are not explicitly in FixtureSpec,
+     * but your validator likely computes them from sections.
+     *
+     * To simulate "too small", shrink SizeOfImage so that
+     * computed totals exceed it.
+     */
+    f->size_of_image = 0x1000; /* smaller than .text alone */
 }
 
 static void build_opt_image_base_misaligned(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_image_base_misaligned";
+
+    /*
+     * ImageBase must be 64K aligned.
+     * 0x400000 is aligned; choose 0x401234 (not aligned).
+     */
+    f->image_base = 0x401234;
 }
 
 static void build_opt_num_dirs_invalid(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_num_dirs_invalid";
+
+    /*
+     * NumberOfRvaAndSizes < 0 or > 16.
+     * Use >16 (e.g., 20).
+     */
+    f->directory_count = 20;
 }
 
 static void build_opt_num_dirs_too_small(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_num_dirs_too_small";
+
+    /*
+     * len(dirs) > num_dirs
+     * Provide 2 directories but claim only 1.
+     */
+    f->directories[0].rva = 0x1000;
+    f->directories[0].size = 0x20;
+
+    f->directories[1].rva = 0x2000;
+    f->directories[1].size = 0x20;
+
+    f->directory_count = 1; /* too small */
 }
 
 static void build_opt_size_of_image_misaligned(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "opt_size_of_image_misaligned";
+
+    /*
+     * SizeOfImage % SectionAlignment != 0
+     * SectionAlignment = 0x1000 → choose 0x1800.
+     */
+    f->size_of_image = 0x1800;
 }
 
 /* Data directory fixtures */
