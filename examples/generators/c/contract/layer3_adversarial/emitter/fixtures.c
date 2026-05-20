@@ -750,90 +750,195 @@ static void build_sig_negative_offset(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_negative_offset";
+
+    /* Negative via wraparound */
+    f->directories[4].rva = 0xFFFFFFFF;
+    f->directories[4].size = 0x100;
+    f->directory_count = 5;
 }
 
 static void build_sig_negative_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_negative_size";
+
+    f->directories[4].rva = 0x3000;
+    f->directories[4].size = 0xFFFFFFFF;
+    f->directory_count = 5;
 }
 
 static void build_sig_offset_overflow(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_offset_overflow";
+
+    /*
+     * offset + size > file_size (size_of_image)
+     */
+    f->directories[4].rva = 0x3F00;
+    f->directories[4].size = 0x300; /* extends past 0x4000 */
+    f->directory_count = 5;
 }
 
 static void build_sig_in_headers(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_in_headers";
+
+    /* offset < SizeOfHeaders (0x400) */
+    f->directories[4].rva = 0x200;
+    f->directories[4].size = 0x80;
+    f->directory_count = 5;
 }
 
 static void build_sig_overlaps_text(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_overlaps_text";
+
+    /*
+     * .text raw = 0x400–0x5FF
+     */
+    f->directories[4].rva = 0x450;
+    f->directories[4].size = 0x100;
+    f->directory_count = 5;
 }
 
 static void build_sig_overlaps_rdata(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_overlaps_rdata";
+
+    /*
+     * .rdata raw = 0x600–0x7FF
+     */
+    f->directories[4].rva = 0x650;
+    f->directories[4].size = 0x100;
+    f->directory_count = 5;
 }
 
 static void build_sig_overlaps_reloc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_overlaps_reloc";
+
+    /*
+     * Simulate .reloc at raw 0xA00–0xBFF
+     */
+    f->directories[4].rva = 0xA50;
+    f->directories[4].size = 0x200;
+    f->directory_count = 5;
 }
 
 static void build_sig_entirely_in_overlay(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_entirely_in_overlay";
+
+    /*
+     * offset >= size_of_image (0x4000)
+     */
+    f->directories[4].rva = f->size_of_image + 0x100;
+    f->directories[4].size = 0x200;
+    f->directory_count = 5;
 }
 
 static void build_sig_invalid_revision(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_invalid_revision";
+
+    /*
+     * Revision/type stored inside certificate blob.
+     * Simulate invalid revision by using tiny size.
+     */
+    f->directories[4].rva = 0x3000;
+    f->directories[4].size = 4; /* too small to contain revision */
+    f->directory_count = 5;
 }
 
 static void build_sig_invalid_type(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_invalid_type";
+
+    /*
+     * Same trick: too small to contain valid type field.
+     */
+    f->directories[4].rva = 0x3100;
+    f->directories[4].size = 6; /* <8 bytes */
+    f->directory_count = 5;
 }
 
 static void build_sig_missing_fields(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_missing_fields";
+
+    /*
+     * Missing revision/type → size < 8
+     */
+    f->directories[4].rva = 0x3200;
+    f->directories[4].size = 2;
+    f->directory_count = 5;
 }
 
 static void build_sig_multiple_mixed_validity(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_multiple_mixed_validity";
+
+    /*
+     * Two certificates:
+     * - First valid-ish
+     * - Second invalid
+     */
+    f->directories[4].rva = 0x3000;
+    f->directories[4].size = 0x80;
+
+    f->directories[5].rva = 0x3080;
+    f->directories[5].size = 4; /* invalid */
+
+    f->directory_count = 6;
 }
 
 static void build_sig_exactly_at_eof(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_exactly_at_eof";
+
+    /*
+     * offset + size == file_size (0x4000)
+     */
+    f->directories[4].rva = 0x3F00;
+    f->directories[4].size = 0x100;
+    f->directory_count = 5;
 }
 
 static void build_sig_one_byte_past_eof(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_one_byte_past_eof";
+
+    /*
+     * offset + size == file_size + 1
+     */
+    f->directories[4].rva = 0x3F00;
+    f->directories[4].size = 0x101;
+    f->directory_count = 5;
 }
 
 static void build_sig_zero_length(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sig_zero_length";
+
+    /*
+     * size < 8 → invalid certificate length
+     */
+    f->directories[4].rva = 0x3000;
+    f->directories[4].size = 0;
+    f->directory_count = 5;
 }
 
 /* Resource fixtures */
