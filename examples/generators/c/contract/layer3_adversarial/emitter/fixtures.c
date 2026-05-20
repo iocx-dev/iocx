@@ -947,66 +947,148 @@ static void build_res_dir_zero_length(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_dir_zero_length";
+
+    /* Directory RVA valid, but size = 0 */
+    f->directories[2].rva = BASE_SECTIONS[2].va;
+    f->directories[2].size = 0;
+    f->directory_count = 3;
 }
 
 static void build_res_dir_loop(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_dir_loop";
+
+    /*
+     * Simulate a recursive directory by making the directory
+     * point inside itself (nonsense RVA).
+     */
+    f->directories[2].rva = BASE_SECTIONS[2].va + 0x10;
+    f->directories[2].size = 0x20;
+    f->directory_count = 3;
+
+    /* Also shrink .rsrc so the RVA points back into header */
+    BASE_SECTIONS[2].vs = 0x20;
 }
 
 static void build_res_dir_partially_outside_rsrc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_dir_partially_outside_rsrc";
+
+    /*
+     * Directory starts inside .rsrc but extends beyond it.
+     * .rsrc VA = 0x3000, VS = 0x1000 → valid range 0x3000–0x3FFF
+     */
+    f->directories[2].rva = 0x3F00;
+    f->directories[2].size = 0x200; /* extends past 0x4000 */
+    f->directory_count = 3;
 }
 
 static void build_res_entry_out_of_bounds(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_entry_out_of_bounds";
+
+    /*
+     * Child entry RVA outside .rsrc entirely.
+     */
+    f->directories[2].rva = 0x5000; /* not in .rsrc */
+    f->directories[2].size = 0x40;
+    f->directory_count = 3;
 }
 
 static void build_res_data_zero_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_zero_size";
+
+    /*
+     * Data entry with size=0
+     */
+    f->directories[2].rva = BASE_SECTIONS[2].va + 0x100;
+    f->directories[2].size = 0; /* invalid */
+    f->directory_count = 3;
 }
 
 static void build_res_data_partially_outside_rsrc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_partially_outside_rsrc";
+
+    /*
+     * Data starts inside .rsrc but extends beyond it.
+     */
+    f->directories[2].rva = 0x3F00;
+    f->directories[2].size = 0x300; /* extends past 0x4000 */
+    f->directory_count = 3;
 }
 
 static void build_res_data_out_of_file_bounds(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_out_of_file_bounds";
+
+    /*
+     * raw+size > file_size (size_of_image)
+     * Use RVA near end of .rsrc but size too large.
+     */
+    f->directories[2].rva = 0x3E00;
+    f->directories[2].size = 0x500; /* extends past 0x4000 */
+    f->directory_count = 3;
 }
 
 static void build_res_data_overlaps_overlay(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_overlaps_overlay";
+
+    /*
+     * Data in overlay region (>= size_of_image)
+     */
+    f->directories[2].rva = f->size_of_image + 0x100;
+    f->directories[2].size = 0x200;
+    f->directory_count = 3;
 }
 
 static void build_res_data_overlaps_text(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_overlaps_text";
+
+    /*
+     * .text raw = 0x400–0x5FF
+     * Simulate resource data overlapping .text raw
+     */
+    f->directories[2].rva = 0x450;
+    f->directories[2].size = 0x200;
+    f->directory_count = 3;
 }
 
 static void build_res_data_overlaps_rdata(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_data_overlaps_rdata";
+
+    /*
+     * .rdata raw = 0x600–0x7FF
+     */
+    f->directories[2].rva = 0x650;
+    f->directories[2].size = 0x200;
+    f->directory_count = 3;
 }
 
 static void build_res_string_table_outside_rsrc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "res_string_table_outside_rsrc";
+
+    /*
+     * String table RVA outside .rsrc
+     */
+    f->directories[2].rva = 0x5000; /* outside .rsrc */
+    f->directories[2].size = 0x80;
+    f->directory_count = 3;
 }
 
 /* Entropy fixtures */
