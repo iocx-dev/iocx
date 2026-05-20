@@ -47,61 +47,107 @@ static void build_entrypoint_zero(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_zero";
-    /* TODO: add real mutation */
+
+    /* EP = 0 */
+    f->entrypoint_rva = 0;
 }
 
 static void build_entrypoint_negative(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_negative";
+
+    /* Negative via wraparound */
+    f->entrypoint_rva = 0xFFFFFFFF;
 }
 
 static void build_entrypoint_in_headers(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_in_headers";
+
+    /* Inside headers (< size_of_headers = 0x400) */
+    f->entrypoint_rva = 0x200;
 }
 
 static void build_entrypoint_gap_between_sections(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_gap_between_sections";
+
+    /*
+     * Gap between:
+     * .text VA=0x1000 VS=0x1000 → covers 0x1000–0x1FFF
+     * .rdata VA=0x2000
+     * So 0x1F00 is inside the gap.
+     */
+    f->entrypoint_rva = 0x1F00;
 }
 
 static void build_entrypoint_non_exec_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_non_exec_section";
+
+    /* EP inside .rdata (non-executable) */
+    f->entrypoint_rva = BASE_SECTIONS[1].va + 0x10;
 }
 
 static void build_entrypoint_rsrc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_rsrc";
+
+    /* EP inside .rsrc */
+    f->entrypoint_rva = BASE_SECTIONS[2].va + 0x20;
 }
 
 static void build_entrypoint_discardable(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_discardable";
+
+    /* Mark .text as discardable */
+    BASE_SECTIONS[0].characteristics |= 0x02000000; /* IMAGE_SCN_MEM_DISCARDABLE */
+
+    /* EP inside .text */
+    f->entrypoint_rva = BASE_SECTIONS[0].va + 0x10;
 }
 
 static void build_entrypoint_zero_length_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_zero_length_section";
+
+    /* Make .text zero-length */
+    BASE_SECTIONS[0].vs = 0;
+
+    /* EP inside zero-length section */
+    f->entrypoint_rva = BASE_SECTIONS[0].va;
 }
 
 static void build_entrypoint_beyond_virtual_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_beyond_virtual_size";
+
+    /* Shrink .text VS so EP is beyond it */
+    BASE_SECTIONS[0].vs = 0x100;
+
+    /* EP far beyond VS */
+    f->entrypoint_rva = BASE_SECTIONS[0].va + 0x800;
 }
 
 static void build_entrypoint_in_overlay(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entrypoint_in_overlay";
+
+    /*
+     * Overlay begins at raw offset >= size_of_image.
+     * So EP RVA >= size_of_image is "in overlay".
+     */
+    f->entrypoint_rva = f->size_of_image + 0x1000;
 }
 
 /* Section fixtures */
