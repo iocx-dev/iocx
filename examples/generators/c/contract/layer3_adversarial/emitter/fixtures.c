@@ -156,84 +156,178 @@ static void build_sections_rwx(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_rwx";
+
+    /* Make .text RWX: add WRITE bit */
+    BASE_SECTIONS[0].characteristics |= 0x80000000; /* IMAGE_SCN_MEM_WRITE */
 }
 
 static void build_sections_code_not_exec(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_code_not_exec";
+
+    /*
+     * CNT_CODE but no EXECUTE:
+     * - ensure CNT_CODE bit set
+     * - clear EXECUTE bit
+     */
+    BASE_SECTIONS[0].characteristics |= 0x00000020; /* IMAGE_SCN_CNT_CODE */
+    BASE_SECTIONS[0].characteristics &= ~0x20000000; /* clear IMAGE_SCN_MEM_EXECUTE */
 }
 
 static void build_sections_codelike_not_exec(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_codelike_not_exec";
+
+    /*
+     * ".text" but not executable:
+     * keep name ".text", clear EXECUTE bit
+     */
+    BASE_SECTIONS[0].characteristics &= ~0x20000000; /* clear IMAGE_SCN_MEM_EXECUTE */
 }
 
 static void build_sections_non_ascii_name(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_non_ascii_name";
+
+    /* Non-ASCII section name */
+    static const char non_ascii_name[] = "\xFF\xFE\xFD\xFC\xFB\xFA\xF9\xF8";
+    BASE_SECTIONS[0].name = non_ascii_name;
 }
 
 static void build_sections_empty_name(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_empty_name";
+
+    /* Empty / padding-like name */
+    BASE_SECTIONS[0].name = "";
 }
 
 static void build_sections_impossible_flags(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_impossible_flags";
+
+    /*
+     * DISCARDABLE + EXECUTE + WRITE (and read, for realism)
+     * IMAGE_SCN_MEM_DISCARDABLE 0x02000000
+     * IMAGE_SCN_MEM_EXECUTE 0x20000000
+     * IMAGE_SCN_MEM_READ 0x40000000
+     * IMAGE_SCN_MEM_WRITE 0x80000000
+     */
+    BASE_SECTIONS[0].characteristics |=
+        0x02000000 | 0x20000000 | 0x40000000 | 0x80000000;
 }
 
 static void build_sections_raw_misaligned(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_raw_misaligned";
+
+    /*
+     * RawAddress % FileAlignment != 0
+     * FileAlignment = 0x200, so 0x410 is misaligned.
+     */
+    BASE_SECTIONS[0].raw = 0x410;
 }
 
 static void build_sections_overlap_headers(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_overlap_headers";
+
+    /*
+     * RawAddress < SizeOfHeaders (0x400)
+     * So section raw starts inside headers.
+     */
+    BASE_SECTIONS[0].raw = 0x200;
 }
 
 static void build_sections_zero_length(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_zero_length";
+
+    /* VS=0 and RawSize=0 */
+    BASE_SECTIONS[0].vs = 0;
+    BASE_SECTIONS[0].raw_size = 0;
 }
 
 static void build_sections_raw_overlap(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_raw_overlap";
+
+    /*
+     * Baseline:
+     * .text raw=0x400 size=0x200 → 0x400–0x5FF
+     * .rdata raw=0x600 size=0x200 → 0x600–0x7FF
+     *
+     * Make .rdata overlap .text by moving it into .text range.
+     */
+    BASE_SECTIONS[1].raw = 0x500; /* overlaps 0x400–0x5FF */
+    BASE_SECTIONS[1].raw_size = 0x200;
 }
 
 static void build_sections_virtual_overlap(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_virtual_overlap";
+
+    /*
+     * Baseline:
+     * .text VA=0x1000 VS=0x1000 → 0x1000–0x1FFF
+     * .rdata VA=0x2000
+     *
+     * Move .rdata VA into .text range.
+     */
+    BASE_SECTIONS[1].va = 0x1800; /* overlaps .text */
 }
 
 static void build_sections_out_of_order_raw(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_out_of_order_raw";
+
+    /*
+     * Make raw addresses unsorted:
+     * .text raw=0x600
+     * .rdata raw=0x400
+     */
+    BASE_SECTIONS[0].raw = 0x600;
+    BASE_SECTIONS[1].raw = 0x400;
 }
 
 static void build_sections_out_of_order_virtual(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_out_of_order_virtual";
+
+    /*
+     * Make VA unsorted:
+     * .text VA=0x2000
+     * .rdata VA=0x1000
+     */
+    BASE_SECTIONS[0].va = 0x2000;
+    BASE_SECTIONS[1].va = 0x1000;
 }
 
 static void build_sections_negative_fields(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "sections_negative_fields";
+
+    /*
+     * "Negative" via unsigned wrap:
+     * VA and Raw set to 0xFFFFFFFF.
+     * This may trigger overlaps/misalignment heuristics,
+     * but should not crash your code.
+     */
+    BASE_SECTIONS[0].va = 0xFFFFFFFF;
+    BASE_SECTIONS[0].raw = 0xFFFFFFFF;
 }
 
 /* Optional header fixtures */
