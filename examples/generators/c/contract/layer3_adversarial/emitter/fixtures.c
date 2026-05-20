@@ -618,60 +618,130 @@ static void build_tls_negative_rva(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_negative_rva";
+
+    /* Negative via wraparound */
+    f->tls_start = 0xFFFFFFFF;
+    f->tls_end = 0xFFFFFFFF;
+    f->tls_callbacks = 0xFFFFFFFF;
 }
 
 static void build_tls_directory_in_headers(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_directory_in_headers";
+
+    /*
+     * TLS directory start < SizeOfHeaders (0x400)
+     */
+    f->tls_start = 0x200;
+    f->tls_end = 0x240;
 }
 
 static void build_tls_directory_in_overlay(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_directory_in_overlay";
+
+    /*
+     * Overlay begins at RVA >= size_of_image (0x4000)
+     */
+    f->tls_start = f->size_of_image + 0x100;
+    f->tls_end = f->tls_start + 0x40;
 }
 
 static void build_tls_directory_not_mapped(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_directory_not_mapped";
+
+    /*
+     * No section covers RVA=0x5000
+     */
+    f->tls_start = 0x5000;
+    f->tls_end = 0x5040;
 }
 
 static void build_tls_directory_spans_sections(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_directory_spans_sections";
+
+    /*
+     * Span .text (0x1000–0x1FFF) and .rdata (0x2000–0x2FFF)
+     */
+    f->tls_start = 0x1F00;
+    f->tls_end = 0x2100; /* crosses into .rdata */
 }
 
 static void build_tls_callback_zero_length_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_callback_zero_length_section";
+
+    /*
+     * Make .text zero-length
+     */
+    BASE_SECTIONS[0].vs = 0;
+
+    /*
+     * Callback inside zero-length .text
+     */
+    f->tls_callbacks = BASE_SECTIONS[0].va;
 }
 
 static void build_tls_callback_in_writable_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_callback_in_writable_section";
+
+    /*
+     * Mark .rdata writable
+     */
+    BASE_SECTIONS[1].characteristics |= 0x80000000; /* IMAGE_SCN_MEM_WRITE */
+
+    /*
+     * Callback inside .rdata
+     */
+    f->tls_callbacks = BASE_SECTIONS[1].va + 0x10;
 }
 
 static void build_tls_callback_in_discardable_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_callback_in_discardable_section";
+
+    /*
+     * Mark .rdata discardable
+     */
+    BASE_SECTIONS[1].characteristics |= 0x02000000; /* IMAGE_SCN_MEM_DISCARDABLE */
+
+    /*
+     * Callback inside .rdata
+     */
+    f->tls_callbacks = BASE_SECTIONS[1].va + 0x20;
 }
 
 static void build_tls_callback_in_rsrc(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_callback_in_rsrc";
+
+    /*
+     * Callback inside .rsrc
+     */
+    f->tls_callbacks = BASE_SECTIONS[2].va + 0x30;
 }
 
 static void build_tls_directory_synthetic_range(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "tls_directory_synthetic_range";
+
+    /*
+     * Absurdly large range → invalid
+     */
+    f->tls_start = 0x1000;
+    f->tls_end = 0x90000000; /* huge */
 }
 
 /* Signature fixtures */
