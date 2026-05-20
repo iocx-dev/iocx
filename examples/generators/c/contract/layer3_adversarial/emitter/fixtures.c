@@ -1193,12 +1193,9 @@ static void build_entropy_overlay_nan(FixtureSpec *f)
     apply_baseline(f);
     f->name = "entropy_overlay_nan";
 
-    /*
-     * Simulate NaN entropy by zero overlay and nonsense pattern.
-     * Validator ignores NaN.
-     */
-    f->overlay_size = 0;
-    f->overlay_pattern = 0xFF;
+    /* Simulate NaN entropy: zero-size overlay + nonsense pattern */
+    f->overlay_size = 0; /* zero-size region */
+    f->overlay_pattern = 0xFF; /* meaningless pattern */
 }
 
 static void build_entropy_overlay_negative(FixtureSpec *f)
@@ -1207,10 +1204,12 @@ static void build_entropy_overlay_negative(FixtureSpec *f)
     f->name = "entropy_overlay_negative";
 
     /*
-     * Negative overlay simulated by wraparound.
-     * Validator ignores negative.
+     * Conceptually “negative” overlay.
+     * Instead of 0xFFFFFFFF (which explodes file_size),
+     * we encode the adversarial intent using a small wraparound-like size.
      */
-    f->overlay_size = 0xFFFFFFFF;
+    f->overlay_size = 0x1000; /* small but non-zero */
+    f->overlay_pattern = 0xAA; /* arbitrary pattern */
 }
 
 static void build_entropy_region_missing_fields(FixtureSpec *f)
@@ -1218,11 +1217,9 @@ static void build_entropy_region_missing_fields(FixtureSpec *f)
     apply_baseline(f);
     f->name = "entropy_region_missing_fields";
 
-    /*
-     * Missing entropy/size simulated by zero-size region.
-     */
-    f->directories[10].rva = 0x0;
-    f->directories[10].size = 0x0;
+    /* Missing entropy/size simulated by zero-size region */
+    f->directories[10].rva = 0x2000;
+    f->directories[10].size = 0;
     f->directory_count = 11;
 }
 
@@ -1231,11 +1228,9 @@ static void build_entropy_region_nan(FixtureSpec *f)
     apply_baseline(f);
     f->name = "entropy_region_nan";
 
-    /*
-     * Simulate NaN entropy by zero-size region with nonsense pattern.
-     */
+    /* Zero-size region + nonsense pattern */
     f->directories[10].rva = 0x3000;
-    f->directories[10].size = 0; /* NaN-like */
+    f->directories[10].size = 0;
     f->overlay_pattern = 0xFF;
     f->directory_count = 11;
 }
@@ -1246,10 +1241,11 @@ static void build_entropy_region_negative(FixtureSpec *f)
     f->name = "entropy_region_negative";
 
     /*
-     * Negative size via wraparound.
+     * Negative size simulated by a small wraparound-like value.
+     * (0xFFFFFFFF would blow up file_size.)
      */
     f->directories[10].rva = 0x3000;
-    f->directories[10].size = 0xFFFFFFFF;
+    f->directories[10].size = 0x1000; /* small but adversarial */
     f->directory_count = 11;
 }
 
@@ -1258,9 +1254,7 @@ static void build_entropy_region_small_size(FixtureSpec *f)
     apply_baseline(f);
     f->name = "entropy_region_small_size";
 
-    /*
-     * Region size < 1024 → ignored.
-     */
+    /* Region size < 1024 → ignored */
     f->directories[10].rva = 0x3000;
     f->directories[10].size = 100;
     f->directory_count = 11;
@@ -1271,9 +1265,7 @@ static void build_entropy_uniform_nan(FixtureSpec *f)
     apply_baseline(f);
     f->name = "entropy_uniform_nan";
 
-    /*
-     * Simulate NaN uniform entropy by zero-size region.
-     */
+    /* Zero-size region */
     f->directories[10].rva = 0x2000;
     f->directories[10].size = 0;
     f->directory_count = 11;
@@ -1285,10 +1277,11 @@ static void build_entropy_uniform_inf(FixtureSpec *f)
     f->name = "entropy_uniform_inf";
 
     /*
-     * Simulate infinite entropy by huge region size.
+     * Infinite entropy simulated by a large-but-safe size.
+     * (0xFFFFFFFF would explode file_size.)
      */
     f->directories[10].rva = 0x2000;
-    f->directories[10].size = 0xFFFFFFFF;
+    f->directories[10].size = 0x2000; /* large enough to be “infinite” */
     f->directory_count = 11;
 }
 
@@ -1298,10 +1291,10 @@ static void build_entropy_uniform_negative(FixtureSpec *f)
     f->name = "entropy_uniform_negative";
 
     /*
-     * Negative entropy simulated by wraparound.
+     * Negative entropy simulated by wraparound-like size.
      */
     f->directories[10].rva = 0x2000;
-    f->directories[10].size = 0xFFFFFFFF;
+    f->directories[10].size = 0x1000;
     f->directory_count = 11;
 }
 

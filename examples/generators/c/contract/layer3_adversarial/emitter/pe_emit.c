@@ -355,11 +355,15 @@ int write_all_fixtures_pe(const char *dir)
 {
     ensure_dir(dir);
 
+    printf("FIXTURE COUNT = %d\n", FIXTURE_COUNT);
+
     for (int i = 0; i < FIXTURE_COUNT; ++i) {
         const FixtureSpec *f = &FIXTURES[i];
         char path[512];
-        snprintf(path, sizeof(path), "%s/fixture_%03d_%s.exe", dir, i, f->name ? f->name : "noname");
+        snprintf(path, sizeof(path), "%s/fixture_%03d_%s.full.exe", dir, i, f->name ? f->name : "noname");
+        printf("Writing %d: %s\n", i, path);
         if (write_fixture_pe(f, path) != 0) {
+            fprintf(stderr, "write_fixture_pe failed at index %d (%s)\n", i, f->name ? f->name : "noname");
             return -1;
         }
     }
