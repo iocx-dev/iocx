@@ -467,72 +467,149 @@ static void build_ddir_negative_rva(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_negative_rva";
+
+    /* Negative via wraparound */
+    f->directories[0].rva = 0xFFFFFFFF;
+    f->directories[0].size = 0x20;
+    f->directory_count = 1;
 }
 
 static void build_ddir_negative_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_negative_size";
+
+    /* Negative via wraparound */
+    f->directories[0].rva = 0x2000;
+    f->directories[0].size = 0xFFFFFFFF;
+    f->directory_count = 1;
 }
 
 static void build_ddir_zero_zero(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_zero_zero";
+
+    /* rva=0, size=0 is allowed */
+    f->directories[0].rva = 0;
+    f->directories[0].size = 0;
+    f->directory_count = 1;
 }
 
 static void build_ddir_zero_rva_nonzero_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_zero_rva_nonzero_size";
+
+    f->directories[0].rva = 0;
+    f->directories[0].size = 0x40;
+    f->directory_count = 1;
 }
 
 static void build_ddir_zero_size_nonzero_rva(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_zero_size_nonzero_rva";
+
+    f->directories[0].rva = 0x2000;
+    f->directories[0].size = 0;
+    f->directory_count = 1;
 }
 
 static void build_ddir_in_headers(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_in_headers";
+
+    /* rva < SizeOfHeaders (0x400) */
+    f->directories[0].rva = 0x200;
+    f->directories[0].size = 0x40;
+    f->directory_count = 1;
 }
 
 static void build_ddir_out_of_range(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_out_of_range";
+
+    /* rva + size > SizeOfImage (0x4000) */
+    f->directories[0].rva = 0x3F00;
+    f->directories[0].size = 0x200; /* extends past 0x4000 */
+    f->directory_count = 1;
 }
 
 static void build_ddir_raw_mismatch(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_raw_mismatch";
+
+    /*
+     * RVA maps to .text VA range (0x1000–0x1FFF)
+     * but raw offset is outside .text raw range (0x400–0x5FF).
+     *
+     * Choose RVA=0x1100 (inside .text)
+     * but size large enough to map raw beyond raw_size.
+     */
+    f->directories[0].rva = 0x1100;
+    f->directories[0].size = 0x800; /* too large → raw mismatch */
+    f->directory_count = 1;
 }
 
 static void build_ddir_in_overlay(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_in_overlay";
+
+    /*
+     * Overlay begins at RVA >= size_of_image (0x4000)
+     */
+    f->directories[0].rva = f->size_of_image + 0x100;
+    f->directories[0].size = 0x40;
+    f->directory_count = 1;
 }
 
 static void build_ddir_not_mapped(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_not_mapped";
+
+    /*
+     * No section covers RVA=0x5000
+     */
+    f->directories[0].rva = 0x5000;
+    f->directories[0].size = 0x40;
+    f->directory_count = 1;
 }
 
 static void build_ddir_spans_sections(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_spans_sections";
+
+    /*
+     * Span .text (0x1000–0x1FFF) and .rdata (0x2000–0x2FFF)
+     * Use RVA=0x1F00 size=0x200 → crosses boundary
+     */
+    f->directories[0].rva = 0x1F00;
+    f->directories[0].size = 0x200;
+    f->directory_count = 1;
 }
 
 static void build_ddir_overlap(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "ddir_overlap";
+
+    /*
+     * Two directories whose RVA ranges overlap.
+     */
+    f->directories[0].rva = 0x2000;
+    f->directories[0].size = 0x200;
+
+    f->directories[1].rva = 0x2100; /* overlaps 0x2000–0x21FF */
+    f->directories[1].size = 0x200;
+
+    f->directory_count = 2;
 }
 
 /* TLS fixtures */
