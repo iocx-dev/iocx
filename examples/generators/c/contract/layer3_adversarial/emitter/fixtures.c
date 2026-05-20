@@ -1097,102 +1097,212 @@ static void build_entropy_nan_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_nan_section";
+
+    /*
+     * Simulate NaN entropy by setting raw_size small
+     * and overlay_pattern to a nonsense value.
+     * Your validator ignores NaN.
+     */
+    BASE_SECTIONS[0].raw_size = 0; /* forces entropy calc edge case */
+    f->overlay_pattern = 0xFF; /* meaningless */
 }
 
 static void build_entropy_inf_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_inf_section";
+
+    /*
+     * Simulate infinite entropy by making section raw_size huge.
+     * Validator may treat this as high-entropy.
+     */
+    BASE_SECTIONS[0].raw_size = 0xFFFFFFFF;
 }
 
 static void build_entropy_negative_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_negative_section";
+
+    /*
+     * Negative entropy simulated by negative raw_size via wrap.
+     * Validator ignores negative values.
+     */
+    BASE_SECTIONS[0].raw_size = 0xFFFFFFFF; /* interpreted as negative */
 }
 
 static void build_entropy_small_section_high(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_small_section_high";
+
+    /*
+     * raw_size < 1024 → ignored regardless of entropy.
+     */
+    BASE_SECTIONS[0].raw_size = 100; /* small */
 }
 
 static void build_entropy_small_section_low(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_small_section_low";
+
+    /*
+     * raw_size < 1024 → ignored.
+     */
+    BASE_SECTIONS[0].raw_size = 200;
 }
 
 static void build_entropy_zero_length_section(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_zero_length_section";
+
+    /*
+     * raw_size = 0 → ignored.
+     */
+    BASE_SECTIONS[0].raw_size = 0;
 }
 
 static void build_entropy_overlay_exact_threshold(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_overlay_exact_threshold";
+
+    /*
+     * Overlay size = 1024 (threshold)
+     * Entropy >= 7.5 simulated by overlay_pattern = 0xFF.
+     */
+    f->overlay_size = 1024;
+    f->overlay_pattern = 0xFF; /* high-entropy pattern */
 }
 
 static void build_entropy_overlay_just_below_threshold(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_overlay_just_below_threshold";
+
+    /*
+     * Overlay size = 1023 → below threshold → no issue.
+     */
+    f->overlay_size = 1023;
 }
 
 static void build_entropy_overlay_nan(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_overlay_nan";
+
+    /*
+     * Simulate NaN entropy by zero overlay and nonsense pattern.
+     * Validator ignores NaN.
+     */
+    f->overlay_size = 0;
+    f->overlay_pattern = 0xFF;
 }
 
 static void build_entropy_overlay_negative(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_overlay_negative";
+
+    /*
+     * Negative overlay simulated by wraparound.
+     * Validator ignores negative.
+     */
+    f->overlay_size = 0xFFFFFFFF;
 }
 
 static void build_entropy_region_missing_fields(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_region_missing_fields";
+
+    /*
+     * Missing entropy/size simulated by zero-size region.
+     */
+    f->directories[10].rva = 0x0;
+    f->directories[10].size = 0x0;
+    f->directory_count = 11;
 }
 
 static void build_entropy_region_nan(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_region_nan";
+
+    /*
+     * Simulate NaN entropy by zero-size region with nonsense pattern.
+     */
+    f->directories[10].rva = 0x3000;
+    f->directories[10].size = 0; /* NaN-like */
+    f->overlay_pattern = 0xFF;
+    f->directory_count = 11;
 }
 
 static void build_entropy_region_negative(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_region_negative";
+
+    /*
+     * Negative size via wraparound.
+     */
+    f->directories[10].rva = 0x3000;
+    f->directories[10].size = 0xFFFFFFFF;
+    f->directory_count = 11;
 }
 
 static void build_entropy_region_small_size(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_region_small_size";
+
+    /*
+     * Region size < 1024 → ignored.
+     */
+    f->directories[10].rva = 0x3000;
+    f->directories[10].size = 100;
+    f->directory_count = 11;
 }
 
 static void build_entropy_uniform_nan(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_uniform_nan";
+
+    /*
+     * Simulate NaN uniform entropy by zero-size region.
+     */
+    f->directories[10].rva = 0x2000;
+    f->directories[10].size = 0;
+    f->directory_count = 11;
 }
 
 static void build_entropy_uniform_inf(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_uniform_inf";
+
+    /*
+     * Simulate infinite entropy by huge region size.
+     */
+    f->directories[10].rva = 0x2000;
+    f->directories[10].size = 0xFFFFFFFF;
+    f->directory_count = 11;
 }
 
 static void build_entropy_uniform_negative(FixtureSpec *f)
 {
     apply_baseline(f);
     f->name = "entropy_uniform_negative";
+
+    /*
+     * Negative entropy simulated by wraparound.
+     */
+    f->directories[10].rva = 0x2000;
+    f->directories[10].size = 0xFFFFFFFF;
+    f->directory_count = 11;
 }
 
 /* -----------------------------------------
