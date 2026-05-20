@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from ..schemas.analysis import LoadConfigInfo
+from pefile import PEFormatError
 
 def analyse_load_config(pe, data_directories) -> LoadConfigInfo:
     """
