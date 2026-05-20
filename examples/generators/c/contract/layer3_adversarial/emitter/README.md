@@ -1,11 +1,74 @@
-# **Master Structural Adversarial Fixture Reference**
-### *Complete cross‑validator adversarial coverage*
+# **Master Structural Adversarial Fixture Corpus**
+### *A Spec‑Aware, Deterministic, Cross‑Validator Stress Suite for Portable Executable (PE) Analysis Engines*
 
-Each row contains:
+---
 
-- **Fixture name** (canonical identifier)
-- **Edge case exposed**
-- **Expected heuristics fired** (exact ReasonCodes)
+## **Overview**
+
+This corpus defines a **complete adversarial test suite** for validating the correctness, robustness, and semantic coverage of PE (Portable Executable) analysis engines.
+Unlike random fuzzing, these fixtures are:
+
+- **Deterministic**
+- **Spec‑aware**
+- **Minimal and isolated**
+- **Semantically meaningful**
+- **Cross‑validator portable**
+- **Designed to trigger specific, named heuristics**
+
+Each fixture introduces **exactly one structural anomaly**, ensuring that validators must walk the intended code paths without being overwhelmed by noise or cascading corruption.
+
+The corpus currently contains **99 fixtures** across **8 structural domains**, covering the full PE object model:
+
+- Entrypoint resolution
+- Section table semantics
+- Optional header consistency
+- RVA graph / data directory mapping
+- TLS directory and callback resolution
+- Signature directory and WIN_CERTIFICATE parsing
+- Resource tree integrity
+- Entropy analysis and overlay heuristics
+
+This suite has already demonstrated its value by exposing real defects in unreleased validators — precisely the purpose of adversarial structural testing.
+
+---
+
+## **Design Principles**
+
+### **1. One anomaly per fixture**
+Each file isolates a single malformed condition.
+No fixture contains multiple interacting anomalies.
+
+### **2. Always parseable**
+Fixtures are malformed but **never corrupt**.
+They must load successfully in any PE parser that tolerates structural irregularities.
+
+### **3. Spec‑aware mutation**
+All anomalies correspond to real-world edge cases:
+
+- truncated directories
+- invalid RVA ranges
+- misaligned headers
+- overlapping sections
+- impossible flag combinations
+- entropy anomalies
+- recursive resource directories
+
+### **4. Deterministic and reproducible**
+Every fixture is generated from a stable emitter with no randomness.
+
+### **5. Cross‑validator consistency**
+Expected heuristics are defined in terms of **ReasonCodes**, not implementation details.
+
+---
+
+## **Fixture Reference**
+
+Below is the authoritative reference for all fixtures in the corpus.
+Each row documents:
+
+- **Fixture name** — canonical identifier
+- **Edge case** — the structural anomaly introduced
+- **Expected heuristics** — the validator ReasonCodes that should fire
 
 ---
 
@@ -111,7 +174,7 @@ Each row contains:
 | `signature_overlaps_text` | overlaps `.text` | `SIGNATURE_OVERLAPS_OTHER_DATA` |
 | `signature_overlaps_rdata` | overlaps `.rdata` | `SIGNATURE_OVERLAPS_OTHER_DATA` |
 | `signature_overlaps_reloc` | overlaps `.reloc` | `SIGNATURE_OVERLAPS_OTHER_DATA` |
-| `signature_entirely_in_overlay` | certificate after overlay | (no issue) |
+| `signature_entirely_in_overlay` | certificate after overlay | (valid) |
 | `signature_invalid_revision` | revision not 0x0100/0x0200 | `SIGNATURE_INVALID_REVISION` |
 | `signature_invalid_type` | type not 0x0001/0x0002 | `SIGNATURE_INVALID_TYPE` |
 | `signature_missing_fields` | missing revision/type | corresponding invalid heuristics |
@@ -161,3 +224,39 @@ Each row contains:
 | `entropy_uniform_nan` | NaN in entropies | no uniform heuristic |
 | `entropy_uniform_inf` | inf in entropies | may trigger uniform |
 | `entropy_uniform_negative` | negative values | ignored |
+
+---
+
+## **Extending the Corpus**
+
+The emitter is intentionally designed for **effortless extension**.
+To add a new fixture:
+
+1. Create a new builder function in the emitter.
+2. Introduce exactly one structural anomaly.
+3. Add the fixture to the manifest.
+4. Document the expected ReasonCodes in this reference.
+5. Regenerate the corpus (deterministic output).
+
+New fixture categories under consideration:
+
+- Import table corruption
+- Relocation anomalies
+- Debug directory inconsistencies
+- Overlay fragmentation
+- COFF symbol table edge cases
+
+---
+
+## **Conclusion**
+
+This corpus is a **formal adversarial specification** for PE validators.
+It is small, deterministic, semantically rich, and already proven effective at surfacing real defects.
+
+It is intended to serve as:
+
+- a regression suite
+- a cross‑engine compatibility benchmark
+- a structural fuzzer corpus
+- a documentation of PE edge cases
+- a foundation for future validator development
