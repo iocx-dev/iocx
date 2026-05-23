@@ -16,9 +16,9 @@
     "file_type": "PE",
     "imports": [],
     "sections": [
+      ".text",
       ".rdata",
-      ".rsrc",
-      ""
+      ".rsrc"
     ],
     "resources": [],
     "resource_strings": [],
@@ -51,39 +51,28 @@
   "analysis": {
     "sections": [
       {
+        "name": ".text",
+        "raw_size": 512,
+        "virtual_size": 4096,
+        "characteristics": 1644167200,
+        "entropy": 0.0
+      },
+      {
         "name": ".rdata",
         "raw_size": 512,
         "virtual_size": 4096,
-        "characteristics": 3254779968,
+        "characteristics": 1073741888,
         "entropy": 0.0
       },
       {
         "name": ".rsrc",
         "raw_size": 512,
-        "virtual_size": 32,
+        "virtual_size": 4096,
         "characteristics": 1073741888,
         "entropy": 0.0
-      },
-      {
-        "name": "",
-        "raw_size": 0,
-        "virtual_size": 0,
-        "characteristics": 3791650848,
-        "entropy": 0.0
       }
     ],
-    "obfuscation": [
-      {
-        "value": "abnormal_section_characteristics",
-        "start": 0,
-        "end": 0,
-        "category": "obfuscation_hint",
-        "metadata": {
-          "section": "",
-          "characteristics": 3791650848
-        }
-      }
-    ],
+    "obfuscation": [],
     "extended": [
       {
         "value": "summary",
@@ -146,41 +135,6 @@
     ],
     "heuristics": [
       {
-        "value": "anti_debug_heuristic",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "rwx_section",
-          "section": "",
-          "characteristics": 3791650848
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "entrypoint_section_not_executable",
-          "entry_point": 4112,
-          "section": ".rdata",
-          "characteristics": 3254779968
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "entrypoint_in_non_code_section",
-          "entry_point": 4112,
-          "section": ".rdata",
-          "characteristics": 3254779968
-        }
-      },
-      {
         "value": "pe_structure_anomaly",
         "start": 0,
         "end": 0,
@@ -188,62 +142,8 @@
         "metadata": {
           "reason": "entrypoint_in_discardable_section",
           "entry_point": 4112,
-          "section": ".rdata",
-          "characteristics": 3254779968
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_rwx",
-          "section": "",
-          "characteristics": 3791650848
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_name_empty_or_padding",
-          "section": ""
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_impossible_flags",
-          "section": "",
-          "characteristics": 3791650848
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_overlaps_headers",
-          "section": "",
-          "raw_address": 0,
-          "size_of_headers": 1024
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_zero_length",
-          "section": ""
+          "section": ".text",
+          "characteristics": 1644167200
         }
       },
       {
@@ -253,33 +153,8 @@
         "category": "pe_heuristic",
         "metadata": {
           "reason": "section_discardable_code",
-          "section": "",
-          "characteristics": 3791650848
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "section_out_of_order_raw",
-          "raw_addresses": [
-            1024,
-            2048,
-            0
-          ]
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "optional_header_inconsistent_size",
-          "size_of_image": 16384,
-          "max_section_end": 4294967295
+          "section": ".text",
+          "characteristics": 1644167200
         }
       }
     ]
