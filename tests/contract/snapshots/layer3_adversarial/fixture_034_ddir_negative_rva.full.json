@@ -173,11 +173,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
-          "directory": "IMAGE_DIRECTORY_ENTRY_EXPORT",
-          "rva": 4294967295,
-          "size": 32,
-          "size_of_image": 16384
+          "reason": "optional_header_invalid_number_of_rva_and_sizes",
+          "number_of_rva_and_sizes": 0,
+          "actual_directories": 1
         }
       }
     ]
