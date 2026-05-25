@@ -34,17 +34,102 @@ IOCX v0.7.4 expands static PE coverage with support for advanced directories, ex
   - `load_config_malformed_seh_invalid.full.exe`
   - `load_config_malformed_size_exceeds_section.full.exe`
 
+## 99 Adversarial PE Fixtures for structural anomaly & parser behaviour testing
+
+The following fixtures have been validated under v0.7.4:
+
+### **Entrypoint Fixtures (000–009)**
+
+Tests malformed or adversarial `AddressOfEntryPoint` conditions.
+
+- **Zero or negative EP** → correctly flagged
+- **EP inside headers** → correctly flagged
+- **EP outside SizeOfImage** → correctly flagged
+- **EP unmapped to any section** → flagged as out‑of‑bounds
+- **EP in non‑executable section** → flagged
+- **EP spanning section boundaries** → flagged
+- **EP in overlay** → flagged
+
+**Outcome:** Entrypoint validator stable and deterministic across all malformed cases.
+
+### **Section Table Fixtures (010–021)**
+
+Tests structural correctness of section headers and RVA/raw mappings.
+
+- **Section RVA out of bounds**
+- **Raw offset out of bounds**
+- **Overlapping sections**
+- **Sections not sorted by RVA**
+- **VirtualSize < RawSize**
+- **Misaligned boundaries**
+- **Section extends past SizeOfImage**
+- **Section mapped inside headers**
+
+**Outcome:** Section validator correctly identifies all structural anomalies; no false positives on valid baselines.
+
+### **Optional Header Fixtures (022–033)**
+
+Tests correctness of PE Optional Header fields.
+
+- **Invalid SizeOfImage**
+- **Invalid SizeOfHeaders**
+- **Invalid FileAlignment / SectionAlignment**
+- **Magic mismatch (PE32 vs PE32+)**
+- **Invalid subsystem values**
+- **Invalid version fields**
+- **ImageBase misalignment**
+- **NumberOfRvaAndSizes too small**
+
+**Outcome:** Optional‑header validator behaves consistently; malformed fields reliably detected.
+
+### **Data Directory Fixtures (034–045)**
+
+Tests adversarial manipulations of the Data Directory Table.
+
+- **Negative RVA / negative size**
+- **Zero/zero directory (valid)**
+- **Zero RVA with non‑zero size**
+- **Zero size with non‑zero RVA**
+- **Directory inside headers**
+- **Directory out of SizeOfImage**
+- **Directory in overlay**
+- **Directory not mapped to any section**
+- **Directory spanning sections**
+- **Overlapping directories**
+
+**Outcome:**
+All malformed cases trigger the **primary structural anomaly**:
+
+**`optional_header_invalid_number_of_rva_and_sizes`**
+
+This is correct under current validator design, which prioritises header‑level inconsistencies over directory‑field semantics.
+Fixture 036 (zero/zero) correctly produces **no directory anomalies**, confirming non‑aggressive behaviour.
+
+### **Overall Result for Fixtures 000–045**
+
+- **All 46 fixtures validated**
+- **No crashes, no inconsistent behaviour**
+- **All anomalies match intended design**
+- **Entrypoint, section, optional header, and directory validators confirmed stable**
+
+---
+
 ## Changed
 
-- Load config directory validator surfaced new anomalies in the following contract tests:
+- **Load config directory validator** surfaced new anomalies in the following contract tests:
    - Crypto Entropy Payload
    - Franken URL Domain IP
    - Malformed Domain / IP / URL
    - String Obfuscation Tricks
+- **Internal Schema** now includes `number_of_rva_and_sizes` and a `data_directories_raw` structure to support adversarial optional-header edge cases.
+- **Optional-header validator**: Support declared `NumberOfRvaAndSize`s. Add explicit `NumberOfRvaAndSizes` handling to FixtureSpec and emitter, enabling adversarial cases where declared and actual directory counts differ. Optional header validator now checks raw vs declared counts as intended.
+
+---
 
 ## **Documentation**
 
 - Updated the RVA / Directory Anomalies table with the new reason code and behavioural notes.
+- Added `Design Decision: Why Only the Optional‑Header Validator Uses Raw Data Directories` document.
 
 --- Initial commit ---
 
