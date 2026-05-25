@@ -6,6 +6,7 @@ from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.public_metadata import PublicMetadata
 from iocx.schemas.analysis import AnalysisDict
+from iocx.schemas.internal_schema import InternalMetadata
 from .decorators import depends_on
 
 
@@ -13,12 +14,46 @@ def _is_power_of_two(x: int) -> bool:
     return x > 0 and (x & (x - 1)) == 0
 
 
-@depends_on("metadata", "analysis")
-def validate_optional_header(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
+# ---------------------------------------------------------------------------
+# Design Note: Why This Validator Uses Raw Data Directories
+#
+# The PE Optional Header contains:
+# • A fixed 16‑entry data‑directory table (always present in the file)
+# • A field NumberOfRvaAndSizes declaring how many entries are *valid*
+#
+# In well‑formed binaries these two agree, but adversarial binaries can:
+# – Declare too few directories (hiding real ones)
+# – Declare too many (>16)
+# – Declare a count inconsistent with the actual non‑zero entries
+#
+# Because of this, the OPTIONAL HEADER validator is the ONLY component that
+# must inspect the *raw* 16‑entry table (internal.data_directories_raw).
+# Its job is to detect header lies, mismatches, and abuse of
+# NumberOfRvaAndSizes.
+#
+# All other validators (rva_graph, load_config, imports, exports, TLS, etc.)
+# operate strictly on the *declared* directory list produced by pefile
+# (analysis.data_directories), because that list reflects how Windows
+# interprets the file. Undeclared directories are undefined by spec and must
+# not be validated.
+#
+# Summary:
+# – Raw table → detect header inconsistencies.
+# – Declared list → validate PE semantics.
+#
+# Do NOT use the raw table outside this validator.
+# ---------------------------------------------------------------------------
+@depends_on("internal", "metadata", "analysis")
+def validate_optional_header(internalMetadata: InternalMetadata, metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     opt = metadata.get("optional_header") or {}
     sections = analysis.get("sections", []) or []
+    data_directories_raw = internalMetadata.get("data_directories_raw", []) or []
+    actual_data_directories = sum(
+        1 for d in data_directories_raw
+        if d.get("rva", 0) or d.get("size", 0)
+    )
 
     # Extract fields
     size_of_image = opt.get("size_of_image")
@@ -29,7 +64,7 @@ def validate_optional_header(metadata: PublicMetadata, analysis: AnalysisDict) -
     size_of_init = opt.get("size_of_initialized_data")
     size_of_uninit = opt.get("size_of_uninitialized_data")
     image_base = opt.get("image_base")
-    num_dirs = opt.get("number_of_rva_and_sizes")
+    num_dirs = internalMetadata.get("number_of_rva_and_sizes")
 
     # ---------------------------------------------------------
     # 1) SizeOfImage vs max section end
@@ -157,11 +192,11 @@ def validate_optional_header(metadata: PublicMetadata, analysis: AnalysisDict) -
             ))
 
         # Ensure it covers all directories actually present
-        dirs = opt.get("data_directories") or []
-        if len(dirs) > num_dirs:
+        dirs = actual_data_directories
+        if dirs > num_dirs:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES,
-                details={"number_of_rva_and_sizes": num_dirs, "actual_directories": len(dirs)},
+                details={"number_of_rva_and_sizes": num_dirs, "actual_directories": dirs},
             ))
 
     # ---------------------------------------------------------

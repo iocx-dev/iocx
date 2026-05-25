@@ -8,7 +8,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from .utils import detect_file_type, FileType
-from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections
+from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_directories, sanitize_sections, analyse_data_directories_raw
 from .parsers.string_extractor import extract_strings
 from .parsers.pe_resources import build_resource_structure
 from .parsers.pe_load_config import analyse_load_config
@@ -162,6 +162,7 @@ class Engine:
             }
 
             self._internal_metadata["resources_struct"] = build_resource_structure(pe)
+            self._internal_metadata["data_directories_raw"] = analyse_data_directories_raw(pe)
             self._internal_metadata.update(extract_optional_header_metadata(pe))
             internal: InternalMetadata = self._internal_metadata
             structural = run_structural_validators(internal, metadata, analysis_dict)

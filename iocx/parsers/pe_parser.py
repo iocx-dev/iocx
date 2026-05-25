@@ -4,6 +4,7 @@
 import pefile
 import math
 import base64
+import struct
 from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any
@@ -429,6 +430,44 @@ def _parse_data_directories(pe):
     return dirs
 
 
+def _parse_data_directories_raw(pe) -> list[dict[str, int]]:
+    """
+    Extract all 16 IMAGE_DATA_DIRECTORY entries directly from the raw
+    Optional Header bytes. This bypasses pefile's truncated DATA_DIRECTORY
+    list, which only exposes NumberOfRvaAndSizes entries.
+    """
+    dirs = []
+
+    opt = getattr(pe, "OPTIONAL_HEADER", None)
+    if not opt:
+        return dirs
+
+    # Raw file bytes
+    raw = pe.__data__
+
+    # File offset of Optional Header
+    opt_offset = opt.get_file_offset()
+
+    # For PE32, DataDirectory starts 96 bytes into Optional Header
+    # (Magic..LoaderFlags = 96 bytes)
+    DATA_DIR_OFFSET = 96
+
+    # Each entry is 8 bytes: (DWORD RVA, DWORD Size)
+    entry_offset = opt_offset + DATA_DIR_OFFSET
+
+    for i in range(16):
+        rva = struct.unpack_from("<I", raw, entry_offset + i * 8)[0]
+        size = struct.unpack_from("<I", raw, entry_offset + i * 8 + 4)[0]
+
+        dirs.append({
+            "index": i,
+            "rva": rva,
+            "size": size,
+        })
+
+    return dirs
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -489,3 +528,6 @@ def analyse_pe_sections(pe) -> List[Dict[str, Any]]:
 
 def analyse_data_directories(pe) -> List[Dict[str, Any]]:
     return _parse_data_directories(pe)
+
+def analyse_data_directories_raw(pe) -> List[Dict[str, Any]]:
+    return _parse_data_directories_raw(pe)

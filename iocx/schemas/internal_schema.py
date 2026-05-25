@@ -35,10 +35,19 @@ class ResourcesStruct(TypedDict):
     string_tables: List[ResourceStringTable]
 
 
+class DataDirectoryRaw(TypedDict):
+    index: int
+    name: str | None
+    rva: int
+    size: int
+
+
 # -------------------------
 # Internal metadata schema
 # -------------------------
 
 class InternalMetadata(TypedDict, total=False):
     resources_struct: ResourcesStruct
+    data_directories_raw: List[DataDirectoryRaw]
     optional_header_magic: int
+    number_of_rva_and_sizes: int
