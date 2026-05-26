@@ -11,7 +11,7 @@ def test_extract_optional_header_metadata_no_optional_header():
 
     result = extract_optional_header_metadata(FakePE())
 
-    assert result == {"optional_header_magic": None}
+    assert result == {'optional_header_magic': None, 'number_of_rva_and_sizes': None}
 
 
 def test_extract_optional_header_metadata_magic_not_int():
@@ -23,7 +23,7 @@ def test_extract_optional_header_metadata_magic_not_int():
 
     result = extract_optional_header_metadata(FakePE())
 
-    assert result == {"optional_header_magic": None}
+    assert result == {"optional_header_magic": None, 'number_of_rva_and_sizes': None}
 
 
 def test_extract_optional_header_metadata_magic_int():
@@ -35,4 +35,4 @@ def test_extract_optional_header_metadata_magic_int():
 
     result = extract_optional_header_metadata(FakePE())
 
-    assert result == {"optional_header_magic": 0x20B}
+    assert result == {"optional_header_magic": 0x20B, 'number_of_rva_and_sizes': None}

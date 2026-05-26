@@ -6,6 +6,7 @@ import pytest
 
 from iocx.engine import Engine, EngineConfig, FileType, EngineCache
 from iocx.models import Detection
+from iocx.plugins.registry import PluginRegistry
 
 # ------------------------------------------------------------
 # Helpers
@@ -333,6 +334,9 @@ def test_pipeline_pe_full_analysis(monkeypatch):
 
     class FakeOptionalHeader:
         Magic = 0x10b # PE32
+
+        def get_file_offset(self):
+            return 0;
 
     # --- Patch Engine internal methods ---
     class FakePE:
@@ -727,3 +731,41 @@ def test_detector_malformed_items_trigger_else_and_are_skipped(malformed_detecto
 
     # Engine should still return a valid IOC structure
     assert isinstance(result["iocs"], dict)
+
+
+def test_detector_returns_detection_instance():
+    class FakeMetadata:
+        id = "fake-detector"
+        capabilities = ["detector"]
+
+    class FakePlugin:
+        metadata = FakeMetadata()
+
+        def detect(self, text, ctx):
+            # Return a dict with a Detection instance
+            return {
+                "url": [
+                    Detection("http://example.com", 0, 10, "url")
+                ]
+            }
+
+    # Fake context with logger
+    class FakeLogger:
+        def warning(self, msg):
+            pass
+
+    class FakeCtx:
+        logger = FakeLogger()
+
+    registry = PluginRegistry()
+    registry.register(FakePlugin())
+
+    engine = Engine()
+    engine._plugin_registry = registry
+
+    # Run detectors
+    results = engine._run_detectors("dummy", "dummy text")
+
+    # Ensure the Detection instance was appended directly
+    assert isinstance(results["url"][0], Detection)
+    assert results["url"][0].value == "http://example.com"

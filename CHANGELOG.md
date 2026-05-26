@@ -161,6 +161,7 @@ This suite forms a robust foundation for replacing legacy PE parsing logic and e
    - Franken URL Domain IP
    - Malformed Domain / IP / URL
    - String Obfuscation Tricks
+   - Invalid optional_header (PE32, PE32+)
 - **Internal Schema** now includes `number_of_rva_and_sizes` and a `data_directories_raw` structure to support adversarial optional-header edge cases.
 - **Optional-header validator**: Support declared `NumberOfRvaAndSize`s. Add explicit `NumberOfRvaAndSizes` handling to FixtureSpec and emitter, enabling adversarial cases where declared and actual directory counts differ. Optional header validator now checks raw vs declared counts as intended.
 

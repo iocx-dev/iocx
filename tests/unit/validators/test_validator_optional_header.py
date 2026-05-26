@@ -23,7 +23,10 @@ def test_optional_header_inconsistent_size_of_image():
             {"virtual_address": 100, "virtual_size": 200}, # ends at 300
         ]
     }
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INCONSISTENT_SIZE in make_issue_list(issues)
 
 
@@ -39,7 +42,10 @@ def test_optional_header_invalid_size_of_headers_alignment():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS in make_issue_list(issues)
 
 
@@ -56,7 +62,10 @@ def test_optional_header_invalid_size_of_headers_header_end():
         "header_end": 300,
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS in make_issue_list(issues)
 
 
@@ -72,7 +81,10 @@ def test_optional_header_invalid_section_alignment_less_than_file_alignment():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT in make_issue_list(issues)
 
 
@@ -88,7 +100,10 @@ def test_optional_header_invalid_section_alignment_not_power_of_two():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT in make_issue_list(issues)
 
 
@@ -103,7 +118,10 @@ def test_optional_header_invalid_file_alignment_not_power_of_two():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT in make_issue_list(issues)
 
 
@@ -118,7 +136,10 @@ def test_optional_header_invalid_file_alignment_out_of_range():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT in make_issue_list(issues)
 
 
@@ -141,7 +162,10 @@ def test_optional_header_size_fields_inconsistent():
             {"characteristics": 0x80, "raw_size": 0, "virtual_size": 50}, # uninit
         ]
     }
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_SIZE_FIELDS_INCONSISTENT in make_issue_list(issues)
 
 
@@ -156,7 +180,10 @@ def test_optional_header_image_base_misaligned():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_IMAGE_BASE_MISALIGNED in make_issue_list(issues)
 
 
@@ -167,11 +194,16 @@ def test_optional_header_image_base_misaligned():
 def test_optional_header_invalid_number_of_rva_and_sizes_range():
     metadata = {
         "optional_header": {
-            "number_of_rva_and_sizes": 20, # > 16
+            "number_of_rva_and_sizes": 20, # this is effectively ignored by validator
         }
     }
-    analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    analysis = {"sections": [], "data_directories": []}
+    internal = {
+        "number_of_rva_and_sizes": 20,
+        "data_directories_raw": [], # can be empty for this case
+    }
+
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES in make_issue_list(issues)
 
 
@@ -182,12 +214,19 @@ def test_optional_header_invalid_number_of_rva_and_sizes_range():
 def test_optional_header_invalid_number_of_rva_and_sizes_too_small():
     metadata = {
         "optional_header": {
-            "number_of_rva_and_sizes": 1,
-            "data_directories": [1, 2], # 2 dirs > 1 allowed
+            "number_of_rva_and_sizes": 1, # ignored by validator
         }
     }
-    analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    analysis = {"sections": [], "data_directories": [1, 2]} # not used here
+    internal = {
+        "number_of_rva_and_sizes": 1,
+        "data_directories_raw": [
+            {"rva": 0x1000, "size": 0x40},
+            {"rva": 0x2000, "size": 0x40},
+        ],
+    }
+
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES in make_issue_list(issues)
 
 
@@ -203,5 +242,8 @@ def test_optional_header_size_of_image_misaligned():
         }
     }
     analysis = {"sections": []}
-    issues = validate_optional_header(metadata, analysis)
+    internal = {
+        "data_directories_raw": []
+    }
+    issues = validate_optional_header(internal, metadata, analysis)
     assert ReasonCodes.OPTIONAL_HEADER_SIZE_OF_IMAGE_MISALIGNED in make_issue_list(issues)

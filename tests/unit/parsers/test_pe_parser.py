@@ -4,7 +4,7 @@
 import pytest
 from types import SimpleNamespace
 
-from iocx.parsers.pe_parser import parse_pe, _walk_resources, analyse_pe_sections, _parse_data_directories
+from iocx.parsers.pe_parser import parse_pe, _walk_resources, analyse_pe_sections, _parse_data_directories, _parse_data_directories_raw
 from iocx.parsers.string_extractor import extract_strings_from_bytes
 
 
@@ -354,3 +354,10 @@ def test_parse_data_directories_no_optional_header():
 
     assert result == [] # early return path
 
+
+def test_parse_data_directories_raw_no_optional_header():
+    class FakePE:
+        pass # no OPTIONAL_HEADER attribute at all
+
+    result = _parse_data_directories_raw(FakePE())
+    assert result == [] # early return path
