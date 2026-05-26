@@ -44,30 +44,29 @@ typedef struct {
     uint32_t Characteristics;
 } SECT;
 
+/* Minimal valid IMAGE_LOAD_CONFIG_DIRECTORY64-compatible struct (0x70 bytes) */
 typedef struct {
-    uint32_t Size; uint32_t TimeDateStamp;
-    uint16_t MajorVersion; uint16_t MinorVersion;
-    uint32_t GlobalFlagsClear; uint32_t GlobalFlagsSet;
-    uint32_t CriticalSectionDefaultTimeout;
-    uint64_t DeCommitFreeBlockThreshold;
-    uint64_t DeCommitTotalFreeThreshold;
-    uint64_t LockPrefixTable;
-    uint64_t MaximumAllocationSize;
-    uint64_t VirtualMemoryThreshold;
-    uint64_t ProcessAffinityMask;
-    uint32_t ProcessHeapFlags;
-    uint16_t CSDVersion;
-    uint16_t DependentLoadFlags;
-    uint64_t EditList;
-    uint64_t SecurityCookie;
-    uint64_t SEHandlerTable;
-    uint64_t SEHandlerCount;
-    uint64_t GuardCFCheckFunctionPointer;
-    uint64_t GuardCFDispatchFunctionPointer;
-    uint64_t GuardCFFunctionTable;
-    uint64_t GuardCFFunctionCount;
-    uint32_t GuardFlags;
-} LOAD_CONFIG64;
+    uint32_t Size; // 0x00
+    uint32_t TimeDateStamp; // 0x04
+    uint16_t MajorVersion; // 0x08
+    uint16_t MinorVersion; // 0x0A
+    uint32_t GlobalFlagsClear; // 0x0C
+    uint32_t GlobalFlagsSet; // 0x10
+    uint32_t CriticalSectionDefaultTimeout; // 0x14
+    uint64_t DeCommitFreeBlockThreshold; // 0x18
+    uint64_t DeCommitTotalFreeThreshold; // 0x20
+    uint64_t LockPrefixTable; // 0x28
+    uint64_t MaximumAllocationSize; // 0x30
+    uint64_t VirtualMemoryThreshold; // 0x38
+    uint64_t ProcessAffinityMask; // 0x40
+    uint32_t ProcessHeapFlags; // 0x48
+    uint16_t CSDVersion; // 0x4C
+    uint16_t DependentLoadFlags; // 0x4E
+    uint64_t EditList; // 0x50
+    uint64_t SecurityCookie; // 0x58
+    uint64_t SEHandlerTable; // 0x60
+    uint64_t SEHandlerCount; // 0x68
+} LOADCFG_COOKIE64; // sizeof = 0x70
 
 #pragma pack(pop)
 
@@ -80,7 +79,7 @@ static void pad(FILE *f, long t) {
 }
 
 int main(void) {
-    FILE *f = fopen("load_config_full_msvc.full.exe", "wb");
+    FILE *f = fopen("load_config_cookie_valid.full.exe", "wb");
     if (!f) return 1;
 
     DOS dos = {0};
@@ -111,9 +110,9 @@ int main(void) {
     opt.Subsystem = 3;
     opt.NumDirs = 16;
 
-    /* Load Config directory entry (.rdata at RVA 0x3000) */
+    // Load Config directory: RVA 0x3000, size = sizeof(LOADCFG_COOKIE64) (0x70)
     opt.DataDir[10].VirtualAddress = 0x3000;
-    opt.DataDir[10].Size = sizeof(LOAD_CONFIG64);
+    opt.DataDir[10].Size = sizeof(LOADCFG_COOKIE64);
 
     w(f, &opt, sizeof(opt));
 
@@ -132,7 +131,7 @@ int main(void) {
     rdata.VirtualAddress = 0x3000;
     rdata.SizeOfRawData = 0x200;
     rdata.PointerToRawData = 0x600;
-    rdata.Characteristics = 0xC0000040;
+    rdata.Characteristics = 0xC0000040; // R | W | INIT_DATA (add IMAGE_SCN_MEM_WRITE 0x80000000)
     w(f, &rdata, sizeof(rdata));
 
     pad(f, 0x400);
@@ -140,28 +139,14 @@ int main(void) {
     w(f, code, sizeof(code));
 
     pad(f, 0x600);
-    long lc_raw = ftell(f);
 
-    LOAD_CONFIG64 lc = {0};
-    lc.Size = sizeof(LOAD_CONFIG64);
-    lc.SecurityCookie = 0x3000ULL; /* in .rdata */
-    lc.SEHandlerTable = 0x3080ULL; /* in .rdata */
-    lc.SEHandlerCount = 1;
-    lc.GuardCFCheckFunctionPointer = 0x1000ULL; /* in .text */
-    lc.GuardCFDispatchFunctionPointer = 0x1010ULL;
-    lc.GuardCFFunctionTable = 0x30A0ULL; /* in .rdata */
-    lc.GuardCFFunctionCount = 1;
-    lc.GuardFlags = 0x100; /* Guard CF enabled */
+    LOADCFG_COOKIE64 lc = {0};
+    lc.Size = sizeof(LOADCFG_COOKIE64); // >= 0x70, satisfies the load config validator
+    lc.SecurityCookie = 0x3000ULL; // Write RVA 0x3000 → inside .rdata
+    lc.SEHandlerTable = 0;
+    lc.SEHandlerCount = 0;
 
     w(f, &lc, sizeof(lc));
-
-    /* SEH table: one entry */
-    uint64_t seh_entry = 0x1020ULL;
-    w(f, &seh_entry, sizeof(seh_entry));
-
-    /* Guard CF function table: one entry */
-    uint64_t cf_entry = 0x1030ULL;
-    w(f, &cf_entry, sizeof(cf_entry));
 
     fclose(f);
     return 0;

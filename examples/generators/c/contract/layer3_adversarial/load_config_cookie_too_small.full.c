@@ -44,7 +44,7 @@ typedef struct {
     uint32_t Characteristics;
 } SECT;
 
-/* Minimal valid load config containing only a SecurityCookie */
+/* Minimal valid load config containing only a SecurityCookie, but only make it 12 bytes */
 typedef struct {
     uint32_t Size;
     uint64_t SecurityCookie;
@@ -61,7 +61,7 @@ static void pad(FILE *f, long t) {
 }
 
 int main(void) {
-    FILE *f = fopen("load_config_cookie_only.full.exe", "wb");
+    FILE *f = fopen("load_config_cookie_too_small.full.exe", "wb");
     if (!f) return 1;
 
     DOS dos = {0};

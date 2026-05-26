@@ -26,6 +26,7 @@ IOCX v0.7.4 expands static PE coverage with support for advanced directories, ex
   - deterministic error handling for malformed structures
 
 - Adversarial fixtures exercising the new Load Config Directory validator:
+  - `load_config_cookie_too_small.full.exe`
   - `load_config_malformed_size_too_small.full.exe`
   - `load_config_malformed_truncated.full.exe`
   - `load_config_malformed_cookie_in_overlay.full.exe`
@@ -112,6 +113,45 @@ Fixture 036 (zero/zero) correctly produces **no directory anomalies**, confirmin
 - **All anomalies match intended design**
 - **Entrypoint, section, optional header, and directory validators confirmed stable**
 
+## **Comprehensive Layer‑2 Load Config Edge‑Case Fixtures**
+
+Introduced a full suite of PE Load Config edge‑case binaries to harden structural validation and ensure deterministic behaviour across compilers, malformed inputs, and ambiguous layouts. This includes:
+
+- **Minimal MinGW Load Config**
+  Tiny directory (16 bytes) exercising undersized‑structure detection (`load_config_too_small`).
+
+- **Cookie‑Only (Valid)**
+  Fully spec‑aligned `_IMAGE_LOAD_CONFIG_DIRECTORY64` with only the security cookie populated. Validates RVA mapping, section writability, and minimum‑size compliance.
+
+- **Cookie‑Only (Too Small)**
+  Undersized 12‑byte directory used to confirm strict minimum‑size enforcement.
+
+- **Full MSVC Load Config**
+  Complete structure including SEH table, GuardCF fields, cookie, and correct RVA mapping. Ensures full‑path validation of all extended fields.
+
+- **Full Clang/LLVM Load Config**
+  Clang‑style layout with GuardCF but no SEH table. Exercises alternative compiler semantics and mixed field presence.
+
+- **Large Padded Load Config**
+  Oversized directory with unknown/opaque layout. Confirms validator behaviour when structure is large enough but not schema‑aligned.
+
+- **SEH‑Only Load Config**
+  Minimal SEH‑aware directory below the trusted threshold, validating partial‑structure handling and graceful degradation.
+
+### **Outcome**
+
+These fixtures collectively verify:
+
+- RVA vs VA correctness
+- Section‑mapping and writability rules
+- Minimum‑size enforcement
+- GuardCF consistency
+- SEH table bounds checking
+- Behaviour with oversized or schema‑unknown directories
+- Compiler‑specific structural differences (MSVC, Clang, MinGW)
+
+This suite forms a robust foundation for replacing legacy PE parsing logic and ensures deterministic, spec‑aligned behaviour across all load‑config scenarios.
+
 ---
 
 ## Changed
@@ -130,68 +170,6 @@ Fixture 036 (zero/zero) correctly produces **no directory anomalies**, confirmin
 
 - Updated the RVA / Directory Anomalies table with the new reason code and behavioural notes.
 - Added `Design Decision: Why Only the Optional‑Header Validator Uses Raw Data Directories` document.
-
---- Initial commit ---
-
-- Full **Load Config Directory** parsing
-  - Guard CF metadata
-  - Security cookie
-  - SEH table
-  - compiler version hints
-  - deterministic error handling for malformed structures
-
-- **Delay‑Load Import** parsing
-  - descriptor parsing
-  - INT/IAT validation
-  - delayed import name extraction
-  - structured errors for malformed descriptors
-
-- Full **TLS Directory** support
-  - TLS callbacks
-  - raw data boundaries
-  - callback array validation
-  - safe handling of zero‑length TLS regions
-
-- Extended Optional Header metadata
-  - subsystem
-  - DLL characteristics
-  - loader flags
-  - Win32 version values
-  - stack/heap reserve & commit sizes
-
-- New deterministic reason codes for malformed directories
-  - `malformed_load_config`
-  - `malformed_tls_directory`
-  - `malformed_delay_load_imports`
-  - `invalid_directory_size`
-  - `invalid_directory_rva`
-
-## **Improved**
-
-- Directory invariant validation
-  - RVA‑to‑section mapping
-  - size boundary checks
-  - overlap detection
-  - deterministic handling of zero‑length directories
-
-- Snapshot coverage expanded for all new metadata
-- Parser stability and JSON‑safety across malformed inputs
-
-## **Testing**
-
-- New fixtures under `layer2_edge/`
-- Adversarial malformed samples under `layer3_adversarial/`
-- Deterministic snapshot tests for all new directory types
-
-## **Not Included (Intentional)**
-
-- no dynamic execution
-- no unpacking or emulation
-- no behavioural tracing
-- no ML/AI models
-- no sandboxing
-- no network access
-- no disassembly or CFG reconstruction
 
 ---
 
