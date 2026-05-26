@@ -33,6 +33,7 @@ class ReasonCodes:
 
     # --- RVA / directory inconsistencies ---
     DATA_DIRECTORY_ZERO_RVA_NONZERO_SIZE = "data_directory_zero_rva_nonzero_size"
+    DATA_DIRECTORY_ZERO_SIZE_NONZERO_RVA = "data_directory_zero_size_nonzero_rva"
     DATA_DIRECTORY_OUT_OF_RANGE = "data_directory_out_of_range"
     DATA_DIRECTORY_OVERLAP = "data_directory_overlap"
     DATA_DIRECTORY_ZERO_SIZE_UNEXPECTED = "data_directory_zero_size_unexpected"
@@ -41,6 +42,7 @@ class ReasonCodes:
     DATA_DIRECTORY_IN_OVERLAY = "data_directory_in_overlay"
     DATA_DIRECTORY_NOT_MAPPED_TO_SECTION = "data_directory_not_mapped_to_section"
     DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS = "data_directory_spans_multiple_sections"
+    DATA_DIRECTORY_RAW_MISMATCH = "data_directory_raw_mismatch"
     IMPORT_RVA_INVALID = "import_rva_invalid"
 
     # --- Optional header anomalies ---
@@ -106,6 +108,20 @@ class ReasonCodes:
 
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
+
+    # --- Load Config Directory structural issues ---
+    LOAD_CONFIG_TOO_SMALL = "load_config_too_small"
+    LOAD_CONFIG_TRUNCATED = "load_config_truncated"
+
+    # Guard CF metadata consistency
+    LOAD_CONFIG_GUARD_CF_INCONSISTENT = "load_config_guard_cf_inconsistent"
+
+    # Security cookie issues
+    LOAD_CONFIG_COOKIE_INVALID = "load_config_cookie_invalid"
+    LOAD_CONFIG_COOKIE_IN_OVERLAY = "load_config_cookie_in_overlay"
+
+    # SEH table issues
+    LOAD_CONFIG_SEH_INVALID = "load_config_seh_invalid"
 
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"

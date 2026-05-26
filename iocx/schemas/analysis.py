@@ -32,6 +32,27 @@ class ExtendedDetection(TypedDict):
     category: str
     metadata: Dict[str, Any]
 
+class LoadConfigInfo(TypedDict, total=False):
+    # Number of bytes successfully parsed from the structure
+    parsed_size: int
+
+    # Security cookie
+    security_cookie_rva: int | None
+
+    # SEH table
+    seh_table_rva: int | None
+    seh_count: int | None
+
+    # Guard CF metadata
+    guard_cf_check_function_pointer: int | None
+    guard_cf_dispatch_function_pointer: int | None
+    guard_cf_function_table: int | None
+    guard_cf_function_count: int | None
+
+    # Optional fields (ignored by validator but preserved for completeness)
+    time_date_stamp: int | None
+    guard_flags: int | None
+
 class AnalysisDict(TypedDict):
     sections: List[SectionInfo]
     data_directories: List[DataDirectoryInfo]
@@ -39,3 +60,4 @@ class AnalysisDict(TypedDict):
     obfuscation: List[ObfuscationHint]
     file_size: int
     overlay_offset: int
+    load_config: LoadConfigInfo | None

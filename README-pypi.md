@@ -1,8 +1,10 @@
 # **IOCX — Deterministic, Zero‑Risk IOC Extraction for Modern Security Pipelines**
 ### Official IOCX Project
 
-**IOCX** is a high‑performance, deterministic static analysis engine for extracting Indicators of Compromise (IOCs) from binaries and text.
-It exists for one reason: **to provide a fast, safe, predictable IOC extractor that DFIR teams and automation pipelines can trust.**
+**IOCX** is a deterministic, high‑performance static analysis engine for extracting high-signal Indicators of Compromise (IOCs) from binaries, text, and logs.
+It’s built for DFIR teams, SOC automation, CI/CD pipelines, and large‑scale threat‑intel ingestion.
+
+**Why it matters:** IOCX guarantees snapshot‑stable output, zero‑risk static analysis, and predictable performance even under adversarial input — something regex‑only extractors simply can’t provide.
 
 - **PyPI:** [https://pypi.org/project/iocx/](https://pypi.org/project/iocx/)
 - **GitHub:** [https://github.com/iocx-dev/iocx](https://github.com/iocx-dev/iocx)
@@ -38,15 +40,14 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ---
 
-## Version highlights (v0.7.3)
+## Version highlights (v0.7.4)
 
-- Major hardening of all PE structural validators
-- Deterministic, snapshot‑stable output across malformed binaries
-- Stronger section, entrypoint, RVA‑graph, TLS, and signature checks
-- Corrected RVA→file‑offset mapping for overlay detection
-- Improved entropy analysis with clearer, conservative signals
-- Cleaner, consistent `ReasonCodes` across the engine
-- Expanded structural + heuristic test coverage
+- Full **Load Config Directory** parsing and validation
+- Extended Optional Header metadata for downstream heuristics
+- Structural anomaly heuristics (GuardCF, unmapped cookie, SEH issues)
+- Faster, more resilient PE Analysis
+- Raw IOC extraction remains world-class
+- Zero regressions across all workloads
 
 ---
 

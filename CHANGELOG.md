@@ -1,3 +1,162 @@
+# **v0.7.4 — Advanced Directory Parsing & Metadata Expansion**
+
+IOCX v0.7.4 significantly expands static PE coverage with advanced directory parsing, extended metadata extraction, and deterministic structural validation. This release improves correctness across modern compiler outputs while preserving IOCX’s static‑only, zero execution design.
+
+---
+
+## **Added**
+
+### **New RVA‑Graph Invariants**
+- **DATA_DIRECTORY_ZERO_SIZE_NONZERO_RVA**
+  Detects directories that simultaneously signal presence (non‑zero RVA) and absence (zero size).
+  Implemented with primary‑error semantics to suppress downstream mapping noise.
+
+- **DATA_DIRECTORY_RAW_MISMATCH**
+  Flags directories whose RVA maps into a section’s virtual range but whose computed raw offset lies outside the section’s raw data.
+  Includes a dedicated reason code and validator‑level consistency check.
+
+- **Raw‑mapping safety guard**
+  Prevents invalid raw‑offset calculations when sections contain no raw data.
+
+### **New Adversarial Fixtures for Directory Invariants**
+- `directory_zero_size_nonzero_rva.full.exe`
+- `directory_raw_mismatch.full.exe`
+
+### **Full Load Config Directory Parsing**
+- GuardCF metadata
+- Security cookie
+- SEH table
+- Compiler‑specific layout hints
+- Deterministic error handling for malformed structures
+
+### **Load Config Adversarial Fixtures**
+- `load_config_cookie_too_small.full.exe`
+- `load_config_malformed_size_too_small.full.exe`
+- `load_config_malformed_truncated.full.exe`
+- `load_config_malformed_cookie_in_overlay.full.exe`
+- `load_config_malformed_cookie_invalid.full.exe`
+- `load_config_malformed_guard_cf_inconsistent.full.exe`
+- `load_config_malformed_seh_invalid.full.exe`
+- `load_config_malformed_size_exceeds_section.full.exe`
+
+---
+
+## **99 Adversarial PE Fixtures for Structural & Parser‑Behaviour Testing**
+
+### **Entrypoint Fixtures (000–009)**
+Covers malformed `AddressOfEntryPoint` conditions:
+- Zero/negative EP
+- EP inside headers
+- EP outside `SizeOfImage`
+- EP unmapped to any section
+- EP in non‑executable section
+- EP spanning boundaries
+- EP in overlay
+
+**Outcome:** Entrypoint validator stable and deterministic across all malformed cases.
+
+---
+
+### **Section Table Fixtures (010–021)**
+Covers structural correctness of section headers and RVA/raw mappings:
+- Out‑of‑bounds RVA
+- Out‑of‑bounds raw offset
+- Overlapping sections
+- Unsorted sections
+- `VirtualSize < RawSize`
+- Misaligned boundaries
+- Section extends past `SizeOfImage`
+- Section mapped inside headers
+
+**Outcome:** All anomalies correctly identified; no false positives on valid baselines.
+
+---
+
+### **Optional Header Fixtures (022–033)**
+Covers correctness of Optional Header fields:
+- Invalid `SizeOfImage` / `SizeOfHeaders`
+- Invalid `FileAlignment` / `SectionAlignment`
+- Magic mismatch (PE32 vs PE32+)
+- Invalid subsystem / version fields
+- ImageBase misalignment
+- `NumberOfRvaAndSizes` too small
+
+**Outcome:** Optional‑header validator behaves consistently; malformed fields reliably detected.
+
+---
+
+### **Data Directory Fixtures (034–045)**
+Covers adversarial manipulations of the Data Directory Table:
+- Negative RVA / size
+- Zero/zero directory (valid)
+- Zero RVA with non‑zero size
+- Zero size with non‑zero RVA
+- Directory inside headers
+- Directory out of `SizeOfImage`
+- Directory in overlay
+- Unmapped directory
+- Directory spanning sections
+- Overlapping directories
+
+**Outcome:**
+All malformed cases correctly trigger the **primary structural anomaly**
+`optional_header_invalid_number_of_rva_and_sizes`.
+Fixture 036 (zero/zero) produces no anomalies, confirming non‑aggressive behaviour.
+
+---
+
+### **Overall Result for Fixtures 000–045**
+- **All 46 fixtures validated**
+- **No crashes or inconsistent behaviour**
+- **All anomalies match intended design**
+- Entrypoint, section, optional‑header, and directory validators confirmed stable
+
+---
+
+## **Comprehensive Layer‑2 Load Config Fixtures**
+
+A full suite of Load Config edge‑case binaries validating compiler differences, malformed structures, and ambiguous layouts:
+
+- **Minimal MinGW Load Config** (undersized structure detection)
+- **Cookie‑Only (Valid)** (minimum‑size compliance, RVA mapping, section writability)
+- **Cookie‑Only (Too Small)** (strict minimum‑size enforcement)
+- **Full MSVC Load Config** (SEH, GuardCF, cookie, full‑path validation)
+- **Full Clang/LLVM Load Config** (GuardCF without SEH)
+- **Large Padded Load Config** (oversized, schema‑unknown layouts)
+- **SEH‑Only Load Config** (partial‑structure handling)
+
+**Outcome:**
+Validates RVA/VA correctness, section‑mapping rules, minimum‑size enforcement, GuardCF consistency, SEH bounds checking, and compiler‑specific structural differences.
+
+---
+
+## **Changed**
+
+- Load Config validator surfaced new anomalies in contract tests:
+  - Crypto Entropy Payload
+  - Franken URL Domain IP
+  - Malformed Domain / IP / URL
+  - String Obfuscation Tricks
+  - Invalid Optional Header (PE32 / PE32+)
+
+- Internal schema now includes:
+  - `number_of_rva_and_sizes`
+  - `data_directories_raw`
+  Supporting adversarial optional‑header edge cases.
+
+- Optional‑header validator:
+  - Now checks declared vs raw directory counts
+  - FixtureSpec and emitter updated to support adversarial `NumberOfRvaAndSizes` mismatches
+  - Raw vs declared count logic now fully enforced
+
+---
+
+## **Documentation**
+- Updated RVA / Directory Anomalies table with new reason codes and behavioural notes
+- Added **Design Decision: Why Only the Optional‑Header Validator Uses Raw Data Directories**
+
+---
+
 # v0.7.3 — Structural Correctness & Deterministic Heuristics
 **Released: 2026‑05‑11**
 

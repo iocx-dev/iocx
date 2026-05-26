@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/iocx/"><img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white"></a>
-  <img src="https://img.shields.io/badge/tests-851_passed-brightgreen">
+  <img src="https://img.shields.io/badge/tests-947_passed-brightgreen">
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen">
   <img src="https://img.shields.io/badge/python-3.12-blue">
   <a href="https://github.com/iocx-dev/iocx/actions"><img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build"></a>
@@ -166,31 +166,31 @@ Predictable even under worst‑case adversarial load.
 **150–300 MB/s** sustained throughput
 Fast path — no PE parsing.
 
-| Detector | 1 MB Time | Throughput |
-|----------|-----------|------------|
-| Crypto | 0.0037 s | ~270 MB/s |
-| Filepaths | 0.0040 s | ~250 MB/s |
-| IP | 0.0064 s | ~156 MB/s |
-| Domains | 0.0033 s | ~300 MB/s |
+| Detector  | 1 MB Time | Throughput |
+|-----------|-----------|------------|
+| Crypto    | 0.0037 s  | ~270 MB/s  |
+| Filepaths | 0.0041 s  | ~250 MB/s  |
+| IP        | 0.0065 s  | ~156 MB/s  |
+| Domains   | 0.0035 s  | ~300 MB/s  |
 
 ---
 
 ### **2. Typical PE Files (~39 KB)**
-- **0.0132 s** (typical)
-- **0.0153 s** (with heuristics)
+- **0.0122 s** (typical)
+- **0.0145 s** (with heuristics)
 - **6–15 MB/s** throughput
 
 ---
 
 ### **3. Adversarial Dense PE (1.5 MB)**
-- **0.1977 s**
+- **0.192 s**
 - **~7.6 MB/s** throughput
 - Triggers TLS anomalies, structural anomalies, anti‑debug patterns
 
 ---
 
 ### **4. Full Engine (Non‑PE)**
-- **1 MB:** 0.0411 s
+- **1 MB:** 0.038 s
 
 ---
 
@@ -199,6 +199,13 @@ Fast path — no PE parsing.
 <details>
 <summary><strong>Show Version History</strong></summary>
 <br>
+
+### **v0.7.4 — Advanced Directory Parsing**
+- Full **Load Config Directory** parsing and validation
+- Extended Optional Header metadata for downstream heuristics
+- New GuardCF, cookie, anomaly heuristics
+- Faster PE Analysis
+- 99 PE fixtures in test suite; 45 fully spec-validated
 
 ### **v0.7.3 — Structural Correctness & Deterministic Heuristics**
 - Major hardening of all PE structural validators

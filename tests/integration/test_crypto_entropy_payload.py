@@ -47,14 +47,30 @@ def test_crypto_entropy_payload_sections(crypto_payload_result):
 @pytest.mark.integration
 def test_crypto_entropy_payload_heuristics(crypto_payload_result):
     result = crypto_payload_result
-    heur = {h["metadata"]["function"] for h in result["analysis"]["heuristics"]}
+    heuristics = result["analysis"]["heuristics"]
 
-    # These are expected MSVC CRT imports
-    assert "QueryPerformanceCounter" in heur
-    assert "IsDebuggerPresent" in heur
+    # Extract only API-based heuristics (those that have a "function" field)
+    api_funcs = {
+        h["metadata"]["function"]
+        for h in heuristics
+        if "function" in h["metadata"]
+    }
 
-    # No other heuristics should fire
-    assert heur <= {"QueryPerformanceCounter", "IsDebuggerPresent"}
+    # Expected MSVC CRT imports
+    assert api_funcs == {"QueryPerformanceCounter", "IsDebuggerPresent"}
+
+    # Extract structural anomaly reasons
+    structural_reasons = {
+        h["metadata"]["reason"]
+        for h in heuristics
+        if h["value"] == "pe_structure_anomaly"
+    }
+
+    # These anomalies are expected for this test binary
+    assert structural_reasons == {
+        "load_config_guard_cf_inconsistent",
+        "unmapped",
+    }
 
 
 @pytest.mark.integration

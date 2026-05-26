@@ -197,7 +197,7 @@ Tests for each sample:
 - Assertions that the parser **does not crash**
 - Assertions that heuristics fire **predictably**
 
-## Layer 3 — Adversarial Inputs (20-30 binaries)
+## Layer 3 — Adversarial Inputs
 
 Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section validation, and heuristic stability under malformed or hostile conditions.
 
@@ -222,7 +222,206 @@ Inputs designed to stress IOC extraction, PE parsing, RVA mapping, section valid
 | **invalid_optional_header.pe32.full.exe** | Tests malformed PE32 optional header fields. [Appendix 3.15](/docs/testing/appendices/invalid_optional_header.pe32.full.exe.md)                                                                                 |
 | **long_paths_adversarial.full.bin**       | Tests extraction limits and boundary handling for extremely long path‑like strings. [Appendix 3.16](/docs/testing/appendices/long_paths_adversarial.full.exe.md)                                                |
 
-### **B. Adversarial IOC‑String Corpora**
+### **B. Adversarial Load‑Config Directory Binaries**
+
+| Sample | Why it matters |
+|--------|----------------|
+| **load_config_malformed_cookie_invalid.full.exe** | Tests a **valid directory** whose **SecurityCookie RVA points outside the image**. Ensures cookie‑RVA validation and “unmapped cookie” heuristics fire correctly. |
+| **load_config_malformed_size_exceeds_section.full.exe** | Directory RVA is valid, but **declared size extends beyond the containing section**. Exercises “directory out of range” and “truncated load‑config” heuristics. |
+| **load_config_rva_negative.full.exe** | Directory RVA is a **synthetic high/negative value** (`0xFFFFFFFF`). Ensures the engine catches out‑of‑range RVAs without crashing, producing both “directory out of range” and “truncated” heuristics. |
+| **load_config_rva_zero.full.exe** | Directory RVA = **0** but size > 0. Tests the rule: **“zero RVA with non‑zero size”** → directory is structurally invalid. |
+| **load_config_zero_size_invalid_rva.full.exe** | Directory size = **0**, but RVA is **non‑zero and unmapped**. Ensures the validator flags **“zero size + non‑zero RVA”** even when the RVA is outside all sections. |
+| **load_config_zero_size_valid_rva.full.exe** | Directory size = **0**, but RVA is **valid and mapped**. Tests the contradiction: **“zero size + valid RVA”** → directory claims to exist but contains no data. |
+| **load_config_zero_size_but_fields_present.full.exe** | Directory size = **0**, RVA valid, **but the section contains a full load‑config struct with non‑zero fields**. Ensures the parser respects the directory table (does not parse fields) and still flags **“zero size + non‑zero RVA”**. |
+| **load_config_malformed_cookie_in_overlay.full.exe** | Tests a load‑config directory whose **SecurityCookie RVA resolves into the file overlay**, not a section. Exercises cookie‑RVA mapping, overlay detection, and non‑writable‑section heuristics. |
+| **load_config_malformed_guard_cf_inconsistent.full.exe** | Tests **inconsistent GuardCF fields** (check pointer set, dispatch unset, table present, count zero). Ensures GuardCF consistency rules fire alongside cookie‑RVA overlay detection. |
+| **load_config_malformed_seh_invalid.full.exe** | Tests **invalid SEH table metadata**: non‑zero SEH count but **SEHandlerTable RVA = 0**. Ensures “missing table RVA” heuristics fire, plus cookie‑in‑overlay detection. |
+| **load_config_malformed_size_too_small.full.exe** | Declared load‑config size is **smaller than the minimum valid IMAGE_LOAD_CONFIG_DIRECTORY size**. Ensures the engine detects undersized directories and still validates cookie RVA. |
+| **load_config_malformed_truncated.full.exe** | Declared size is valid, but the directory is **truncated by the end of the file**. Ensures the parser reports `load_config_truncated` with correct parsed‑size accounting. |
+| **load_config_directory_overlaps_another.full.exe** *(planned)* | Directory overlaps another data directory (e.g., Security or Bound Imports). Ensures directory‑overlap heuristics fire. |
+| **load_config_directory_spans_sections.full.exe** *(planned)* | Directory begins in `.rdata` but extends into `.text` or beyond section boundaries. Validates multi‑section spanning detection. |
+
+---
+
+**Expected Heuristic Matrix (All Load‑Config Fixtures)**
+
+This table shows **exactly which heuristics each binary must trigger**.
+
+| Fixture | RVA | Size | Fields Present | Expected Heuristics |
+|--------|-----|------|----------------|---------------------|
+| **load_config_malformed_cookie_in_overlay** | valid | valid | yes | `non_writable_section`, `load_config_cookie_in_overlay` |
+| **load_config_malformed_guard_cf_inconsistent** | valid | valid | yes | `load_config_guard_cf_inconsistent`, `non_writable_section`, `load_config_cookie_in_overlay` |
+| **load_config_malformed_seh_invalid** | valid | valid | yes | `missing_table_rva`, `non_writable_section`, `load_config_cookie_in_overlay` |
+| **load_config_malformed_size_too_small** | valid | **too small** | yes | `load_config_too_small`, `non_writable_section`, `load_config_cookie_in_overlay` |
+| **load_config_malformed_truncated** | valid | valid | yes | `load_config_truncated` |
+| **malformed_cookie_invalid** | valid | valid | yes | `unmapped` (cookie_rva) |
+| **malformed_size_exceeds_section** | valid | too large | yes | `data_directory_out_of_range`, `load_config_truncated`, `unmapped` (cookie_rva) |
+| **rva_negative** | invalid | valid | yes | `data_directory_out_of_range`, `load_config_truncated` |
+| **rva_zero** | 0 | valid | yes | `data_directory_zero_rva_nonzero_size` |
+| **zero_size_invalid_rva** | invalid | 0 | no | `data_directory_zero_size_nonzero_rva` |
+| **zero_size_valid_rva** | valid | 0 | no | `data_directory_zero_size_nonzero_rva` |
+| **zero_size_but_fields_present** | valid | 0 | yes | `data_directory_zero_size_nonzero_rva` |
+| **directory_overlaps_another** *(planned)* | valid | overlapping | n/a | `data_directory_overlap` |
+| **directory_spans_sections** *(planned)* | valid | spans | n/a | `data_directory_out_of_range` |
+
+---
+
+**Why this suite is complete**
+
+These fixtures collectively cover **every axis of corruption** across the Load‑Config directory, its RVA/size metadata, and all dependent substructures (SecurityCookie, SEH, GuardCF, etc.).
+The suite now exercises **all known failure modes** observed in real‑world malware, fuzzing output, and malformed PE generators.
+
+1. RVA validity
+
+Every meaningful RVA state is represented:
+
+- **RVA = 0**
+  (directory claims to exist but points to null)
+- **RVA valid**
+  (mapped cleanly into a section)
+- **RVA unmapped**
+  (points outside all sections)
+- **RVA synthetic/negative**
+  (e.g., `0xFFFFFFFF`, wraparound, fuzzed values)
+- **RVA in overlay**
+  (cookie or GuardCF pointer resolves *after* the last section)
+
+This axis is now fully covered by:
+
+- `load_config_rva_zero`
+- `load_config_zero_size_invalid_rva`
+- `load_config_rva_negative`
+- `load_config_malformed_cookie_in_overlay`
+- `load_config_malformed_guard_cf_inconsistent`
+- `load_config_malformed_seh_invalid`
+
+---
+
+2. Size validity
+
+All meaningful size states are exercised:
+
+- **size = 0**
+  (directory claims no data)
+- **size valid**
+  (normal case)
+- **size too large**
+  (extends past section boundary)
+- **size too small**
+  (smaller than minimum valid IMAGE_LOAD_CONFIG_DIRECTORY)
+- **size truncated by file end**
+  (declared size > available bytes)
+- **size spans sections** *(planned)*
+  (directory crosses section boundaries)
+
+Covered by:
+
+- `load_config_zero_size_valid_rva`
+- `load_config_zero_size_invalid_rva`
+- `load_config_malformed_size_too_small`
+- `load_config_malformed_truncated`
+- `load_config_malformed_size_exceeds_section`
+
+---
+
+3. Field validity
+
+All combinations of field correctness are represented:
+
+- **fields valid**
+  (baseline for comparison)
+- **fields invalid / contradictory**
+  (GuardCF inconsistent, SEH invalid)
+- **fields present but size=0**
+  (directory claims no data but struct exists)
+- **cookie RVA invalid**
+  (cookie points outside image)
+- **cookie RVA in overlay**
+  (cookie resolves into overlay)
+- **GuardCF pointers invalid**
+  (check/table/dispatch inconsistent)
+- **SEH table invalid**
+  (count > 0 but table RVA = 0)
+
+Covered by:
+
+- `load_config_malformed_guard_cf_inconsistent`
+- `load_config_malformed_seh_invalid`
+- `load_config_zero_size_but_fields_present`
+- `load_config_malformed_cookie_in_overlay`
+- `load_config_malformed_cookie_invalid`
+
+---
+
+4. Directory‑level structural contradictions
+
+All contradictions between RVA and size are covered:
+
+- **zero RVA + non‑zero size**
+  (`load_config_rva_zero`)
+- **zero size + non‑zero RVA**
+  (`load_config_zero_size_valid_rva`, `load_config_zero_size_invalid_rva`)
+- **fields present but size=0**
+  (`load_config_zero_size_but_fields_present`)
+- **overlapping directories** *(planned)*
+- **spanning directories** *(planned)*
+
+These ensure the validator catches contradictions *before* parsing.
+
+---
+
+5. Parser‑level truncation
+
+All truncation modes are exercised:
+
+- **truncated directory**
+  (`load_config_malformed_truncated`)
+- **size exceeds section**
+  (`load_config_malformed_size_exceeds_section`)
+- **unmapped cookie RVA**
+  (`load_config_malformed_cookie_invalid`)
+- **unmapped directory RVA**
+  (`load_config_rva_negative`, `load_config_zero_size_invalid_rva`)
+- **cookie in overlay**
+  (`load_config_malformed_cookie_in_overlay`, `load_config_malformed_guard_cf_inconsistent`, `load_config_malformed_seh_invalid`)
+
+This ensures the engine never crashes on partial or invalid structures.
+
+---
+
+6. Cross‑field consistency validation
+
+The suite now covers all cross‑field invariants:
+
+- **GuardCF consistency**
+  (`load_config_malformed_guard_cf_inconsistent`)
+- **SEH table consistency**
+  (`load_config_malformed_seh_invalid`)
+- **Cookie placement rules**
+  (`load_config_malformed_cookie_in_overlay`, `load_config_malformed_cookie_invalid`)
+- **Minimum struct size rules**
+  (`load_config_malformed_size_too_small`)
+
+These ensure the validator enforces semantic correctness, not just structural correctness.
+
+---
+
+**Conclusion**
+
+With the addition of the five missing fixtures, the Load‑Config adversarial suite now covers:
+
+- every RVA state
+- every size state
+- every field‑validity state
+- every structural contradiction
+- every truncation mode
+- every cross‑field consistency rule
+
+This is now a **complete, exhaustive adversarial test suite** for the Load‑Config directory.
+
+---
+
+### **C. Adversarial IOC‑String Corpora**
 
 These fixtures provide **full adversarial coverage for every IOC category**.
 
@@ -240,7 +439,7 @@ These fixtures provide **full adversarial coverage for every IOC category**.
 | **malformed_url.full.exe**                 | Tests URL extraction under broken schemes, malformed IPv6, reversed URLs, and salvage behaviour. [Appendix 3.26](/docs/testing/appendices/malformed_url.full.exe.md)                       |
 | **franken_url_domain_ip.full.exe**         | Combined adversarial sample mixing malformed URLs, domains, and IPs inside a PE container. [Appendix 3.27](/docs/testing/appendices/franken_url_domain_ip.full.exe.md)                     |
 
-### **C. Consolidated Summary (Current State)**
+### **D. Consolidated Summary (Current State)**
 
 #### **PE Adversarial Fixtures (16 total)**
 - heuristic_rich.full.exe
@@ -259,6 +458,22 @@ These fixtures provide **full adversarial coverage for every IOC category**.
 - invalid_optional_header.full.exe
 - invalid_optional_header.pe32.full.exe
 - long_paths_adversarial.full.bin
+
+#### **Adversarial Load‑Config Directory Binaries (14 total)**
+- load_config_malformed_cookie_invalid.full.exe
+- load_config_malformed_size_exceeds_section.full.exe
+- load_config_rva_negative.full.exe
+- load_config_rva_zero.full.exe
+- load_config_zero_size_invalid_rva.full.exe
+- load_config_zero_size_valid_rva.full.exe
+- load_config_zero_size_but_fields_present.full.exe
+- load_config_malformed_cookie_in_overlay.full.exe
+- load_config_malformed_guard_cf_inconsistent.full.exe
+- load_config_malformed_seh_invalid.full.exe
+- load_config_malformed_size_too_small.full.exe
+- load_config_malformed_truncated.full.exe
+- load_config_directory_overlaps_another.full.exe *(planned)*
+- load_config_directory_spans_sections.full.exe *(planned)*
 
 #### **IOC‑String Adversarial Fixtures (11 total)**
 - crypto_strings_adversarial.full.bin

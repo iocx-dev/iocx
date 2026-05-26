@@ -226,3 +226,99 @@ IOCX is designed to be:
 - **Fast on malformed inputs**
 
 Performance is a **core contract**, not an optimisation.
+
+---
+
+# **IOCX Performance Delta (v0.7.1 → Current Release)**
+
+This table shows how performance has changed since **v0.7.1**, across all major workloads: raw IOC extraction, PE analysis, adversarial samples, and full‑engine processing.
+
+### **Legend**
+- **↑ Faster** (improvement)
+- **→ Same** (no meaningful change)
+- **↓ Slower** (regression)
+
+---
+
+## **1. Raw IOC Extraction (Text / Logs / Buffers)**
+
+Throughput remains extremely high (150–300 MB/s). Variations are within noise.
+
+| Detector        | v0.7.1   | v0.7.4   | Delta         | Verdict      |
+|-----------------|----------|----------|---------------|--------------|
+| Crypto (1MB)    | 0.0037 s | 0.0037 s | 0             | → Same       |
+| Domains (1MB)   | 0.0033 s | 0.0035 s | +0.0002 s     | → Same       |
+| Filepaths (1MB) | 0.0040 s | 0.0041 s | +0.0001 s     | → Same       |
+| IP (1MB)        | 0.0064 s | 0.0065 s | +0.0001 s     | → Same       |
+
+**Summary:** Raw IOC extraction remains at peak speed with no regressions.
+
+---
+
+## **2. Typical PE Files (~39 KB)**
+
+| Case                    | v0.7.1   | v0.7.4       | Delta         | Verdict      |
+|-------------------------|----------|--------------|---------------|--------------|
+| Typical PE              | 0.0132 s | **0.0122 s** | **–0.0010 s** | **↑ Faster** |
+| Typical PE + heuristics | 0.0153 s | **0.0145 s** | **–0.0008 s** | **↑ Faster** |
+
+**Summary:** Clear improvements despite additional validators and structural checks.
+
+---
+
+## **3. Dense / Adversarial PE (1.5 MB)**
+
+| Case     | v0.7.1   | v0.7.4       | Delta         | Verdict      |
+|----------|----------|--------------|---------------|--------------|
+| Dense PE | 0.1977 s | **0.1921 s** | **–0.0056 s** | **↑ Faster** |
+
+**Summary:** Dense PE analysis continues to get faster — a ~3% improvement.
+
+
+---
+
+## **4. Franken PE**
+
+| Case       | v0.7.1   | v0.7.4       | Delta         | Verdict      |
+|------------|----------|--------------|---------------|--------------|
+| Franken PE | 0.0020 s | **0.0014 s** | **–0.0006 s** | **↑ Faster** |
+
+**Summary:** A substantial improvement (~30%). Franken PEs are now effectively “free.”
+
+---
+
+## **5. Full Engine (Non‑PE)**
+
+| Case       | v0.7.1   | v0.7.4       | Delta         | Verdict      |
+|------------|----------|--------------|---------------|--------------|
+| 1MB buffer | 0.0411 s | **0.0387 s** | **–0.0024 s** | **↑ Faster** |
+
+**Summary:** End‑to‑end throughput improved by ~6%.
+
+---
+
+## **6. Pathological / Adversarial Inputs**
+
+| Case              | v0.7.1   | v0.7.4   | Delta   | Verdict |
+|-------------------|----------|----------|---------|---------|
+| ETH‑like blob     | 0.0012 s | 0.0012 s | 0       | → Same  |
+| Punycode blob     | 0.0126 s | 0.0125 s | –0.0001 | → Same  |
+| Deep UNIX path    | 0.0246 s | 0.0250 s | +0.0004 | → Same  |
+| IPv6 pathological | 0.0004 s | 0.0004 s | 0       | → Same  |
+
+**Summary:** Identical performance — validators do not impact non‑PE workloads.
+
+---
+
+# **Overall Summary**
+
+- **Zero regressions across all workloads**
+- **PE analysis is consistently faster**
+- **Dense and Franken PEs show the largest gains**
+- **Full‑engine throughput improved**
+- **Raw IOC extraction remains at peak speed**
+- **Adversarial inputs remain unaffected by new validators**
+
+IOCX continues to get **faster**, even as the engine becomes more robust, more defensive, and more standards‑compliant.
+
+---
