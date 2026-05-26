@@ -42,12 +42,12 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ## Version highlights (v0.7.4)
 
-- Full **Load Config Directory** validation
-- Optional Header metadata extraction for downstream heuristics
+- Full **Load Config Directory** parsing and validation
+- Extended Optional Header metadata for downstream heuristics
 - Structural anomaly heuristics (GuardCF, unmapped cookie, SEH issues)
-- Faster PE Analysis
-- Raw IOC extraction still world-class
-- Zero regressions
+- Faster, more resilient PE Analysis
+- Raw IOC extraction remains world-class
+- Zero regressions across all workloads
 
 ---
 
