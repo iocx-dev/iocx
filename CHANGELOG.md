@@ -1,3 +1,23 @@
+# **v0.7.4.1 — Windows‑Compatible PE Detection Hotfix**
+
+IOCX v0.7.4.1 removes the `python-magic` dependency, improves PE detection accuracy, and reduces IOCX’s attack surface.
+
+## **Added**
+
+- Pure‑Python file‑type detection for full cross‑platform portability
+- Strict Windows‑compatible PE validation:
+  - Require valid `e_lfanew` and `PE\0\0` signature
+  - Reject MZ‑only, truncated, or malformed binaries as **UNKNOWN**
+  - Prevent fallback to **TEXT** for invalid MZ files
+
+---
+
+## **Changed**
+
+- Removed `python-magic` dependency; file detection is now implemented entirely in Python
+
+---
+
 # **v0.7.4 — Advanced Directory Parsing & Metadata Expansion**
 
 IOCX v0.7.4 significantly expands static PE coverage with advanced directory parsing, extended metadata extraction, and deterministic structural validation. This release improves correctness across modern compiler outputs while preserving IOCX’s static‑only, zero execution design.
