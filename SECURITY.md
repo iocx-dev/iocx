@@ -33,7 +33,6 @@ To reduce supply‑chain risk and minimise the attack surface, IOCX intentionall
 Current runtime dependencies:
 
 - **pefile** — PE parsing and structural inspection
-- **python‑magic** — file‑type detection via signature analysis
 - **idna** — punycode decoding and Unicode domain normalisation
 
 No additional libraries are required for core functionality. IOCX performs:

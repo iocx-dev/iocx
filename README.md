@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/iocx/"><img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white"></a>
-  <img src="https://img.shields.io/badge/tests-947_passed-brightgreen">
+  <img src="https://img.shields.io/badge/tests-945_passed-brightgreen">
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen">
   <img src="https://img.shields.io/badge/python-3.12-blue">
   <a href="https://github.com/iocx-dev/iocx/actions"><img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build"></a>
@@ -200,12 +200,23 @@ Fast path — no PE parsing.
 <summary><strong>Show Version History</strong></summary>
 <br>
 
+### **v0.7.4.1 — Windows Compatibility Hotfix**
+- Removed the `python-magic` dependency, which caused import failures on Windows systems
+- Added a pure‑Python file‑type detector for full cross‑platform portability
+- Improve PE detection logic by enforcing strict Windows-compatible PE validation.
+- No behavioural changes to IOC extraction
+- The `--min-length` consistency fix is planned for **v0.7.5**
+
+---
+
 ### **v0.7.4 — Advanced Directory Parsing**
 - Full **Load Config Directory** parsing and validation
 - Extended Optional Header metadata for downstream heuristics
 - New GuardCF, cookie, anomaly heuristics
 - Faster PE Analysis
 - 99 PE fixtures in test suite; 45 fully spec-validated
+
+---
 
 ### **v0.7.3 — Structural Correctness & Deterministic Heuristics**
 - Major hardening of all PE structural validators
