@@ -40,6 +40,13 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ---
 
+## Version highlights (v0.7.4.1)
+
+- Removed the `python-magic` dependency, which caused import failures on Windows systems
+- Added a pure‑Python file‑type detector for full cross‑platform portability
+- No behavioural changes to IOC extraction
+- The `--min-length` consistency fix is planned for **v0.7.5**
+
 ## Version highlights (v0.7.4)
 
 - Full **Load Config Directory** parsing and validation

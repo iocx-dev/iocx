@@ -1,6 +1,6 @@
 [project]
 name = "iocx"
-version = "0.7.4"
+version = "0.7.4.1"
 description = "A deterministic, high‑performance static‑analysis engine that extracts high‑signal IOCs from PE binaries, text, and logs — built for SOC automation and modern threat‑analysis pipelines."
 authors = [
     { name = "MalX Labs" }
@@ -34,7 +34,6 @@ classifiers = [
 
 dependencies = [
     "pefile>=2024.8.26",
-    "python-magic>=0.4.27",
     "idna>=3.6",
 ]
 

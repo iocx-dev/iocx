@@ -120,23 +120,23 @@ flowchart TD
 
 | STRIDE | Threat                 | Description                                        | Mitigation                                   |
 |--------|------------------------|----------------------------------------------------|----------------------------------------------|
-| **S**  | Spoofing               | Fake file types                                    | Signature‑based detection via python‑magic   |
+| **S**  | Spoofing               | Fake file types                                    | Signature‑based detection                    |
 | **T**  | Tampering              | Malformed binaries crafted to break parsers        | Defensive parsing; try/except wrappers       |
 | **R**  | Repudiation            | Attacker denies supplying malicious file           | Out of scope; IOCX does not track provenance |
 | **I**  | Information Disclosure | Sensitive data inside files                        | IOCX does not transmit or store data         |
 | **D**  | Denial of Service      | Zip bombs, oversized binaries, pathological inputs | Bounded parsing; timeouts                    |
 | **E**  | Elevation of Privilege | Malicious file triggers code execution             | No execution, no deserialization, no eval    |
 
-### 3. File Type Detection (python‑magic)
+### 3. File Type Detection (pure python)
 
 | STRIDE | Threat                 | Description                            | Mitigation                            |
 |--------|------------------------|----------------------------------------|---------------------------------------|
-| **S**  | Spoofing               | File claims incorrect MIME type        | Signature‑based detection             |
+| **S**  | Spoofing               | File claims incorrect file format      | Signature‑based detection             |
 | **T**  | Tampering              | Malformed headers crash detection      | Exception handling; safe fallback     |
 | **R**  | Repudiation            | Incorrect type classification          | Non‑security‑critical; local‑only     |
 | **I**  | Information Disclosure | Revealing internal detection logic     | No sensitive data; local‑only         |
 | **D**  | Denial of Service      | Crafted files cause excessive scanning | Bounded reads; timeouts               |
-| **E**  | Elevation of Privilege | Exploiting python‑magic                | Minimal dependency; audited regularly |
+| **E**  | Elevation of Privilege | Exploiting native libraries            | Minimal dependency; audited regularly |
 
 ### 4. PE Parser (pefile)
 
