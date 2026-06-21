@@ -120,6 +120,8 @@ Predictable even under worst‑case adversarial load.
 
 ---
 
+These commitments are derived from a published research methodology for PE structural analysis — deterministic fixture construction, single-anomaly discipline, and Windows loader behaviour as the correctness oracle. See docs/methodology.md for the full methodology, and [paax.dev](https://paax.dev) for the broader adversarial-PE taxonomy and commercial fixture suite.
+
 # What Makes IOCX Different
 
 | Capability | **IOCX** | Typical IOC Extractors | Sandbox / Dynamic Tools |
