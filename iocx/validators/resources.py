@@ -29,8 +29,8 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
 
     rsrc_va = rsrc_section["virtual_address"]
     rsrc_vs = rsrc_section["virtual_size"]
-    rsrc_raw = rsrc_section["raw_address"]
-    rsrc_raw_size = rsrc_section["raw_size"]
+    rsrc_raw = rsrc_section["raw_address"] # reserved
+    rsrc_raw_size = rsrc_section["raw_size"] # reserved
 
     def rva_in_rsrc(rva: int, size: int = 0) -> bool:
         return rsrc_va <= rva and (rva + size) <= (rsrc_va + rsrc_vs)
@@ -62,6 +62,8 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
 
         entries = dir_node["entries"]
 
+        # Reserved: only reachable if size is sourced from the on-disk
+        # IMAGE_RESOURCE_DIRECTORY header rather than derived  from len(entries)
         # Zero-length directory
         if size == 0:
             issues.append(StructuralIssue(
@@ -118,7 +120,7 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
                 ))
                 continue
 
-            # Raw bounds
+            # Raw bounds (data_raw == -1 sentinel from a guarded RVA→offset
             if data_raw < 0 or data_raw + data_size > file_size:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS,
