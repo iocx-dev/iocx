@@ -11,6 +11,7 @@ from .optional_header import validate_optional_header
 from .tls import validate_tls
 from .signature import validate_signature
 from .resources import validate_resources
+from .version_info import validate_version_info
 from .entropy import validate_entropy
 
 STRUCTURAL_VALIDATORS = {
@@ -30,6 +31,8 @@ STRUCTURAL_VALIDATORS = {
     "signature": validate_signature,
     # Resource directory correctness
     "resources": validate_resources,
+    # Version-info (RT_VERSION leaf within the resource tree)
+    "version_info": validate_version_info,
     # Entropy metrics (high entropy sections, overlays, uniform patterns)
     "entropy": validate_entropy,
 }

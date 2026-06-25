@@ -113,6 +113,12 @@
 | **RESOURCE_DIRECTORY_LOOP** | Recursive directory traversal detects a cycle (malformed or malicious resource tree) | Directory A → B → A | Per‑file |
 | **RESOURCE_DIRECTORY_ZERO_LENGTH** | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
 
+### Resource Hierarchy Anomalies
+| Reason Code |	What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **RESOURCE_DIRECTORY_LANGUAGE_NOT_ID** | A depth‑2 directory (Language layer) contains a named entry instead of an integer LCID, violating the Type → Name → Language hierarchy | Language entry keyed by "EN-US" instead of LCID 0x0409 | Per‑file
+| **RESOURCE_DATA_AT_INVALID_DEPTH** | A data leaf appears at depth 0 (Type) or depth 1 (Name) instead of depth 2 (Language), skipping required hierarchy layers | Root Type directory contains a direct data leaf with no Name/Language subdirectories | Per‑file
+
 ### **Resource Entry / Data Anomalies**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
@@ -120,6 +126,17 @@
 | **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource entry points to a data entry outside the `.rsrc` section or outside `SizeOfImage` | Entry RVA = `0x80000000` | Per‑file |
 | **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
 | **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | Two resource data blobs overlap in raw or virtual space | Data A: `0x2000–0x2400`, Data B: `0x2300–0x2500` | Per‑file |
+
+### Resource Version‑Info Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file
+| **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file
+| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry	StringTable | key = "ENGLISHX" instead of 8‑hex‑char <langID><codepage> form | Per‑file
+| **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple	Var. | wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file
+
+*Note: absence of an RT_VERSION resource is not treated as a structural anomaly — many legitimate binary types (kernel drivers, MSI helpers, cross‑compiled artefacts) omit version‑info entirely.*
 
 ### **Resource String‑Table Anomalies**
 

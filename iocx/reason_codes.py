@@ -101,10 +101,18 @@ class ReasonCodes:
     RESOURCE_DIRECTORY_LOOP = "resource_directory_loop"
     RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
     RESOURCE_DIRECTORY_ZERO_LENGTH = "resource_directory_zero_length"
+    RESOURCE_DIRECTORY_LANGUAGE_NOT_ID = "resource_directory_language_not_id"
 
     # --- Resource data anomalies ---
     RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"
     RESOURCE_DATA_OVERLAPS_OTHER_DATA = "resource_data_overlaps_other_data"
+    RESOURCE_DATA_AT_INVALID_DEPTH = "resource_data_at_invalid_depth"
+
+    # --- Resource version info ---
+    RESOURCE_VERSIONINFO_INVALID_HEADER = "resource_versioninfo_invalid_header"
+    RESOURCE_VERSIONINFO_INVALID_FIXEDINFO = "resource_versioninfo_invalid_fixedinfo"
+    RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO = "resource_versioninfo_invalid_stringfileinfo"
+    RESOURCE_VERSIONINFO_INVALID_VARFILEINFO = "resource_versioninfo_invalid_varfileinfo"
 
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
