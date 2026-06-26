@@ -7,7 +7,7 @@ import base64
 import struct
 from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 
 # ---------------------------------------------------------------------------
@@ -120,20 +120,17 @@ def _entropy(data: bytes | None) -> float:
     return ent
 
 
-def _decode_langid(langid: int) -> str:
-    """Return a human-readable locale string from a Windows LANGID."""
+def _decode_langid(langid) -> Optional[str]:
+    """Return a BCP-47-like locale string from a Windows LANGID, or None if undecodable."""
     if not isinstance(langid, int):
-        return "unknown"
+        return None
 
-    if langid < 0x0400:
-        return "unknown"
-
-    primary = langid & 0x3FF # low 10 bits
-    sublang = (langid >> 10) & 0x3F # high bits
+    primary = langid & 0x3FF      # low 10 bits
+    sublang = (langid >> 10) & 0x3F  # high 6 bits
 
     lang = PRIMARY_LANG.get(primary)
     if not lang:
-        return "unknown"
+        return None
 
     region = SUBLANG.get(sublang)
     if region:
@@ -143,7 +140,7 @@ def _decode_langid(langid: int) -> str:
     if default_region:
         return f"{lang}-{default_region}"
 
-    # If no region known, return just the language
+    # Primary language known but no region info — return language only
     return lang
 
 
@@ -352,7 +349,6 @@ def _parse_header(pe, opt):
         "characteristics": getattr(fh, "Characteristics", 0) if fh else 0,
     }
 
-
 def _parse_resources(pe):
     resources: list[dict[str, Any]] = []
     resource_strings: list[str] = []
@@ -372,40 +368,69 @@ def _parse_resources(pe):
 
     for entry in getattr(pe.DIRECTORY_ENTRY_RESOURCE, "entries", []):
         type_id = getattr(entry, "id", None)
-        type_name = pefile.RESOURCE_TYPE.get(type_id, str(type_id))
+        type_name = pefile.RESOURCE_TYPE.get(type_id, f"RT_UNKNOWN_{type_id}")
 
         if not hasattr(entry, "directory"):
             continue
 
         for res in getattr(entry.directory, "entries", []):
+            # Capture the resource's named identifier if present
+            res_name = str(res.name) if getattr(res, "name", None) is not None else None
             lang = getattr(res, "id", None)
+
             if not hasattr(res, "directory"):
                 continue
             if not getattr(res.directory, "entries", []):
                 continue
 
             data_entry = res.directory.entries[0].data
-            size = data_entry.struct.Size
+            ds = data_entry.struct
+            size = ds.Size
+            rva = ds.OffsetToData
+            codepage = getattr(ds, "CodePage", 0) or None
+
+            # Guarded RVA→offset
+            try:
+                raw_offset = pe.get_offset_from_rva(rva)
+            except (pefile.PEFormatError, AttributeError):
+                raw_offset = None
+
+            # Per-entry error tombstones; emit the entry either way so
+            # invalid resources remain visible to consumers.
+            errors: list[str] = []
+            entropy_val: float | None = None
+
             if size <= 0:
-                continue
-
-            offset = data_entry.struct.OffsetToData
-            if offset < 0 or offset + size > len(mm):
-                continue
-
-            blob = mm[offset:offset + size]
-            ent = _entropy(blob)
+                errors.append("size_invalid")
+            elif rva < 0:
+                errors.append("rva_invalid")
+            elif rva + size > len(mm):
+                errors.append("data_out_of_bounds")
+            else:
+                blob = mm[rva:rva + size]                  # slice with RVA, not raw_offset
+                entropy_val = round(_entropy(blob), 4)
 
             resources.append({
                 "type": type_name,
+                "name": res_name,
                 "language": lang,
                 "language_name": _decode_langid(lang),
-                "size": size,
-                "entropy": ent,
+                "codepage": codepage,
+                "size": size if size > 0 else None,
+                "entropy": entropy_val,
+                "rva": rva,
+                "raw_offset": raw_offset,
+                "errors": errors or None,
             })
 
-    return resources, resource_strings
+    # Deterministic ordering for snapshot stability
+    resources.sort(key=lambda r: (
+        r["type"],
+        r["language"] if r["language"] is not None else -1,
+        r["rva"] if r["rva"] is not None else -1,
+    ))
 
+    return resources, resource_strings
 
 def _parse_data_directories(pe):
     dirs: list[dict[str, Any]] = []
