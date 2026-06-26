@@ -41,10 +41,15 @@
     "resources": [
       {
         "type": "RT_MANIFEST",
+        "name": null,
         "language": 1,
-        "language_name": "unknown",
+        "language_name": "ar",
+        "codepage": null,
         "size": 381,
-        "entropy": 4.9116145157351045
+        "entropy": 4.9116,
+        "rva": 24672,
+        "raw_offset": 10336,
+        "errors": null
       }
     ],
     "resource_strings": [
@@ -602,9 +607,9 @@
           "types": [
             "RT_MANIFEST"
           ],
-          "entropy_min": 4.9116145157351045,
-          "entropy_max": 4.9116145157351045,
-          "entropy_avg": 4.9116145157351045
+          "entropy_min": 4.9116,
+          "entropy_max": 4.9116,
+          "entropy_avg": 4.9116
         }
       }
     ],
