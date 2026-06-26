@@ -32,6 +32,45 @@
   replacing `List[Any]`. New `VersionInfoStruct` and its sub-types
   (`FixedFileInfo`, `StringFileInfo`, `StringTable`, `VarFileInfo`,
   `VarEntry`, `Translation`) are declared in the schema.
+- **Deterministic export table extraction.** New `pe_exports` module
+  decodes the 40-byte `IMAGE_EXPORT_DIRECTORY` header, the Export Address
+  Table, Export Name Pointer Table, and Export Ordinal Table purely from
+  bytes using `struct.unpack_from`. Forwarder detection follows the PE
+  spec rule (address RVA falls within the export directory range).
+  Name and forwarder string reads are bounded; the decoder never raises;
+  sub-structure failures emit tombstone tags in `truncations[]` and
+  per-entry `errors[]`.
+- **Export table structural validator.** New `exports` module
+  maps parser output to ten new reason codes:
+  - `EXPORT_DIRECTORY_INVALID_HEADER` — header malformed or declared
+    counts inconsistent with declared array RVAs.
+  - `EXPORT_DIRECTORY_OUT_OF_BOUNDS` — directory extends past
+    `SizeOfImage`.
+  - `EXPORT_TABLE_TRUNCATED` — declared sub-table size exceeds available
+    bytes (per-table emission via `details["table"]`).
+  - `EXPORT_NAME_RVA_INVALID` — name pointer RVA unusable
+    (priority-resolved sub-reasons: `name_rva_missing`, `name_rva_zero`,
+    `read_failed`, `unterminated`).
+  - `EXPORT_NAME_NOT_ASCII` — name decoded but contains non-printable
+    bytes (priority-resolved sub-reasons: `non_ascii`,
+    `name_not_printable_ascii`).
+  - `EXPORT_NAME_POINTER_TABLE_UNSORTED` — ENPT violates the PE-spec
+    requirement that names be sorted lexicographically for binary search.
+  - `EXPORT_NAME_ORDINAL_INDEX_INVALID` — EOT entry missing or points
+    outside the EAT.
+  - `EXPORT_ORDINAL_OUT_OF_RANGE` — `Base + NumberOfFunctions - 1`
+    exceeds 16-bit range.
+  - `EXPORT_FUNCTION_RVA_INVALID` — function address RVA exceeds
+    `SizeOfImage`.
+  - `EXPORT_FORWARDER_MALFORMED` — forwarder string unreadable or
+    violates `DllName.SymbolName` / `DllName.#Ordinal` grammar.
+
+  Absence of an export directory is not treated as a structural defect;
+  most EXEs legitimately have no exports.
+- **Precise export-table typing.** New TypedDicts for `ExportStruct`,
+  `ExportDirectoryHeader`, `ExportFunctionEntry`, and
+  `ExportNamePointerEntry`. `InternalMetadata.export_struct` is typed as
+  `Optional[ExportStruct]`.
 
 ## Changed
 
@@ -44,6 +83,9 @@
 - **Validator dispatcher order.** `validate_version_info` is registered
   between `validate_resources` and `validate_entropy`, reflecting its
   position as a payload-specific validator nested under the resource tree.
+- **Validator dispatcher order.** `validate_exports` is registered
+  between `validate_version_info` and `validate_entropy`, completing the
+  structural validator chain ahead of the entropy/derived layer.
 
 ## Marked as RESERVE but consider removing in the future
 
@@ -66,6 +108,12 @@
 - Brief clarifying note added to the resources validator section explaining
   the layering between resource-tree validation and payload validators
   nested beneath it.
+- Reason-codes reference extended with a new top-level *Export Anomalies*
+  section in three subsections (Directory, Name Pointer, Function Entry)
+  and a dedicated *Export Sub-Reasons* taxonomy section documenting the
+  `details["reason"]` contract for each code that carries one.
+- New validator documentation section 2.11 for the exports validator with
+  explicit determinism rationale.
 
 ## Internal
 
@@ -75,6 +123,13 @@
   `struct.error` injection.
 - Narrow-except negative tests confirm the parser's exception handling does
   not silently swallow exceptions outside `(PEFormatError, AttributeError)`.
+- 100% line and branch coverage on `pe_exports` and
+  `exports` validator.
+- Defensive-path coverage via monkeypatched `struct.error` injection
+  and narrow-except negative tests.
+- One `# pragma: no cover` applied to a defensive return in the
+  validator's `_first_unsorted_index` helper, documented inline as
+  unreachable from the validator's call site.
 
 ## Compatibility
 
@@ -83,15 +138,21 @@
 - **No public IOC schema changes.** Version-info data is currently exposed
   only in internal metadata and CLI rendering; public IOC schema exposure
   is deferred to a later release with a deliberate fixture corpus refresh.
+- Invalid optional header fixtures JSON contracts updated: addition of export anomalies to heuristic output.
 
 ## Known scheduled work
 
-- Six single-anomaly fixtures targeting the new reason codes (specs queued;
+- Six single-anomaly fixtures targeting the new resource directory reason codes (specs queued;
   construction to follow).
 - `pefile_usage_policy.md` documenting the deterministic-subset usage pattern
   (to be drafted alongside the reproducibility appendix work).
 - Public IOC schema field for `version_info` (planned for a future release
   with corpus refresh and schema-version bump).
+- Single-anomaly fixtures targeting the new export reason codes (specs
+  drafted; construction to follow). Includes one negative-control
+  fixture (`exp_forwarder_to_ordinal_valid`) demonstrating that the
+  validator correctly accepts the spec-valid `#Ordinal` forwarder
+  syntax without false positive.
 
 ---
 
