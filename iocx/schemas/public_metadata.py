@@ -47,14 +47,17 @@ class ExportEntry(TypedDict):
     forwarder: Optional[str]
 
 
-class ResourceEntry(TypedDict):
+class ResourceEntry(TypedDict, total=False):
     type: str
     name: Optional[str]
-    language: Optional[str]
-    size: int
-    entropy: float
-    rva: int
-    raw_offset: int
+    language: Optional[int]
+    language_name: Optional[str]
+    codepage: Optional[int]
+    size: Optional[int]
+    entropy: Optional[float]
+    rva: Optional[int]
+    raw_offset: Optional[int]
+    errors: Optional[List[str]]
 
 
 class PublicMetadata(TypedDict, total=False):
