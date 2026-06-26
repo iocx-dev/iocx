@@ -1022,3 +1022,15 @@ def test_decode_langid_unknown_primary():
 def test_decode_langid_region_branch():
     # 0x0809 = English (United Kingdom) → explicit SUBLANG region
     assert _decode_langid(0x0809) == "en-GB"
+
+
+def test_decode_langid_arabic_neutral():
+    # LANGID 1 (Arabic, sublang neutral) was previously rejected by the
+    # < 0x0400 guard. The new decoder correctly returns the primary
+    # language name.
+    assert _decode_langid(0x0001) == "ar"
+
+
+def test_decode_langid_en_us():
+    # Sanity: en-US still decodes correctly (regression guard).
+    assert _decode_langid(0x0409) == "en-US"
