@@ -131,6 +131,22 @@ class ReasonCodes:
     # SEH table issues
     LOAD_CONFIG_SEH_INVALID = "load_config_seh_invalid"
 
+    # --- Export directory anomalies ---
+    EXPORT_DIRECTORY_INVALID_HEADER = "export_directory_invalid_header"
+    EXPORT_DIRECTORY_OUT_OF_BOUNDS = "export_directory_out_of_bounds"
+    EXPORT_TABLE_TRUNCATED = "export_table_truncated"
+
+    # --- Export name pointer anomalies ---
+    EXPORT_NAME_RVA_INVALID = "export_name_rva_invalid"
+    EXPORT_NAME_NOT_ASCII = "export_name_not_ascii"
+    EXPORT_NAME_POINTER_TABLE_UNSORTED = "export_name_pointer_table_unsorted"
+    EXPORT_NAME_ORDINAL_INDEX_INVALID = "export_name_ordinal_index_invalid"
+
+    # --- Export function entry anomalies ---
+    EXPORT_ORDINAL_OUT_OF_RANGE = "export_ordinal_out_of_range"
+    EXPORT_FUNCTION_RVA_INVALID = "export_function_rva_invalid"
+    EXPORT_FORWARDER_MALFORMED = "export_forwarder_malformed"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

@@ -12,6 +12,7 @@ from .tls import validate_tls
 from .signature import validate_signature
 from .resources import validate_resources
 from .version_info import validate_version_info
+from .exports import validate_exports
 from .entropy import validate_entropy
 
 STRUCTURAL_VALIDATORS = {
@@ -33,6 +34,8 @@ STRUCTURAL_VALIDATORS = {
     "resources": validate_resources,
     # Version-info (RT_VERSION leaf within the resource tree)
     "version_info": validate_version_info,
+    # Exports
+    "exports": validate_exports,
     # Entropy metrics (high entropy sections, overlays, uniform patterns)
     "entropy": validate_entropy,
 }
