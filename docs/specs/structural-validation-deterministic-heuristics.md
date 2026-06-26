@@ -229,6 +229,29 @@ Version‑info is a high‑signal forensic surface: CompanyName, OriginalFilenam
 
 ---
 
+# 2.11 Exports Validator
+## Validates the structural integrity of the PE export table extracted by parser_exports.
+
+This validator performs:
+
+- Top‑level decode failure detection and short‑circuit
+- Export directory placement within SizeOfImage
+- Truncation reporting across EAT, ENPT, and EOT sub‑tables
+- Header consistency checks (declared counts vs declared RVAs, name count vs function count)
+- Per‑entry name pointer validation: RVA, encoding, ordinal index bounds
+- Export Name Pointer Table sort order (PE spec requires lexicographic ordering for binary search)
+- Per‑entry function validation: ordinal range, address RVA bounds, forwarder string format
+
+Absence of an export directory is not treated as a structural defect — most EXE files legitimately have no exports.
+
+The export table is the second‑most parser‑sensitive surface in the PE format after VS_VERSIONINFO. Three properties make general‑purpose export parsers prone to divergent output: the EAT can contain a mix of function RVAs and forwarder string pointers distinguished only by whether the RVA falls inside the export directory; the ENPT is required to be sorted but malformed binaries routinely violate this; and the EOT cross‑references the EAT by index, creating a join that breaks silently if either side is truncated.
+
+The exports parser reads all four critical tables (header, EAT, ENPT, EOT) directly from raw bytes via struct.unpack_from, with bounded array reads and per‑position fallback to None when bytes are missing. The validator's per‑entry checks treat the parser's tombstone tags as a stable contract — each tag maps to a deterministic reason code and sub‑reason. Priority lists govern which sub‑reason wins when an entry carries multiple malformations.
+
+This ensures that for any given malformed export table, the validator produces the same set of reason codes on every run, regardless of platform or pefile version. Forwarder strings are validated against the PE spec's DllName.SymbolName and DllName.#Ordinal grammar via a single conservative regex, not by attempting runtime resolution.
+
+---
+
 # **3. Deterministic Heuristics Layer**
 ### *Heuristics interpret structural truth — they never override it.*
 

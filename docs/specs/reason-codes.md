@@ -175,6 +175,99 @@
 
 ---
 
+## EXPORT ANOMALIES
+
+### Export Directory Anomalies
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **EXPORT_DIRECTORY_INVALID_HEADER** |	The 40‑byte IMAGE_EXPORT_DIRECTORY header could not be decoded, or its declared counts and array RVAs are mutually inconsistent (e.g., NumberOfFunctions > 0 but AddressOfFunctions == 0, or NumberOfNames > NumberOfFunctions) | NumberOfNames = 50, NumberOfFunctions = 20 | Per‑file
+| **EXPORT_DIRECTORY_OUT_OF_BOUNDS** | The export directory's declared (rva, size) extends past SizeOfImage | Directory RVA = 0x1F0000, size = 0x1000, SizeOfImage = 0x1F0500 | Per‑file
+| **EXPORT_TABLE_TRUNCATED** | One of the export sub‑tables (EAT, ENPT, EOT) declares more entries than the file physically contains, or pe.get_data failed to read the declared extent | NumberOfFunctions = 1000, EAT physical extent only covers 50 entries | Per‑file
+
+### Export Name Pointer Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **EXPORT_NAME_RVA_INVALID** | A name pointer entry's RVA is zero, missing, or points to a string that could not be read or was unterminated within the maximum scan length | Name RVA = 0x0, or RVA points to bytes with no NUL terminator within 1024 bytes | Per‑entry
+| **EXPORT_NAME_NOT_ASCII**	| A name string decoded successfully but contains non‑printable bytes or characters outside the printable ASCII range (0x20–0x7E) | Name = "Foo\x01Bar", or name decoded with Unicode replacement characters | Per‑entry
+| **EXPORT_NAME_POINTER_TABLE_UNSORTED** | The Export Name Pointer Table is not sorted lexicographically by name, violating the PE spec requirement that enables binary search by GetProcAddress | Names in order: ["Zeta", "Alpha", "Mu"] | Per‑file
+| **EXPORT_NAME_ORDINAL_INDEX_INVALID** | An EOT entry is missing, or its value is greater than or equal to NumberOfFunctions (i.e., it points outside the EAT) | EOT entry = 500, NumberOfFunctions = 100 | Per‑entry
+
+### Export Function Entry Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **EXPORT_ORDINAL_OUT_OF_RANGE** | The maximum computed ordinal (Base + NumberOfFunctions - 1) exceeds the 16‑bit range. Per PE spec, ordinals must fit in a WORD | Base = 0xFFF0, NumberOfFunctions = 32, max ordinal = 0x1000F | Per‑file
+| **EXPORT_FUNCTION_RVA_INVALID** | A function entry's address RVA is non‑zero, is not a forwarder, and points outside the PE image (>= SizeOfImage) | Address RVA = 0x2000000, SizeOfImage = 0x400000 | Per‑entry
+| **EXPORT_FORWARDER_MALFORMED** | A function entry's RVA points within the export directory (indicating a forwarder) but the resulting string is unreadable, contains non‑printable bytes, or does not match the spec format DllName.SymbolName or DllName.#Ordinal | Forwarder string = "KERNEL32\x01LoadLibraryA", or "InvalidForwarderNoDot" | Per‑entry
+
+## EXPORT SUB‑REASONS
+
+Several export reason codes carry a reason field in their details payload that narrows the pathology. The full taxonomy:
+
+### EXPORT_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The 40‑byte header could not be unpacked from the file bytes |
+| eat_rva_zero_with_nonzero_count | NumberOfFunctions > 0 but AddressOfFunctions == 0 |
+| enpt_rva_zero_with_nonzero_count | NumberOfNames > 0 but AddressOfNames == 0 |
+| eot_rva_zero_with_nonzero_count | NumberOfNames > 0 but AddressOfNameOrdinals == 0 |
+| num_names_exceeds_num_functions | NumberOfNames > NumberOfFunctions (impossible in a well‑formed table) |
+
+### EXPORT_TABLE_TRUNCATED
+
+The table field (not reason) identifies the affected sub‑table:
+
+| table value | Meaning
+| export_directory_header | The 40‑byte header itself was short |
+| eat_truncated, enpt_truncated, eot_truncated | A sub‑table's declared size exceeded available file bytes |
+| eat_read_failed, enpt_read_failed, eot_read_failed | pe.get_data raised when reading the sub‑table |
+| eat_rva_zero, enpt_rva_zero, eot_rva_zero | RVA was zero despite a non‑zero declared count |
+
+### EXPORT_NAME_RVA_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| name_rva_missing | Parser did not capture the entry's name RVA |
+| name_rva_zero | RVA was explicitly zero |
+| read_failed | pe.get_data raised when reading the name string |
+| unterminated | No NUL terminator found within the maximum scan length |
+
+### EXPORT_NAME_NOT_ASCII
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+| non_ascii	| Decode produced Unicode replacement characters |
+| name_not_printable_ascii | Decoded successfully but contains bytes outside 0x20–0x7E |
+
+### EXPORT_NAME_ORDINAL_INDEX_INVALID
+
+| Sub‑reason | Meaning |
+| missing | Parser could not read the EOT entry |
+| out_of_range | Ordinal index >= NumberOfFunctions |
+
+### EXPORT_ORDINAL_OUT_OF_RANGE
+
+| Sub‑reason | Meaning |
+| max_exceeds_u16 | Base + NumberOfFunctions − 1 > 0xFFFF |
+
+### EXPORT_FORWARDER_MALFORMED
+
+| Sub‑reason | Meaning |
+| unreadable | RVA points into export directory but string could not be decoded |
+| format | Decoded fine but does not match DllName.SymbolName or DllName.#Ordinal |
+
+### EXPORT_FUNCTION_RVA_INVALID
+
+| Sub‑reason | Meaning |
+| exceeds_image	 | Address RVA >= SizeOfImage |
+
+---
+
 ## **PACKER HEURISTICS (Interpretation Layer)**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
