@@ -71,6 +71,33 @@
   `ExportDirectoryHeader`, `ExportFunctionEntry`, and
   `ExportNamePointerEntry`. `InternalMetadata.export_struct` is typed as
   `Optional[ExportStruct]`.
+- **Enriched resource metadata in CLI output.** The `_parse_resources`
+  function now exposes a structured `ResourceEntry` for every resource
+  in the PE, covering all four fields called out in requirement 4
+  (type, size, language and codepage, entropy) plus the schema-declared
+  `name`, `rva`, and `raw_offset` fields. Output is deterministic and
+  JSON-safe.
+- **Per-entry structured error reporting.** Resources whose data bytes
+  cannot be read are no longer silently dropped from the output. Instead,
+  the entry is emitted with an `errors` list populated with tombstone
+  tags describing the failure:
+  - `size_invalid` — declared size is zero or negative.
+  - `rva_invalid` — data RVA is negative.
+  - `data_out_of_bounds` — RVA + size exceeds the memory-mapped image.
+  - `raw_offset_invalid` — `get_offset_from_rva` failed to resolve the
+    file offset.
+
+  This makes the resource count visible to consumers even when individual
+  entries cannot be fully decoded.
+- **Codepage field on resource entries.** The `CodePage` field from the
+  PE resource data structure is now captured as `codepage` in the
+  output, typed as `Optional[int]` (null when zero or absent).
+- **Deterministic resource ordering.** The output list is sorted by
+  `(type, language, rva)` to ensure snapshot stability across runs.
+- **Per-resource Shannon entropy.** Computed over the resource's data
+  bytes, rounded to 4 decimal places for snapshot stability. Entries
+  with unreadable data produce `entropy: null` and the corresponding
+  error tombstone.
 
 ## Changed
 
@@ -86,6 +113,25 @@
 - **Validator dispatcher order.** `validate_exports` is registered
   between `validate_version_info` and `validate_entropy`, completing the
   structural validator chain ahead of the entropy/derived layer.
+- **`ResourceEntry` schema expanded.** Fields are now `total=False`
+  Optional to accommodate per-entry computation failures. New fields:
+  `codepage`, `errors`. Existing fields retain their meanings; `name`,
+  `rva`, and `raw_offset` are now populated where they were previously
+  declared but absent from output.
+- **`_decode_langid` returns `None` for undecodable LANGIDs.**
+  Previously returned the magic string `"unknown"`, which conflated
+  several distinct states (not provided, structurally invalid, primary
+  language unmapped). The new behaviour returns `None` from every
+  "cannot decode" path, allowing consumers to distinguish cleanly.
+  The early-return guard `if langid < 0x0400` was removed; it was
+  rejecting valid neutral-sublang LANGIDs (e.g., LANGID `0x0001`
+  decodes correctly as `"ar"` for Arabic).
+- **Resource entropy now computed over the correct byte range.**
+  Previously sliced `get_memory_mapped_image()` with the raw file
+  offset; now correctly uses the RVA. This was a regression introduced
+  during the requirement 4 work and caught before snapshot stamping —
+  entropy values now match the previous release's behaviour for all
+  existing fixtures.
 
 ## Marked as RESERVE but consider removing in the future
 
@@ -114,6 +160,12 @@
   `details["reason"]` contract for each code that carries one.
 - New validator documentation section 2.11 for the exports validator with
   explicit determinism rationale.
+- Resource metadata documentation extended to describe the new
+  `ResourceEntry` shape, the `errors` field semantics, and the
+  `codepage` field's `null`-on-absent convention.
+- The `_decode_langid` semantics are documented inline: primary
+  language and sublang decomposition, fallback to default region,
+  fallback to primary-language-only, fallback to `None`.
 
 ## Internal
 
@@ -130,6 +182,11 @@
 - One `# pragma: no cover` applied to a defensive return in the
   validator's `_first_unsorted_index` helper, documented inline as
   unreachable from the validator's call site.
+- Memory-mapped image slicing uses the RVA (not the raw file offset),
+  which is the correct index into `get_memory_mapped_image()` output.
+- Float precision pinned at 4 decimal places for entropy, matching the
+  precision convention used in other entropy-bearing fields elsewhere
+  in IOCX.
 
 ## Compatibility
 
@@ -139,6 +196,21 @@
   only in internal metadata and CLI rendering; public IOC schema exposure
   is deferred to a later release with a deliberate fixture corpus refresh.
 - Invalid optional header fixtures JSON contracts updated: addition of export anomalies to heuristic output.
+- Resource fixture snapshots refreshed to reflect new field shape and `language_name` semantics.
+- **Resource output shape is additive but reformatted.** Consumers
+  reading the `resources` field will see new keys (`codepage`,
+  `errors`, `name`, `rva`, `raw_offset`) and may see additional
+  entries that previously didn't appear (those with errors). Existing
+  per-entry field meanings are unchanged.
+- **`language_name` no longer returns the string `"unknown"`.**
+  Consumers checking `language_name == "unknown"` will need to update
+  to `language_name is None`. This is a deliberate semantic correction
+  rather than a passive breaking change — the previous value was a
+  magic-string sentinel that conflated several states.
+- **Snapshot refresh required for any fixture with resources.** The
+  `language_name` return change and the new fields will produce diffs
+  in expected outputs. Refresh is mechanical via the existing fixture
+  regeneration tooling.
 
 ## Known scheduled work
 
@@ -153,6 +225,17 @@
   fixture (`exp_forwarder_to_ordinal_valid`) demonstrating that the
   validator correctly accepts the spec-valid `#Ordinal` forwarder
   syntax without false positive.
+- Resource fixtures targeting the new `errors` field paths
+  (`size_invalid`, `rva_invalid`, `data_out_of_bounds`,
+  `raw_offset_invalid`). Currently the corpus exercises only the
+  clean path; single-anomaly fixtures for each error tag would round
+  out coverage.
+- `SUBLANG` table refinement. The current implementation models
+  sublang values as language-independent, which is incorrect for
+  multilingual edge cases (sublang `0x02` means UK English with
+  primary English, but Swiss German with primary German). A flat
+  LCID → BCP-47 mapping is the structural fix; deferred as a separate
+  ticket since the current behaviour is correct for the common case.
 
 ---
 
