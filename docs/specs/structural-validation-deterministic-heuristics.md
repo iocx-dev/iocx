@@ -201,6 +201,34 @@ This closes one of the most subtle structural attack surfaces in the PE format.
 
 ---
 
+# 2.10 Version‑Info Validator
+## Validates the structural integrity of the VS_VERSIONINFO blob extracted from the RT_VERSION resource.
+
+This validator performs:
+
+- Top‑level envelope validation: placement within .rsrc, szKey conformance to "VS_VERSION_INFO", and wLength consistency with the buffer.
+- VS_FIXEDFILEINFO signature and struct‑version validation.
+- StringFileInfo / StringTable / String hierarchy traversal, with per‑substructure length and key‑format checks.
+- VarFileInfo / Var validation, including DWORD‑alignment of the Translation array.
+- Deterministic leaf selection: when multiple RT_VERSION leaves exist, the parser sorts by (name_id, language_id) so the chosen blob is stable across runs.
+
+VS_VERSIONINFO is a recursive, length‑prefixed nested‑structure format with multiple optional children, variable‑length UTF‑16 keys, and DWORD‑alignment rules between every field. It is one of the most failure‑prone surfaces in the PE format for general‑purpose parsers — small differences in how a parser handles truncated wLength fields, malformed szKey strings, or misaligned Translation arrays produce divergent output across tools and across versions of the same tool.
+
+The version‑info parser is implemented as a pure struct‑level decoder with no reliance on external library interpretation:
+
+- Length and alignment arithmetic is performed against the raw buffer using fixed PE‑spec formulas.
+- All loops are bounded by wLength, child_end, and body_end so no walk can exceed the input.
+- Sub‑structure failures emit deterministic tombstone tags in an errors list rather than raising exceptions or being silently swallowed.
+- Leaf selection across multiple RT_VERSION entries uses a stable sort key, not parser iteration order.
+
+This ensures that for any given input blob, the parser produces the same decoded dict on every run, on every platform, regardless of library version. Malformed inputs produce predictable structural errors rather than partial parses or library‑specific exceptions.
+
+The validator then maps these structural states to a small, well‑defined set of reason codes (`RESOURCE_VERSIONINFO_INVALID_HEADER`, `_INVALID_FIXEDINFO`, `_INVALID_STRINGFILEINFO`, `_INVALID_VARFILEINFO`), which downstream heuristics and IOC consumers can rely on as a stable contract.
+
+Version‑info is a high‑signal forensic surface: CompanyName, OriginalFilename, and ProductVersion are routinely impersonated in adversarial samples. Deterministic extraction is a prerequisite for treating these fields as reliable triage signals.
+
+---
+
 # **3. Deterministic Heuristics Layer**
 ### *Heuristics interpret structural truth — they never override it.*
 

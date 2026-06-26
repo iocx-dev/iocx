@@ -1,3 +1,100 @@
+# **v0.7.5 — Unreleased**
+
+## Added
+
+- **Resource directory hierarchy enforcement.** The resource validator now
+  tracks tree depth and enforces the PE specification's Type → Name → Language
+  layering. Two new reason codes are emitted:
+  - `RESOURCE_DIRECTORY_LANGUAGE_NOT_ID` — a depth-2 (Language layer) entry
+    uses a name instead of an integer LCID.
+  - `RESOURCE_DATA_AT_INVALID_DEPTH` — a data leaf appears outside the
+    Language layer.
+- **Deterministic VS_VERSIONINFO extraction.** New `pe_version_info` parser
+  module decodes the version-info envelope, VS_FIXEDFILEINFO, StringFileInfo
+  and VarFileInfo structures purely from bytes using `struct.unpack_from`.
+  Leaf selection across multiple RT_VERSION entries is deterministic, sorted
+  by `(name_id, language_id)`. The decoder never raises; sub-structure
+  failures emit tombstone tags in an `errors[]` list.
+- **Version-info structural validator.** New `validator_version_info` module
+  maps parser output to four new reason codes:
+  - `RESOURCE_VERSIONINFO_INVALID_HEADER` — placement, `szKey`, or `wLength`
+    malformed.
+  - `RESOURCE_VERSIONINFO_INVALID_FIXEDINFO` — VS_FIXEDFILEINFO signature or
+    struct version wrong, or parse failed.
+  - `RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO` — StringFileInfo,
+    StringTable, or String malformed.
+  - `RESOURCE_VERSIONINFO_INVALID_VARFILEINFO` — VarFileInfo or Var malformed,
+    or Translation array not DWORD-aligned.
+
+  Absence of RT_VERSION is not treated as a structural defect.
+- **Precise internal metadata typing.** `InternalMetadata.resources_struct` is
+  now `Optional[ResourcesStruct]` with a fully-typed `ResourceEntry` shape
+  replacing `List[Any]`. New `VersionInfoStruct` and its sub-types
+  (`FixedFileInfo`, `StringFileInfo`, `StringTable`, `VarFileInfo`,
+  `VarEntry`, `Translation`) are declared in the schema.
+
+## Changed
+
+- **Resource parser hardens against corrupt RVAs.** `pe.get_offset_from_rva`
+  calls are now guarded against `pefile.PEFormatError` and `AttributeError`.
+  A corrupt RVA produces a `-1` sentinel in `raw_offset` rather than
+  propagating the exception. The validator's existing `data_raw < 0` arm
+  maps this to the existing `RESOURCE_DATA_OUT_OF_BOUNDS` reason code; no new
+  code introduced.
+- **Validator dispatcher order.** `validate_version_info` is registered
+  between `validate_resources` and `validate_entropy`, reflecting its
+  position as a payload-specific validator nested under the resource tree.
+
+## Marked as RESERVE but consider removing in the future
+
+- Dead `size == 0` branch in `validate_directory` (unreachable: `size` is
+  derived from `len(entries)` and always ≥ 16).
+- Unused `rsrc_raw` and `rsrc_raw_size` locals in the resource validator.
+
+## Fixed
+
+- Resource validator no longer silently returns when a directory's own RVA
+  falls outside `.rsrc`. Behaviour previously suppressed any reporting for
+  malformed directory placement.
+
+## Documentation
+
+- Reason-codes reference extended with two new subsections:
+  *Resource Hierarchy Anomalies* and *Resource Version-Info Anomalies*.
+- New validator documentation section (2.10) for the version-info validator,
+  including an explicit determinism rationale paragraph.
+- Brief clarifying note added to the resources validator section explaining
+  the layering between resource-tree validation and payload validators
+  nested beneath it.
+
+## Internal
+
+- 100% line and branch coverage on `pe_version_info`,
+  `validator_version_info`, and the resource validator additions.
+- Defensive-path coverage for every `except` clause via monkeypatched
+  `struct.error` injection.
+- Narrow-except negative tests confirm the parser's exception handling does
+  not silently swallow exceptions outside `(PEFormatError, AttributeError)`.
+
+## Compatibility
+
+- **No reason-code remapping.** Existing fixture expected outputs are
+  unchanged for all binaries that don't exercise the new pathways.
+- **No public IOC schema changes.** Version-info data is currently exposed
+  only in internal metadata and CLI rendering; public IOC schema exposure
+  is deferred to a later release with a deliberate fixture corpus refresh.
+
+## Known scheduled work
+
+- Six single-anomaly fixtures targeting the new reason codes (specs queued;
+  construction to follow).
+- `pefile_usage_policy.md` documenting the deterministic-subset usage pattern
+  (to be drafted alongside the reproducibility appendix work).
+- Public IOC schema field for `version_info` (planned for a future release
+  with corpus refresh and schema-version bump).
+
+---
+
 # **v0.7.4.1 — Windows‑Compatible PE Detection Hotfix**
 
 IOCX v0.7.4.1 removes the `python-magic` dependency, improves PE detection accuracy, and reduces IOCX’s attack surface.
