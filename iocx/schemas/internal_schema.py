@@ -102,6 +102,54 @@ class DataDirectoryRaw(TypedDict):
     size: int
 
 
+# ------------------------
+# Exports schema
+# ------------------------
+
+class ExportFunctionEntry(TypedDict):
+    index: int
+    ordinal: int
+    address_rva: Optional[int]
+    is_forwarder: bool
+    forwarder: Optional[str]
+    forwarder_valid: bool
+    name: Optional[str]
+    name_rva: Optional[int]
+
+
+class ExportNamePointerEntry(TypedDict):
+    index: int
+    name_rva: Optional[int]
+    ordinal_index: Optional[int]
+    name: Optional[str]
+    name_valid: bool
+    errors: List[str]
+
+
+class ExportDirectoryHeader(TypedDict):
+    Characteristics: int
+    TimeDateStamp: int
+    MajorVersion: int
+    MinorVersion: int
+    Name: int
+    Base: int
+    NumberOfFunctions: int
+    NumberOfNames: int
+    AddressOfFunctions: int
+    AddressOfNames: int
+    AddressOfNameOrdinals: int
+
+
+class ExportStruct(TypedDict, total=False):
+    rva: int
+    size: int
+    header: Optional[ExportDirectoryHeader]
+    functions: List[ExportFunctionEntry]
+    name_pointers: List[ExportNamePointerEntry]
+    truncations: List[str]
+    errors: List[str]
+
+
 # -------------------------
 # Internal metadata schema
 # -------------------------
@@ -110,5 +158,6 @@ class InternalMetadata(TypedDict, total=False):
     resources_struct: Optional[ResourcesStruct]
     version_info_struct: Optional[VersionInfoStruct]
     data_directories_raw: List[DataDirectoryRaw]
+    export_struct: Optional[ExportStruct]
     optional_header_magic: int
     number_of_rva_and_sizes: int
