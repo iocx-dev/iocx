@@ -32,8 +32,10 @@
       "entry_point": 12288,
       "image_base": 5368709120,
       "subsystem": 3,
+      "subsystem_name": "WINDOWS_CUI",
       "timestamp": 0,
       "machine": 34404,
+      "machine_name": "AMD64",
       "characteristics": 2
     },
     "optional_header": {
@@ -43,7 +45,16 @@
       "size_of_headers": 512,
       "linker_version": "14.44",
       "os_version": "6.0",
-      "subsystem_version": "6.0"
+      "subsystem_version": "6.0",
+      "dll_characteristics": 0,
+      "dll_characteristics_flags": [],
+      "dll_characteristics_unknown_bits": null,
+      "win32_version_value": 0,
+      "loader_flags": 0,
+      "stack_reserve_size": 0,
+      "stack_commit_size": 0,
+      "heap_reserve_size": 0,
+      "heap_commit_size": 0
     },
     "rich_header": null,
     "signatures": [],
@@ -137,11 +148,11 @@
           "entry_point": 12288,
           "image_base": 5368709120,
           "subsystem": 3,
+          "subsystem_name": "WINDOWS_CUI",
           "timestamp": 0,
           "machine": 34404,
-          "characteristics": 2,
-          "machine_human": "AMD64",
-          "subsystem_human": "Windows CUI"
+          "machine_name": "AMD64",
+          "characteristics": 2
         }
       },
       {
@@ -156,7 +167,16 @@
           "size_of_headers": 512,
           "linker_version": "14.44",
           "os_version": "6.0",
-          "subsystem_version": "6.0"
+          "subsystem_version": "6.0",
+          "dll_characteristics": 0,
+          "dll_characteristics_flags": [],
+          "dll_characteristics_unknown_bits": null,
+          "win32_version_value": 0,
+          "loader_flags": 0,
+          "stack_reserve_size": 0,
+          "stack_commit_size": 0,
+          "heap_reserve_size": 0,
+          "heap_commit_size": 0
         }
       }
     ],
@@ -232,7 +252,6 @@
           "section_b": ".rdata"
         }
       },
-
       {
         "value": "pe_structure_anomaly",
         "start": 0,
@@ -244,7 +263,6 @@
           "max_section_end": 11776
         }
       },
-
       {
         "value": "pe_structure_anomaly",
         "start": 0,

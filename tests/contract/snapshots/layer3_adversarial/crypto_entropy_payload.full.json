@@ -273,8 +273,10 @@
       "entry_point": 4732,
       "image_base": 5368709120,
       "subsystem": 2,
+      "subsystem_name": "WINDOWS_GUI",
       "timestamp": 1776422599,
       "machine": 34404,
+      "machine_name": "AMD64",
       "characteristics": 35
     },
     "optional_header": {
@@ -284,7 +286,19 @@
       "size_of_headers": 1024,
       "linker_version": "14.44",
       "os_version": "6.0",
-      "subsystem_version": "6.0"
+      "subsystem_version": "6.0",
+      "dll_characteristics": 32800,
+      "dll_characteristics_flags": [
+        "HIGH_ENTROPY_VA",
+        "TERMINAL_SERVER_AWARE"
+      ],
+      "dll_characteristics_unknown_bits": null,
+      "win32_version_value": 0,
+      "loader_flags": 0,
+      "stack_reserve_size": 1048576,
+      "stack_commit_size": 4096,
+      "heap_reserve_size": 1048576,
+      "heap_commit_size": 4096
     },
     "rich_header": {
       "key": "291fb053",
@@ -529,11 +543,11 @@
           "entry_point": 4732,
           "image_base": 5368709120,
           "subsystem": 2,
+          "subsystem_name": "WINDOWS_GUI",
           "timestamp": 1776422599,
           "machine": 34404,
-          "characteristics": 35,
-          "machine_human": "AMD64",
-          "subsystem_human": "Windows GUI"
+          "machine_name": "AMD64",
+          "characteristics": 35
         }
       },
       {
@@ -548,7 +562,19 @@
           "size_of_headers": 1024,
           "linker_version": "14.44",
           "os_version": "6.0",
-          "subsystem_version": "6.0"
+          "subsystem_version": "6.0",
+          "dll_characteristics": 32800,
+          "dll_characteristics_flags": [
+            "HIGH_ENTROPY_VA",
+            "TERMINAL_SERVER_AWARE"
+          ],
+          "dll_characteristics_unknown_bits": null,
+          "win32_version_value": 0,
+          "loader_flags": 0,
+          "stack_reserve_size": 1048576,
+          "stack_commit_size": 4096,
+          "heap_reserve_size": 1048576,
+          "heap_commit_size": 4096
         }
       },
       {
