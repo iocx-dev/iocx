@@ -1,36 +1,31 @@
 # Copyright (c) 2026 MalX Labs and contributors
 # SPDX-License-Identifier: MPL-2.0
 
+"""
+Project public metadata into Detection-shaped output for downstream consumers.
+
+This module does NOT compute new information about the PE; it restructures
+the already-extracted public metadata into the Detection format expected by
+the CLI and detection consumer API.
+
+The primary additions made here are:
+- Derived statistics (counts, entropy ranges)
+- Sorted/grouped views (DLLs grouped by name)
+- Shape conversion from metadata blocks to Detection records
+
+Anything that decodes raw PE structure (e.g., subsystem names, machine
+types, DLL characteristics) belongs in the parser layer (iocx.parsers),
+not here. If you find yourself adding decoding logic here, consider whether
+it should be in pe_parser / pe_constants instead.
+"""
+
 from dataclasses import asdict
 from iocx.models import Detection
 
-# Optional: translate machine + subsystem for readability
-_MACHINE_MAP = {
-    0x014c: "x86",
-    0x8664: "AMD64",
-    0x0200: "IA64",
-}
-
-_SUBSYSTEM_MAP = {
-    1: "Native",
-    2: "Windows GUI",
-    3: "Windows CUI",
-    5: "OS/2 CUI",
-    7: "POSIX CUI",
-    9: "Windows CE GUI",
-    10: "EFI Application",
-    11: "EFI Boot Service Driver",
-    12: "EFI Runtime Driver",
-    14: "EFI ROM",
-    16: "Xbox",
-}
 
 def analyse_extended(pe, metadata, strings):
     detections = []
 
-    #
-    # Summary block
-    #
     import_details = metadata.get("import_details", [])
     delayed_imports = metadata.get("delayed_imports", [])
     bound_imports = metadata.get("bound_imports", [])
@@ -39,6 +34,9 @@ def analyse_extended(pe, metadata, strings):
     tls = metadata.get("tls")
     signatures = metadata.get("signatures", [])
 
+    #
+    # Summary block — derived statistics on the metadata lists
+    #
     detections.append(
         Detection(
             category="pe_metadata",
@@ -59,21 +57,17 @@ def analyse_extended(pe, metadata, strings):
     )
 
     #
-    # Grouped imports
+    # Grouped imports — group by DLL with sorted function lists
     #
     grouped = {}
     for imp in import_details:
         dll = imp["dll"]
         func = imp["function"]
         ordinal = imp["ordinal"]
-
-        # Represent ordinal-only imports as "#123"
         if func is None and ordinal is not None:
             func = f"#{ordinal}"
-
         grouped.setdefault(dll, []).append(func)
 
-    # Sort DLLs and functions for stable output
     for dll in sorted(grouped.keys(), key=str.lower):
         funcs = sorted(grouped[dll], key=lambda x: (x.startswith("#"), x.lower()))
         detections.append(
@@ -87,7 +81,9 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # Delayed imports
+    # Delayed imports — same grouping pattern as imports
+    # Note: full structural validation of delay-load tables is deferred
+    # to a future requirement.
     #
     if delayed_imports:
         grouped_delayed = {}
@@ -112,7 +108,7 @@ def analyse_extended(pe, metadata, strings):
             )
 
     #
-    # Bound imports
+    # Bound imports — sorted by DLL name
     #
     if bound_imports:
         detections.append(
@@ -122,17 +118,22 @@ def analyse_extended(pe, metadata, strings):
                 start=0,
                 end=0,
                 metadata={
-                    "entries": sorted(bound_imports, key=lambda x: x["dll"].lower() if x["dll"] else "")
+                    "entries": sorted(
+                        bound_imports,
+                        key=lambda x: x["dll"].lower() if x["dll"] else "",
+                    )
                 },
             )
         )
 
     #
     # Exports summary
+    # Note: this is a metadata view. Structural validity of the export
+    # table is reported separately via the validator's reason codes
+    # (EXPORT_DIRECTORY_INVALID_HEADER, EXPORT_NAME_RVA_INVALID, etc.).
     #
     export_names = [e["name"] for e in exports if e.get("name")]
     forwarded = [e for e in exports if e.get("forwarder")]
-
     detections.append(
         Detection(
             category="pe_metadata",
@@ -149,6 +150,8 @@ def analyse_extended(pe, metadata, strings):
 
     #
     # TLS directory
+    # Note: depends on the TLS parsing work currently deferred. Current
+    # output reflects whatever the existing TLS extraction produces.
     #
     if tls:
         detections.append(
@@ -162,28 +165,24 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # Header (with human-friendly translations)
+    # Header — verbatim pass-through. The parser layer now provides
+    # subsystem_name and (after the machine decoding move) machine_name.
     #
     header = metadata.get("header", {})
-    machine = header.get("machine") or 0
-    subsystem = header.get("subsystem") or 0
-
-    header_pretty = dict(header)
-    header_pretty["machine_human"] = _MACHINE_MAP.get(machine, f"0x{machine:04x}")
-    header_pretty["subsystem_human"] = _SUBSYSTEM_MAP.get(subsystem, subsystem)
-
-    detections.append(
-        Detection(
-            category="pe_metadata",
-            value="header",
-            start=0,
-            end=0,
-            metadata=header_pretty,
+    if header:
+        detections.append(
+            Detection(
+                category="pe_metadata",
+                value="header",
+                start=0,
+                end=0,
+                metadata=header,
+            )
         )
-    )
 
     #
-    # Optional Header
+    # Optional Header — verbatim pass-through. The parser layer provides
+    # decoded DLL characteristics flags and sizing data.
     #
     optional_header = metadata.get("optional_header")
     if optional_header:
@@ -198,7 +197,7 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # Rich Header
+    # Rich Header — verbatim pass-through.
     #
     rich_header = metadata.get("rich_header")
     if rich_header:
@@ -213,7 +212,7 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # Digital Signature
+    # Digital Signature — verbatim pass-through with a presence flag.
     #
     if signatures:
         detections.append(
@@ -230,11 +229,26 @@ def analyse_extended(pe, metadata, strings):
         )
 
     #
-    # Resource summary
+    # Resource summary — derived statistics on the resources list
     #
     if resources:
         types = sorted({r["type"] for r in resources})
-        entropies = [r["entropy"] for r in resources]
+        # Resources with computation errors have entropy = None;
+        # exclude them from statistics so a single failure doesn't
+        # poison the aggregate values.
+        valid_entropies = [r["entropy"] for r in resources if r["entropy"] is not None]
+        if valid_entropies:
+            entropy_stats = {
+                "entropy_min": min(valid_entropies),
+                "entropy_max": max(valid_entropies),
+                "entropy_avg": sum(valid_entropies) / len(valid_entropies),
+            }
+        else:
+            entropy_stats = {
+                "entropy_min": None,
+                "entropy_max": None,
+                "entropy_avg": None,
+            }
         detections.append(
             Detection(
                 category="pe_metadata",
@@ -244,9 +258,7 @@ def analyse_extended(pe, metadata, strings):
                 metadata={
                     "count": len(resources),
                     "types": types,
-                    "entropy_min": min(entropies),
-                    "entropy_max": max(entropies),
-                    "entropy_avg": sum(entropies) / len(entropies),
+                    **entropy_stats,
                 },
             )
         )
