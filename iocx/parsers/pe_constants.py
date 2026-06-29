@@ -39,11 +39,38 @@ DLL_CHARACTERISTICS_FLAGS = {
     0x8000: "TERMINAL_SERVER_AWARE",
 }
 
-# Moved from extended layer
+# Moved from extended layer - expanded to cover the full PE spec
 MACHINE_NAMES = {
-    0x014c: "x86",
-    0x8664: "AMD64",
+    0x0000: "UNKNOWN",
+    0x014C: "I386",
+    0x0162: "R3000",
+    0x0166: "R4000",
+    0x0168: "R10000",
+    0x0169: "WCEMIPSV2",
+    0x0184: "ALPHA",
+    0x01A2: "SH3",
+    0x01A3: "SH3DSP",
+    0x01A6: "SH4",
+    0x01A8: "SH5",
+    0x01C0: "ARM",
+    0x01C2: "THUMB",
+    0x01C4: "ARMNT",
+    0x01D3: "AM33",
+    0x01F0: "POWERPC",
+    0x01F1: "POWERPCFP",
     0x0200: "IA64",
+    0x0266: "MIPS16",
+    0x0366: "MIPSFPU",
+    0x0466: "MIPSFPU16",
+    0x0EBC: "EBC",
+    0x5032: "RISCV32",
+    0x5064: "RISCV64",
+    0x5128: "RISCV128",
+    0x6232: "LOONGARCH32",
+    0x6264: "LOONGARCH64",
+    0x8664: "AMD64",
+    0xAA64: "ARM64",
+    0xC0EE: "CEE",
 }
 
 # Mask covering all known DLL characteristics bits
