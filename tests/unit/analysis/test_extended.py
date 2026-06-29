@@ -118,7 +118,9 @@ def test_header_human_fields():
     metadata = {
         "header": {
             "machine": 0x8664, # AMD64
-            "subsystem": 3, # Windows CUI
+            "machine_name": "AMD64",
+            "subsystem": 3, # WINDOWS_CUI
+            "subsystem_name": "WINDOWS_CUI",
             "timestamp": 0,
         }
     }
@@ -126,8 +128,8 @@ def test_header_human_fields():
     result = analyse_extended(None, metadata, [])
     header = extract(result, "header")["metadata"]
 
-    assert header["machine_human"] == "AMD64"
-    assert header["subsystem_human"] == "Windows CUI"
+    assert header["machine_name"] == "AMD64"
+    assert header["subsystem_name"] == "WINDOWS_CUI"
 
 
 def test_optional_header_included():
