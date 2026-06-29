@@ -9,6 +9,12 @@ from .string_extractor import extract_strings_from_bytes
 from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any, Optional
 from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
+from .pe_constants import (
+    DLL_CHARACTERISTICS_FLAGS,
+    DLL_CHARACTERISTICS_KNOWN_MASK,
+    SUBSYSTEM_NAMES,
+    MACHINE_NAMES
+)
 
 # ---------------------------------------------------------------------------
 # Low-level helpers
@@ -147,6 +153,13 @@ def _decode_langid(langid) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Parsing helpers
 # ---------------------------------------------------------------------------
+def _safe_attr(obj, *names, default=None):
+    for name in names:
+        value = getattr(obj, name, None)
+        if value is not None:
+            return value
+    return default
+
 
 def _parse_imports(pe):
     imports: list[str] = []
@@ -321,6 +334,20 @@ def _parse_optional_header(pe):
     if not opt:
         return opt, {}
 
+    # ---- DLL characteristics decoding ----
+    dll_chars = getattr(opt, "DllCharacteristics", None)
+    if dll_chars is None:
+        dll_chars_flags = None
+        dll_chars_unknown = None
+    else:
+        dll_chars_flags = [
+            DLL_CHARACTERISTICS_FLAGS[bit]
+            for bit in sorted(DLL_CHARACTERISTICS_FLAGS.keys())
+            if dll_chars & bit
+        ]
+        unknown = dll_chars & ~DLL_CHARACTERISTICS_KNOWN_MASK
+        dll_chars_unknown = f"0x{unknown:04X}" if unknown else None
+
     optional_header = {
         "section_alignment": getattr(opt, "SectionAlignment", 0),
         "file_alignment": getattr(opt, "FileAlignment", 0),
@@ -332,6 +359,15 @@ def _parse_optional_header(pe):
                       f"{getattr(opt, 'MinorOperatingSystemVersion', 0)}",
         "subsystem_version": f"{getattr(opt, 'MajorSubsystemVersion', 0)}."
                              f"{getattr(opt, 'MinorSubsystemVersion', 0)}",
+        "dll_characteristics": dll_chars,
+        "dll_characteristics_flags": dll_chars_flags,
+        "dll_characteristics_unknown_bits": dll_chars_unknown,
+        "win32_version_value": _safe_attr(opt, "Win32VersionValue", "Reserved1"),
+        "loader_flags": getattr(opt, "LoaderFlags", None),
+        "stack_reserve_size": getattr(opt, "SizeOfStackReserve", None),
+        "stack_commit_size": getattr(opt, "SizeOfStackCommit", None),
+        "heap_reserve_size": getattr(opt, "SizeOfHeapReserve", None),
+        "heap_commit_size": getattr(opt, "SizeOfHeapCommit", None),
     }
 
     return opt, optional_header
@@ -340,12 +376,19 @@ def _parse_optional_header(pe):
 def _parse_header(pe, opt):
     fh = getattr(pe, "FILE_HEADER", None)
 
+    subsystem = getattr(opt, "Subsystem", 0) if opt else 0
+    subsystem_name = SUBSYSTEM_NAMES.get(subsystem)
+    machine = getattr(fh, "Machine", 0) if fh else 0
+    machine_name = MACHINE_NAMES.get(machine)
+
     return {
         "entry_point": getattr(opt, "AddressOfEntryPoint", 0) if opt else 0,
         "image_base": getattr(opt, "ImageBase", 0) if opt else 0,
-        "subsystem": getattr(opt, "Subsystem", 0) if opt else 0,
+        "subsystem": subsystem,
+        "subsystem_name": subsystem_name,
         "timestamp": getattr(fh, "TimeDateStamp", 0) if fh else 0,
-        "machine": getattr(fh, "Machine", 0) if fh else 0,
+        "machine": machine,
+        "machine_name": machine_name,
         "characteristics": getattr(fh, "Characteristics", 0) if fh else 0,
     }
 
