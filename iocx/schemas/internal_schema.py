@@ -151,6 +151,49 @@ class ExportStruct(TypedDict, total=False):
 
 
 # -------------------------
+# Delay-load import
+# -------------------------
+
+class DelayImportEntry(TypedDict, total=False):
+    index: int
+    is_ordinal: bool
+    ordinal: Optional[int]
+    hint: Optional[int]
+    name: Optional[str]
+    name_rva: Optional[int]
+    name_valid: bool
+    iat_value: Optional[int]
+    errors: List[str]
+
+
+class DelayImportDescriptor(TypedDict, total=False):
+    index: int
+    attributes: int
+    attributes_v1: bool
+    dll_name_rva: int
+    dll_name: Optional[str]
+    dll_name_valid: bool
+    module_handle_rva: int
+    iat_rva: int
+    int_rva: int
+    bound_iat_rva: int
+    unload_iat_rva: int
+    timestamp: int
+    is_bound: bool # derived: True if bound_iat_rva != 0
+    imports: List[DelayImportEntry]
+    errors: List[str]
+
+
+class DelayImportStruct(TypedDict, total=False):
+    rva: int
+    size: int
+    is_64bit: bool
+    descriptors: List[DelayImportDescriptor]
+    truncations: List[str]
+    errors: List[str]
+
+
+# -------------------------
 # Internal metadata schema
 # -------------------------
 
@@ -159,5 +202,6 @@ class InternalMetadata(TypedDict, total=False):
     version_info_struct: Optional[VersionInfoStruct]
     data_directories_raw: List[DataDirectoryRaw]
     export_struct: Optional[ExportStruct]
+    delay_import_struct: Optional[DelayImportStruct]
     optional_header_magic: int
     number_of_rva_and_sizes: int
