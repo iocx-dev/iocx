@@ -147,6 +147,20 @@ class ReasonCodes:
     EXPORT_FUNCTION_RVA_INVALID = "export_function_rva_invalid"
     EXPORT_FORWARDER_MALFORMED = "export_forwarder_malformed"
 
+    # --- Delay-load import directory anomalies ---
+    DELAY_IMPORT_DIRECTORY_INVALID_HEADER = "delay_import_directory_invalid_header"
+    DELAY_IMPORT_DIRECTORY_OUT_OF_BOUNDS = "delay_import_directory_out_of_bounds"
+    DELAY_IMPORT_TABLE_TRUNCATED = "delay_import_table_truncated"
+
+    # --- Delay-load descriptor anomalies ---
+    DELAY_IMPORT_DESCRIPTOR_INVALID = "delay_import_descriptor_invalid"
+    DELAY_IMPORT_DLL_NAME_INVALID = "delay_import_dll_name_invalid"
+    DELAY_IMPORT_INT_IAT_MISMATCH = "delay_import_int_iat_mismatch"
+    DELAY_IMPORT_ATTRIBUTES_LEGACY_VA_MODE = "delay_import_attributes_legacy_va_mode"
+
+    # --- Delay-load entry anomalies ---
+    DELAY_IMPORT_ENTRY_INVALID = "delay_import_entry_invalid"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

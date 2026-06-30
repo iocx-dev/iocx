@@ -13,6 +13,7 @@ from .signature import validate_signature
 from .resources import validate_resources
 from .version_info import validate_version_info
 from .exports import validate_exports
+from .delay_imports import validate_delay_imports
 from .entropy import validate_entropy
 
 STRUCTURAL_VALIDATORS = {
@@ -36,6 +37,8 @@ STRUCTURAL_VALIDATORS = {
     "version_info": validate_version_info,
     # Exports
     "exports": validate_exports,
+    # Delay imports
+    "delay_imports": validate_delay_imports,
     # Entropy metrics (high entropy sections, overlays, uniform patterns)
     "entropy": validate_entropy,
 }
