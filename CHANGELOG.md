@@ -98,6 +98,34 @@
   bytes, rounded to 4 decimal places for snapshot stability. Entries
   with unreadable data produce `entropy: null` and the corresponding
   error tombstone.
+- Optional Header metadata enrichment. The optional_header block
+  in public metadata now exposes security-relevant and sizing fields
+  previously not captured by IOCX, completing requirement 1. New fields:
+  - dll_characteristics — raw DllCharacteristics value.
+  - dll_characteristics_flags — decoded flag names from the
+    IMAGE_DLLCHARACTERISTICS_* set (e.g., "DYNAMIC_BASE",
+    "NX_COMPAT", "GUARD_CF"), sorted by bit position for snapshot
+    stability.
+  - dll_characteristics_unknown_bits — hex string for bits set in
+    DllCharacteristics but not in IOCX's known-flag mask, or null
+    when all set bits are recognised.
+  - win32_version_value — raw Win32VersionValue DWORD (deprecated
+    per PE spec; exposed for completeness).
+  - loader_flags — raw LoaderFlags DWORD (reserved per PE spec;
+    exposed for completeness).
+  - stack_reserve_size, stack_commit_size — SizeOfStackReserve
+    and SizeOfStackCommit (64-bit on PE32+ binaries).
+  - heap_reserve_size, heap_commit_size — SizeOfHeapReserve
+    and SizeOfHeapCommit.
+- Subsystem name decoding. The header block now includes
+  subsystem_name, a decoded string from the IMAGE_SUBSYSTEM_*
+  table (e.g., "WINDOWS_CUI", "NATIVE", "EFI_APPLICATION").
+  Returns null for subsystem values outside the well-known set.
+  The raw subsystem integer field is unchanged.
+- New constants module iocx.parsers.pe_constants. Houses the
+  SUBSYSTEM_NAMES and DLL_CHARACTERISTICS_FLAGS lookup tables,
+  plus the derived DLL_CHARACTERISTICS_KNOWN_MASK. Sourced from
+  the Microsoft PE format specification.
 
 ## Changed
 
@@ -132,6 +160,36 @@
   during the requirement 4 work and caught before snapshot stamping —
   entropy values now match the previous release's behaviour for all
   existing fixtures.
+- Convention for missing-field defaults. The new Optional Header
+  fields use None as the default value when pefile cannot extract
+  the field, distinct from 0 which indicates the binary's actual
+  value. This is a deliberate divergence from the existing fields'
+  default-to-zero convention. Rationale: the semantic split between
+  "missing" and "zero" is meaningful for security-relevant fields
+  (a DllCharacteristics of 0 means "no security features enabled,"
+  which is itself a signal; null means "could not extract"). Existing
+  fields retain their default-to-zero behaviour for backward
+  compatibility.
+- Extended metadata analyser refactored to remove duplicated decoding.
+  Following the parser-layer additions of subsystem_name (requirement 1)
+  and machine_name (this release), the analyse_extended module no
+  longer maintains its own _SUBSYSTEM_MAP and _MACHINE_MAP lookup
+  tables. The legacy subsystem_human and machine_human fields are
+  removed from extended metadata output. The parser layer is now the
+  single source of truth for both subsystem and machine name decoding.
+- Machine name decoding moved to the parser layer. Added
+  _MACHINE_NAMES to iocx.parsers.pe_constants and machine_name
+  to _parse_header output. Consistent with the subsystem_name
+  convention introduced in requirement 1 (uppercase-underscore form,
+  None for unknown values).
+- Resource entropy statistics tolerate per-entry errors. Following
+  requirement 4's introduction of resource-level errors reporting,
+  the extended analyser's resource summary computes entropy_min,
+  entropy_max, and entropy_avg over only the entries with computed
+  entropy values. Resources with entropy: None (due to per-entry
+  computation failures) are excluded from the aggregates. When no
+  resource has a computed entropy, all three statistics are None
+  rather than raising on empty min() / max().
 
 ## Marked as RESERVE but consider removing in the future
 
@@ -166,6 +224,21 @@
 - The `_decode_langid` semantics are documented inline: primary
   language and sublang decomposition, fallback to default region,
   fallback to primary-language-only, fallback to `None`.
+- Documented the new Optional Header fields in the schema reference,
+  including the dll_characteristics_unknown_bits field's role in
+  preserving complete information about non-decoded bits.
+- Documented the mixed-default convention (0 for existing fields,
+  None for new fields) with rationale for the divergence.
+- analyse_extended module purpose documented inline. Added a
+  module-level docstring clarifying that the module performs shape
+  conversion and derived-statistics computation only — not new
+  information extraction. Future contributors adding decoding logic
+  should consider whether it belongs in the parser layer instead.
+- Validator-vs-metadata boundary commented in the exports block.
+  Added an inline note documenting that the extended exports view is
+  metadata-shaped and that structural validity of the export table is
+  reported separately via validator reason codes. Avoids future confusion
+  about whether analyse_extended should mirror validator output.
 
 ## Internal
 
@@ -187,6 +260,17 @@
 - Float precision pinned at 4 decimal places for entropy, matching the
   precision convention used in other entropy-bearing fields elsewhere
   in IOCX.
+- 100% line coverage on _parse_optional_header, _parse_header,
+  and pe_constants.
+- Test coverage includes:
+  - All 15 entries in SUBSYSTEM_NAMES exercised individually
+  - All 11 DLL characteristics flags exercised with bit-position
+    ordering pinned
+  - Unknown-bits detection for values outside the known mask
+  - Conservative field handling: individual missing fields do not
+    affect extraction of other fields
+  - JSON-safety contract: outputs round-trip through json.dumps
+  - Determinism: repeated parses produce identical output
 
 ## Compatibility
 
@@ -211,6 +295,28 @@
   `language_name` return change and the new fields will produce diffs
   in expected outputs. Refresh is mechanical via the existing fixture
   regeneration tooling.
+- Existing field behaviour unchanged. Consumers reading
+  section_alignment, file_alignment, size_of_image, etc., see
+  the same values they did before. The default-to-zero behaviour is
+  preserved.
+- New fields are additive. Consumers reading existing keys are
+  unaffected. Consumers wanting the new security-relevant fields can
+  read them via the documented keys; missing values surface as null.
+- Snapshot refresh required for any fixture with an optional header.
+  Every fixture's optional_header block gains new keys; refresh is
+  mechanical via the existing fixture regeneration tooling.
+- subsystem_human and machine_human removed from extended
+  metadata. Consumers should use subsystem_name (always present in
+  header, uppercase-underscore form) and machine_name (added in this
+  release). Migration is a string-conversion exercise: "WINDOWS_CUI"
+  ↔ "Windows CUI". If display-friendly forms are needed for CLI
+  rendering, that translation belongs in the renderer, not the metadata
+  layer.
+- Snapshot refresh required. Any fixture whose extended metadata
+  output was snapshot-pinned will see subsystem_human and
+  machine_human removed, and the header block under
+  analysis.extended will match the public metadata's header block
+  exactly. Mechanical refresh.
 
 ## Known scheduled work
 
