@@ -15,7 +15,7 @@ from .parsers.pe_version_info import build_version_info
 from .parsers.pe_load_config import analyse_load_config
 from .parsers.pe_optional_header import extract_optional_header_metadata
 from .parsers.pe_exports import build_export_structure
-from .parsers.pe_delay_load_import import build_delay_import_structure
+from .parsers.pe_delay_imports import build_delay_import_structure
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
