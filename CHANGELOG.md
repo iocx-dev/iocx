@@ -1,4 +1,5 @@
-# v0.7.5 — Unreleased
+# **v0.7.5 - Structural validator expansion**
+**Released: 2026‑07‑01**
 
 This release substantially expands IOCX's structural validator suite with four new parser/validator pairs (export tables, delay-load imports, VS_VERSIONINFO, and the resource directory's Type → Name → Language hierarchy), enriches public metadata with security-relevant Optional Header and per-resource fields, and adds 24 new structural reason codes across exports, resources, and delay-load. All new code lands with 100% line and branch coverage backed by real-binary verification.
 
@@ -120,6 +121,7 @@ export_struct and delay_import_struct are exposed only in internal metadata by d
 ---
 
 # **v0.7.4.1 — Windows‑Compatible PE Detection Hotfix**
+**Released: 2026‑05‑28**
 
 IOCX v0.7.4.1 removes the `python-magic` dependency, improves PE detection accuracy, and reduces IOCX’s attack surface.
 
@@ -140,6 +142,7 @@ IOCX v0.7.4.1 removes the `python-magic` dependency, improves PE detection accur
 ---
 
 # **v0.7.4 — Advanced Directory Parsing & Metadata Expansion**
+**Released: 2026‑05‑26**
 
 IOCX v0.7.4 significantly expands static PE coverage with advanced directory parsing, extended metadata extraction, and deterministic structural validation. This release improves correctness across modern compiler outputs while preserving IOCX’s static‑only, zero execution design.
 
