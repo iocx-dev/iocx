@@ -339,3 +339,124 @@ def test_resources_directory_outside_rsrc_skips_validation():
     # Because the directory is outside .rsrc, validate_directory() returns immediately
     # → no issues should be produced
     assert issues == []
+
+
+class TestLanguageLayerNamedEntry:
+    """
+    Cover the depth-2 named-entry detection: a Language-layer directory
+    that contains a named entry instead of an integer LCID.
+    """
+
+    def _make_resources_with_named_language_entry(self) -> dict:
+        """
+        Build a minimal resources_struct dict with this shape:
+            Type (depth 0)
+              └─ Name (depth 1)
+                  └─ Language (depth 2)  ← contains a named entry (anomaly)
+                      └─ data leaf
+        """
+        # Data leaf at depth 3 — well-formed, in-bounds
+        data_leaf_entry = {
+            "name": None,
+            "id": 0x0409,
+            "is_directory": False,
+            "directory": None,
+            "data_rva": 0x1100,
+            "data_size": 100,
+            "raw_offset": 0x500,
+        }
+
+        # Depth 2: Language directory containing a NAMED entry (the anomaly)
+        # plus a valid ID entry as a sibling, to prove the validator emits
+        # per-violation rather than per-directory.
+        lang_dir = {
+            "rva": 0x1080,
+            "size": 32,
+            "entries": [
+                {
+                    "name": "EN-US",  # ← anomaly: named instead of LCID
+                    "id": None,
+                    "is_directory": True,
+                    "directory": {
+                        "rva": 0x1090,
+                        "size": 24,
+                        "entries": [data_leaf_entry],
+                    },
+                    "data_rva": None,
+                    "data_size": None,
+                    "raw_offset": None,
+                },
+            ],
+        }
+
+        # Depth 1: Name directory
+        name_dir = {
+            "rva": 0x1040,
+            "size": 24,
+            "entries": [
+                {
+                    "name": None,
+                    "id": 1,
+                    "is_directory": True,
+                    "directory": lang_dir,
+                    "data_rva": None,
+                    "data_size": None,
+                    "raw_offset": None,
+                },
+            ],
+        }
+
+        # Depth 0: Type directory (root)
+        root = {
+            "rva": 0x1000,
+            "size": 24,
+            "entries": [
+                {
+                    "name": None,
+                    "id": 16,  # RT_VERSION
+                    "is_directory": True,
+                    "directory": name_dir,
+                    "data_rva": None,
+                    "data_size": None,
+                    "raw_offset": None,
+                },
+            ],
+        }
+
+        return {
+            "root": root,
+            "string_tables": [],
+        }
+
+    def _make_analysis(self) -> dict:
+        return {
+            "sections": [{
+                "name": ".rsrc",
+                "virtual_address": 0x1000,
+                "virtual_size": 0x2000,
+                "raw_address": 0x400,
+                "raw_size": 0x2000,
+            }],
+            "file_size": 0x10000,
+            "overlay_offset": 0x9000,
+        }
+
+    def test_named_language_entry_flagged(self):
+        from iocx.reason_codes import ReasonCodes
+        from iocx.validators.resources import validate_resources
+
+        resources = self._make_resources_with_named_language_entry()
+        metadata = {"resources_struct": resources}
+        issues = validate_resources(metadata, self._make_analysis())
+
+        codes = [i["issue"] for i in issues]
+        assert ReasonCodes.RESOURCE_DIRECTORY_LANGUAGE_NOT_ID in codes
+
+        # Confirm the details payload is shaped correctly
+        details = [
+            i["details"] for i in issues
+            if i["issue"] == ReasonCodes.RESOURCE_DIRECTORY_LANGUAGE_NOT_ID
+        ]
+        assert len(details) == 1
+        assert details[0]["name"] == "EN-US"
+        assert details[0]["rva"] == 0x1080  # the language directory's RVA

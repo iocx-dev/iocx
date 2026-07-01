@@ -29,8 +29,8 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
 
     rsrc_va = rsrc_section["virtual_address"]
     rsrc_vs = rsrc_section["virtual_size"]
-    rsrc_raw = rsrc_section["raw_address"]
-    rsrc_raw_size = rsrc_section["raw_size"]
+    rsrc_raw = rsrc_section["raw_address"] # reserved
+    rsrc_raw_size = rsrc_section["raw_size"] # reserved
 
     def rva_in_rsrc(rva: int, size: int = 0) -> bool:
         return rsrc_va <= rva and (rva + size) <= (rsrc_va + rsrc_vs)
@@ -52,7 +52,7 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
     # ---------------------------------------------------------
     # Recursive directory validation
     # ---------------------------------------------------------
-    def validate_directory(dir_node: Dict[str, Any]) -> None:
+    def validate_directory(dir_node: Dict[str, Any], depth: int = 0) -> None:
         rva = dir_node["rva"]
         size = dir_node["size"]
 
@@ -62,6 +62,8 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
 
         entries = dir_node["entries"]
 
+        # Reserved: only reachable if size is sourced from the on-disk
+        # IMAGE_RESOURCE_DIRECTORY header rather than derived  from len(entries)
         # Zero-length directory
         if size == 0:
             issues.append(StructuralIssue(
@@ -79,6 +81,17 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
             return
         visited_dirs.add(rva)
 
+        # --- language layer (depth 2) must use integer LCIDs ---
+        # Per PE spec, the Type → Name → Language tree's deepest directory
+        # layer is keyed by language ID. Named entries here are malformed.
+        if depth == 2:
+            for e in entries:
+                if e["name"] is not None and e["id"] is None:
+                    issues.append(StructuralIssue(
+                        issue=ReasonCodes.RESOURCE_DIRECTORY_LANGUAGE_NOT_ID,
+                        details={"rva": rva, "name": e["name"]},
+                    ))
+
         # Entries
         for entry in entries:
             if entry["is_directory"]:
@@ -92,8 +105,18 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
                     ))
                     continue
 
-                validate_directory(target)
+                validate_directory(target, depth + 1)  # <-- depth bumped
                 continue
+
+            # --- data entries should only appear at depth 2 (Language layer) ---
+            # A data leaf at depth 0 or 1 means the tree shape violates the
+            # Type → Name → Language hierarchy.
+            if depth != 2:
+                issues.append(StructuralIssue(
+                    issue=ReasonCodes.RESOURCE_DATA_AT_INVALID_DEPTH,
+                    details={"rva": rva, "depth": depth,
+                            "data_rva": entry["data_rva"]},
+                ))
 
             # ------------------------------
             # Data entry
@@ -118,7 +141,8 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
                 ))
                 continue
 
-            # Raw bounds
+            # Raw bounds (data_raw == -1 sentinel from a guarded RVA→offset
+            # lookup also lands here, preserving the existing reason code).
             if data_raw < 0 or data_raw + data_size > file_size:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS,

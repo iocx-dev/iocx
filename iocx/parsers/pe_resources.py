@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from typing import Dict, Any
-
+import pefile
 
 def build_resource_structure(pe) -> Dict[str, Any]:
     """
@@ -60,7 +60,14 @@ def build_resource_structure(pe) -> Dict[str, Any]:
                 d = data.struct
                 data_rva = d.OffsetToData
                 data_size = d.Size
-                raw_offset = pe.get_offset_from_rva(data_rva)
+
+                # Guarded RVA→offset: a corrupt RVA must not crash the
+                # parser. -1 is the sentinel the validator already treats
+                # as out-of-bounds via its data_raw < 0 arm.
+                try:
+                    raw_offset = pe.get_offset_from_rva(data_rva)
+                except (pefile.PEFormatError, AttributeError):
+                    raw_offset = -1
 
                 entries.append(
                     {

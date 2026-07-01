@@ -361,3 +361,128 @@ def test_parse_data_directories_raw_no_optional_header():
 
     result = _parse_data_directories_raw(FakePE())
     assert result == [] # early return path
+
+
+# =================================================================
+# Defensive: guarded get_offset_from_rva
+# =================================================================
+
+class TestGuardedRvaToOffset:
+    """
+    Cover the try/except around pe.get_offset_from_rva in
+    build_resource_structure. A corrupt RVA must produce a -1 sentinel
+    in raw_offset rather than propagating the exception.
+    """
+
+    def _make_pe_with_data_leaf_raising(self, exception_to_raise: Exception):
+        """
+        Build a minimal fake pe whose resource tree contains a single
+        RT_VERSION leaf, where pe.get_offset_from_rva raises the given
+        exception.
+        """
+
+        def _struct_with(offset: int):
+            return type("S", (), {"OffsetToData": offset})()
+
+        # Leaf data entry — points to the corrupt RVA
+        class _FakeStruct:
+            OffsetToData = 0x1100
+            Size = 100
+
+        class _FakeData:
+            struct = _FakeStruct()
+
+        class _FakeLangEntry:
+            id = 0x0409
+            data = _FakeData()
+            # No `directory` attribute — this is a leaf, not a subdirectory
+
+        class _FakeLangDir:
+            entries = [_FakeLangEntry()]
+
+        # Name entry — points to the language directory
+        class _FakeNameEntry:
+            id = 1
+            directory = _FakeLangDir()
+            struct = _struct_with(0x80000020)  # high bit set = "is directory"
+
+        class _FakeNameDir:
+            entries = [_FakeNameEntry()]
+
+        # Type entry — points to the name directory
+        class _FakeTypeEntry:
+            id = 16  # RT_VERSION
+            directory = _FakeNameDir()
+            struct = _struct_with(0x80000010)
+
+        class _FakeRootDir:
+            entries = [_FakeTypeEntry()]
+
+        class _FakeDataDir:
+            VirtualAddress = 0x1000
+
+        class _FakeOptHdr:
+            DATA_DIRECTORY = [None, None, _FakeDataDir()]
+
+        class _FakePE:
+            OPTIONAL_HEADER = _FakeOptHdr()
+            DIRECTORY_ENTRY_RESOURCE = _FakeRootDir()
+
+            def get_offset_from_rva(self, rva):
+                raise exception_to_raise
+
+        return _FakePE()
+
+    def test_pefile_format_error_yields_minus_one(self):
+        import pefile
+        from iocx.parsers.pe_resources import build_resource_structure
+
+        pe = self._make_pe_with_data_leaf_raising(
+            pefile.PEFormatError("simulated corrupt RVA")
+        )
+        result = build_resource_structure(pe)
+
+        assert result is not None
+        # Walk down to the leaf data entry
+        root = result["root"]
+        type_dir = root["entries"][0]["directory"]
+        name_dir = type_dir["entries"][0]["directory"]
+        leaf = name_dir["entries"][0]
+
+        assert leaf["is_directory"] is False
+        assert leaf["raw_offset"] == -1
+        # The other fields should still be populated normally
+        assert leaf["data_rva"] == 0x1100
+        assert leaf["data_size"] == 100
+
+    def test_attribute_error_yields_minus_one(self):
+        from iocx.parsers.pe_resources import build_resource_structure
+
+        pe = self._make_pe_with_data_leaf_raising(
+            AttributeError("simulated missing attribute")
+        )
+        result = build_resource_structure(pe)
+
+        root = result["root"]
+        type_dir = root["entries"][0]["directory"]
+        name_dir = type_dir["entries"][0]["directory"]
+        leaf = name_dir["entries"][0]
+
+        assert leaf["raw_offset"] == -1
+        assert leaf["data_rva"] == 0x1100
+        assert leaf["data_size"] == 100
+
+    def test_non_caught_exception_propagates(self):
+        """
+        Sanity check that the except clause is narrow — a RuntimeError
+        (not in the tuple) should still propagate. This protects against
+        someone widening the except to `Exception` without thinking.
+        """
+        import pytest as _pytest
+        from iocx.parsers.pe_resources import build_resource_structure
+
+        pe = self._make_pe_with_data_leaf_raising(
+            RuntimeError("not a caught exception type")
+        )
+        with _pytest.raises(RuntimeError):
+            build_resource_structure(pe)

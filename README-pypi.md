@@ -40,21 +40,19 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ---
 
+## Version highlights (v0.7.5)
+
+- Added detection for malformed exports, delay-load tables, resources, VS_VERSIONINFO, and Optional Header fields via 24 structural reason codes
+- Surfaces security metadata — DLL characteristics flags, subsystem/machine decoding, per-resource Shannon entropy
+- Never crashes on malformed input — byte-level parsing with structured error tombstones
+- 1370 tests at 100% coverage — deterministic output, snapshot-stable, cross-verified against `dumpbin`
+
 ## Version highlights (v0.7.4.1)
 
 - Removed the `python-magic` dependency, which caused import failures on Windows systems
 - Added a pure‑Python file‑type detector for full cross‑platform portability
 - No behavioural changes to IOC extraction
-- The `--min-length` consistency fix is planned for **v0.7.5**
-
-## Version highlights (v0.7.4)
-
-- Full **Load Config Directory** parsing and validation
-- Extended Optional Header metadata for downstream heuristics
-- Structural anomaly heuristics (GuardCF, unmapped cookie, SEH issues)
-- Faster, more resilient PE Analysis
-- Raw IOC extraction remains world-class
-- Zero regressions across all workloads
+- The `--min-length` consistency fix is planned for **v0.7.6**
 
 ---
 

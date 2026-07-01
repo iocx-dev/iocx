@@ -101,10 +101,18 @@ class ReasonCodes:
     RESOURCE_DIRECTORY_LOOP = "resource_directory_loop"
     RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
     RESOURCE_DIRECTORY_ZERO_LENGTH = "resource_directory_zero_length"
+    RESOURCE_DIRECTORY_LANGUAGE_NOT_ID = "resource_directory_language_not_id"
 
     # --- Resource data anomalies ---
     RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"
     RESOURCE_DATA_OVERLAPS_OTHER_DATA = "resource_data_overlaps_other_data"
+    RESOURCE_DATA_AT_INVALID_DEPTH = "resource_data_at_invalid_depth"
+
+    # --- Resource version info ---
+    RESOURCE_VERSIONINFO_INVALID_HEADER = "resource_versioninfo_invalid_header"
+    RESOURCE_VERSIONINFO_INVALID_FIXEDINFO = "resource_versioninfo_invalid_fixedinfo"
+    RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO = "resource_versioninfo_invalid_stringfileinfo"
+    RESOURCE_VERSIONINFO_INVALID_VARFILEINFO = "resource_versioninfo_invalid_varfileinfo"
 
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
@@ -122,6 +130,36 @@ class ReasonCodes:
 
     # SEH table issues
     LOAD_CONFIG_SEH_INVALID = "load_config_seh_invalid"
+
+    # --- Export directory anomalies ---
+    EXPORT_DIRECTORY_INVALID_HEADER = "export_directory_invalid_header"
+    EXPORT_DIRECTORY_OUT_OF_BOUNDS = "export_directory_out_of_bounds"
+    EXPORT_TABLE_TRUNCATED = "export_table_truncated"
+
+    # --- Export name pointer anomalies ---
+    EXPORT_NAME_RVA_INVALID = "export_name_rva_invalid"
+    EXPORT_NAME_NOT_ASCII = "export_name_not_ascii"
+    EXPORT_NAME_POINTER_TABLE_UNSORTED = "export_name_pointer_table_unsorted"
+    EXPORT_NAME_ORDINAL_INDEX_INVALID = "export_name_ordinal_index_invalid"
+
+    # --- Export function entry anomalies ---
+    EXPORT_ORDINAL_OUT_OF_RANGE = "export_ordinal_out_of_range"
+    EXPORT_FUNCTION_RVA_INVALID = "export_function_rva_invalid"
+    EXPORT_FORWARDER_MALFORMED = "export_forwarder_malformed"
+
+    # --- Delay-load import directory anomalies ---
+    DELAY_IMPORT_DIRECTORY_INVALID_HEADER = "delay_import_directory_invalid_header"
+    DELAY_IMPORT_DIRECTORY_OUT_OF_BOUNDS = "delay_import_directory_out_of_bounds"
+    DELAY_IMPORT_TABLE_TRUNCATED = "delay_import_table_truncated"
+
+    # --- Delay-load descriptor anomalies ---
+    DELAY_IMPORT_DESCRIPTOR_INVALID = "delay_import_descriptor_invalid"
+    DELAY_IMPORT_DLL_NAME_INVALID = "delay_import_dll_name_invalid"
+    DELAY_IMPORT_INT_IAT_MISMATCH = "delay_import_int_iat_mismatch"
+    DELAY_IMPORT_ATTRIBUTES_LEGACY_VA_MODE = "delay_import_attributes_legacy_va_mode"
+
+    # --- Delay-load entry anomalies ---
+    DELAY_IMPORT_ENTRY_INVALID = "delay_import_entry_invalid"
 
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"

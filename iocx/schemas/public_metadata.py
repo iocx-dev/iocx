@@ -14,8 +14,10 @@ class HeaderInfo(TypedDict, total=False):
     entry_point: Optional[int]
     image_base: Optional[int]
     subsystem: Optional[int]
+    subsystem_name: Optional[str]
     timestamp: Optional[int]
     machine: Optional[int]
+    machine_name: Optional[str]
     characteristics: Optional[int]
 
 
@@ -27,6 +29,15 @@ class OptionalHeaderInfo(TypedDict, total=False):
     linker_version: Optional[str]
     os_version: Optional[str]
     subsystem_version: Optional[str]
+    dll_characteristics: Optional[int]
+    dll_characteristics_flags: Optional[List[str]]
+    dll_characteristics_unknown_bits: Optional[str]
+    win32_version_value: Optional[int]
+    loader_flags: Optional[int]
+    stack_reserve_size: Optional[int]
+    stack_commit_size: Optional[int]
+    heap_reserve_size: Optional[int]
+    heap_commit_size: Optional[int]
 
 
 class RichHeaderInfo(TypedDict, total=False):
@@ -47,14 +58,17 @@ class ExportEntry(TypedDict):
     forwarder: Optional[str]
 
 
-class ResourceEntry(TypedDict):
+class ResourceEntry(TypedDict, total=False):
     type: str
     name: Optional[str]
-    language: Optional[str]
-    size: int
-    entropy: float
-    rva: int
-    raw_offset: int
+    language: Optional[int]
+    language_name: Optional[str]
+    codepage: Optional[int]
+    size: Optional[int]
+    entropy: Optional[float]
+    rva: Optional[int]
+    raw_offset: Optional[int]
+    errors: Optional[List[str]]
 
 
 class PublicMetadata(TypedDict, total=False):

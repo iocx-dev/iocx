@@ -31,8 +31,10 @@
       "entry_point": 4096,
       "image_base": 4194304,
       "subsystem": 3,
+      "subsystem_name": "WINDOWS_CUI",
       "timestamp": 0,
       "machine": 332,
+      "machine_name": "I386",
       "characteristics": 258
     },
     "optional_header": {
@@ -42,7 +44,16 @@
       "size_of_headers": 1024,
       "linker_version": "0.0",
       "os_version": "0.0",
-      "subsystem_version": "0.0"
+      "subsystem_version": "0.0",
+      "dll_characteristics": 0,
+      "dll_characteristics_flags": [],
+      "dll_characteristics_unknown_bits": null,
+      "win32_version_value": 0,
+      "loader_flags": 0,
+      "stack_reserve_size": 0,
+      "stack_commit_size": 0,
+      "heap_reserve_size": 0,
+      "heap_commit_size": 0
     },
     "rich_header": null,
     "signatures": [],
@@ -110,11 +121,11 @@
           "entry_point": 4096,
           "image_base": 4194304,
           "subsystem": 3,
+          "subsystem_name": "WINDOWS_CUI",
           "timestamp": 0,
           "machine": 332,
-          "characteristics": 258,
-          "machine_human": "x86",
-          "subsystem_human": "Windows CUI"
+          "machine_name": "I386",
+          "characteristics": 258
         }
       },
       {
@@ -129,7 +140,16 @@
           "size_of_headers": 1024,
           "linker_version": "0.0",
           "os_version": "0.0",
-          "subsystem_version": "0.0"
+          "subsystem_version": "0.0",
+          "dll_characteristics": 0,
+          "dll_characteristics_flags": [],
+          "dll_characteristics_unknown_bits": null,
+          "win32_version_value": 0,
+          "loader_flags": 0,
+          "stack_reserve_size": 0,
+          "stack_commit_size": 0,
+          "heap_reserve_size": 0,
+          "heap_commit_size": 0
         }
       }
     ],

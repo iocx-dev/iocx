@@ -214,7 +214,13 @@ def test_resource_zero_size(monkeypatch):
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
     _, metadata = parse_pe("dummy.exe")
 
-    assert metadata["resources"] == []
+    # Invalid resources are no longer dropped; they're emitted with errors populated.
+    assert len(metadata["resources"]) == 1
+    entry = metadata["resources"][0]
+    assert entry["errors"] == ["size_invalid"]
+    assert entry["size"] is None
+    assert entry["entropy"] is None
+    assert entry["language"] == 1033
 
 
 def test_resource_out_of_bounds(monkeypatch):
@@ -224,7 +230,10 @@ def test_resource_out_of_bounds(monkeypatch):
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
     _, metadata = parse_pe("dummy.exe")
 
-    assert metadata["resources"] == []
+    assert len(metadata["resources"]) == 1
+    entry = metadata["resources"][0]
+    assert entry["errors"] == ["data_out_of_bounds"]
+    assert entry["entropy"] is None
 
 
 def test_resource_missing_directory_on_type(monkeypatch):
@@ -266,7 +275,10 @@ def test_resource_negative_offset(monkeypatch):
     monkeypatch.setattr("iocx.parsers.pe_parser.pefile.PE", lambda *a, **k: pe)
     _, metadata = parse_pe("dummy.exe")
 
-    assert metadata["resources"] == []
+    assert len(metadata["resources"]) == 1
+    entry = metadata["resources"][0]
+    assert entry["errors"] == ["rva_invalid"]
+    assert entry["entropy"] is None
 
 
 def test_resource_mixed_valid_and_invalid(monkeypatch):
@@ -981,14 +993,13 @@ def test_optional_header_block(monkeypatch):
 from iocx.parsers.pe_parser import _decode_langid
 
 def test_decode_langid_non_int():
-    assert _decode_langid("409") == "unknown"
-    assert _decode_langid(None) == "unknown"
+    # Non-integer input cannot be decoded; returns None.
+    assert _decode_langid("409") is None
 
 
 def test_decode_langid_too_small():
-    # < 0x0400 should always be unknown
-    assert _decode_langid(0x0000) == "unknown"
-    assert _decode_langid(0x003F) == "unknown"
+    # LANGID 0 is LANG_NEUTRAL with no primary mapping; returns None.
+    assert _decode_langid(0x0000) is None
 
 
 def test_decode_langid_valid_with_default_region():
@@ -1002,10 +1013,24 @@ def test_decode_langid_valid_without_region():
 
 
 def test_decode_langid_unknown_primary():
-    # Primary language 0x999 is not in PRIMARY_LANG
-    assert _decode_langid(0x0999) == "unknown"
+    # Primary language 0x199 is not in PRIMARY_LANG; returns None.
+    # Note: previous test used 0x0999 which decomposed to primary=0x199.
+    # The new decoder reaches this state cleanly without the < 0x0400 guard.
+    assert _decode_langid(0x0999) is None
 
 
 def test_decode_langid_region_branch():
     # 0x0809 = English (United Kingdom) → explicit SUBLANG region
     assert _decode_langid(0x0809) == "en-GB"
+
+
+def test_decode_langid_arabic_neutral():
+    # LANGID 1 (Arabic, sublang neutral) was previously rejected by the
+    # < 0x0400 guard. The new decoder correctly returns the primary
+    # language name.
+    assert _decode_langid(0x0001) == "ar"
+
+
+def test_decode_langid_en_us():
+    # Sanity: en-US still decodes correctly (regression guard).
+    assert _decode_langid(0x0409) == "en-US"

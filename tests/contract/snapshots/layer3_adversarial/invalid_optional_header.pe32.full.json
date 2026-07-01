@@ -29,8 +29,10 @@
       "entry_point": 2415919104,
       "image_base": 74565,
       "subsystem": 3,
+      "subsystem_name": "WINDOWS_CUI",
       "timestamp": 0,
       "machine": 332,
+      "machine_name": "I386",
       "characteristics": 2
     },
     "optional_header": {
@@ -40,7 +42,16 @@
       "size_of_headers": 2048,
       "linker_version": "0.0",
       "os_version": "10.0",
-      "subsystem_version": "99.99"
+      "subsystem_version": "99.99",
+      "dll_characteristics": 0,
+      "dll_characteristics_flags": [],
+      "dll_characteristics_unknown_bits": null,
+      "win32_version_value": 0,
+      "loader_flags": 0,
+      "stack_reserve_size": 0,
+      "stack_commit_size": 0,
+      "heap_reserve_size": 0,
+      "heap_commit_size": 0
     },
     "rich_header": null,
     "signatures": [],
@@ -94,11 +105,11 @@
           "entry_point": 2415919104,
           "image_base": 74565,
           "subsystem": 3,
+          "subsystem_name": "WINDOWS_CUI",
           "timestamp": 0,
           "machine": 332,
-          "characteristics": 2,
-          "machine_human": "x86",
-          "subsystem_human": "Windows CUI"
+          "machine_name": "I386",
+          "characteristics": 2
         }
       },
       {
@@ -113,7 +124,16 @@
           "size_of_headers": 2048,
           "linker_version": "0.0",
           "os_version": "10.0",
-          "subsystem_version": "99.99"
+          "subsystem_version": "99.99",
+          "dll_characteristics": 0,
+          "dll_characteristics_flags": [],
+          "dll_characteristics_unknown_bits": null,
+          "win32_version_value": 0,
+          "loader_flags": 0,
+          "stack_reserve_size": 0,
+          "stack_commit_size": 0,
+          "heap_reserve_size": 0,
+          "heap_commit_size": 0
         }
       }
     ],
@@ -221,6 +241,16 @@
           "rva": 4096,
           "size": 512,
           "size_of_image": 512
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "export_table_truncated",
+          "table": "export_directory_header"
         }
       }
     ]
