@@ -180,26 +180,26 @@
 ### Export Directory Anomalies
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |-------------|------------------|-----------------|-------|
-| **EXPORT_DIRECTORY_INVALID_HEADER** |	The 40‑byte IMAGE_EXPORT_DIRECTORY header could not be decoded, or its declared counts and array RVAs are mutually inconsistent (e.g., NumberOfFunctions > 0 but AddressOfFunctions == 0, or NumberOfNames > NumberOfFunctions) | NumberOfNames = 50, NumberOfFunctions = 20 | Per‑file
-| **EXPORT_DIRECTORY_OUT_OF_BOUNDS** | The export directory's declared (rva, size) extends past SizeOfImage | Directory RVA = 0x1F0000, size = 0x1000, SizeOfImage = 0x1F0500 | Per‑file
-| **EXPORT_TABLE_TRUNCATED** | One of the export sub‑tables (EAT, ENPT, EOT) declares more entries than the file physically contains, or pe.get_data failed to read the declared extent | NumberOfFunctions = 1000, EAT physical extent only covers 50 entries | Per‑file
+| **EXPORT_DIRECTORY_INVALID_HEADER** |	The 40‑byte IMAGE_EXPORT_DIRECTORY header could not be decoded, or its declared counts and array RVAs are mutually inconsistent (e.g., NumberOfFunctions > 0 but AddressOfFunctions == 0, or NumberOfNames > NumberOfFunctions) | NumberOfNames = 50, NumberOfFunctions = 20 | Per‑file |
+| **EXPORT_DIRECTORY_OUT_OF_BOUNDS** | The export directory's declared (rva, size) extends past SizeOfImage | Directory RVA = 0x1F0000, size = 0x1000, SizeOfImage = 0x1F0500 | Per‑file |
+| **EXPORT_TABLE_TRUNCATED** | One of the export sub‑tables (EAT, ENPT, EOT) declares more entries than the file physically contains, or pe.get_data failed to read the declared extent | NumberOfFunctions = 1000, EAT physical extent only covers 50 entries | Per‑file |
 
 ### Export Name Pointer Anomalies
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |-------------|------------------|-----------------|-------|
-| **EXPORT_NAME_RVA_INVALID** | A name pointer entry's RVA is zero, missing, or points to a string that could not be read or was unterminated within the maximum scan length | Name RVA = 0x0, or RVA points to bytes with no NUL terminator within 1024 bytes | Per‑entry
-| **EXPORT_NAME_NOT_ASCII**	| A name string decoded successfully but contains non‑printable bytes or characters outside the printable ASCII range (0x20–0x7E) | Name = "Foo\x01Bar", or name decoded with Unicode replacement characters | Per‑entry
-| **EXPORT_NAME_POINTER_TABLE_UNSORTED** | The Export Name Pointer Table is not sorted lexicographically by name, violating the PE spec requirement that enables binary search by GetProcAddress | Names in order: ["Zeta", "Alpha", "Mu"] | Per‑file
-| **EXPORT_NAME_ORDINAL_INDEX_INVALID** | An EOT entry is missing, or its value is greater than or equal to NumberOfFunctions (i.e., it points outside the EAT) | EOT entry = 500, NumberOfFunctions = 100 | Per‑entry
+| **EXPORT_NAME_RVA_INVALID** | A name pointer entry's RVA is zero, missing, or points to a string that could not be read or was unterminated within the maximum scan length | Name RVA = 0x0, or RVA points to bytes with no NUL terminator within 1024 bytes | Per‑entry |
+| **EXPORT_NAME_NOT_ASCII**	| A name string decoded successfully but contains non‑printable bytes or characters outside the printable ASCII range (0x20–0x7E) | Name = "Foo\x01Bar", or name decoded with Unicode replacement characters | Per‑entry |
+| **EXPORT_NAME_POINTER_TABLE_UNSORTED** | The Export Name Pointer Table is not sorted lexicographically by name, violating the PE spec requirement that enables binary search by GetProcAddress | Names in order: ["Zeta", "Alpha", "Mu"] | Per‑file |
+| **EXPORT_NAME_ORDINAL_INDEX_INVALID** | An EOT entry is missing, or its value is greater than or equal to NumberOfFunctions (i.e., it points outside the EAT) | EOT entry = 500, NumberOfFunctions = 100 | Per‑entry |
 
 ### Export Function Entry Anomalies
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |-------------|------------------|-----------------|-------|
-| **EXPORT_ORDINAL_OUT_OF_RANGE** | The maximum computed ordinal (Base + NumberOfFunctions - 1) exceeds the 16‑bit range. Per PE spec, ordinals must fit in a WORD | Base = 0xFFF0, NumberOfFunctions = 32, max ordinal = 0x1000F | Per‑file
-| **EXPORT_FUNCTION_RVA_INVALID** | A function entry's address RVA is non‑zero, is not a forwarder, and points outside the PE image (>= SizeOfImage) | Address RVA = 0x2000000, SizeOfImage = 0x400000 | Per‑entry
-| **EXPORT_FORWARDER_MALFORMED** | A function entry's RVA points within the export directory (indicating a forwarder) but the resulting string is unreadable, contains non‑printable bytes, or does not match the spec format DllName.SymbolName or DllName.#Ordinal | Forwarder string = "KERNEL32\x01LoadLibraryA", or "InvalidForwarderNoDot" | Per‑entry
+| **EXPORT_ORDINAL_OUT_OF_RANGE** | The maximum computed ordinal (Base + NumberOfFunctions - 1) exceeds the 16‑bit range. Per PE spec, ordinals must fit in a WORD | Base = 0xFFF0, NumberOfFunctions = 32, max ordinal = 0x1000F | Per‑file |
+| **EXPORT_FUNCTION_RVA_INVALID** | A function entry's address RVA is non‑zero, is not a forwarder, and points outside the PE image (>= SizeOfImage) | Address RVA = 0x2000000, SizeOfImage = 0x400000 | Per‑entry |
+| **EXPORT_FORWARDER_MALFORMED** | A function entry's RVA points within the export directory (indicating a forwarder) but the resulting string is unreadable, contains non‑printable bytes, or does not match the spec format DllName.SymbolName or DllName.#Ordinal | Forwarder string = "KERNEL32\x01LoadLibraryA", or "InvalidForwarderNoDot" | Per‑entry |
 
 ## EXPORT SUB‑REASONS
 
@@ -219,7 +219,8 @@ Several export reason codes carry a reason field in their details payload that n
 
 The table field (not reason) identifies the affected sub‑table:
 
-| table value | Meaning
+| table value | Meaning |
+|-------------|---------|
 | export_directory_header | The 40‑byte header itself was short |
 | eat_truncated, enpt_truncated, eot_truncated | A sub‑table's declared size exceeded available file bytes |
 | eat_read_failed, enpt_read_failed, eot_read_failed | pe.get_data raised when reading the sub‑table |
@@ -241,30 +242,134 @@ Priority‑resolved; the first matching tag wins:
 Priority‑resolved:
 
 | Sub‑reason | Meaning |
+|------------|---------|
 | non_ascii	| Decode produced Unicode replacement characters |
 | name_not_printable_ascii | Decoded successfully but contains bytes outside 0x20–0x7E |
 
 ### EXPORT_NAME_ORDINAL_INDEX_INVALID
 
 | Sub‑reason | Meaning |
+|------------|---------|
 | missing | Parser could not read the EOT entry |
 | out_of_range | Ordinal index >= NumberOfFunctions |
 
 ### EXPORT_ORDINAL_OUT_OF_RANGE
 
 | Sub‑reason | Meaning |
+|------------|---------|
 | max_exceeds_u16 | Base + NumberOfFunctions − 1 > 0xFFFF |
 
 ### EXPORT_FORWARDER_MALFORMED
 
 | Sub‑reason | Meaning |
+|------------|---------|
 | unreadable | RVA points into export directory but string could not be decoded |
 | format | Decoded fine but does not match DllName.SymbolName or DllName.#Ordinal |
 
 ### EXPORT_FUNCTION_RVA_INVALID
 
 | Sub‑reason | Meaning |
+|------------|---------|
 | exceeds_image	 | Address RVA >= SizeOfImage |
+
+---
+
+## DELAY‑LOAD IMPORT ANOMALIES
+
+### Delay‑Load Directory Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **DELAY_IMPORT_DIRECTORY_INVALID_HEADER** | The delay‑load directory's parser could not complete top‑level decoding (e.g., the directory placement could not be read, or initial structures were unrecoverable) | Directory at RVA that pefile cannot resolve to a section | Per‑file |
+| **DELAY_IMPORT_DIRECTORY_OUT_OF_BOUNDS** | The delay‑load directory's declared (rva, size) extends past SizeOfImage | Directory RVA = 0xFF000, size = 0x4000, SizeOfImage = 0x100000 | Per‑file |
+| **DELAY_IMPORT_TABLE_TRUNCATED** | One of the delay‑load sub‑tables (descriptor array, INT, IAT, bound IAT, unload IAT) declares more entries than the file physically contains, or pe.get_data failed to read the declared extent, or no zero‑descriptor terminator was found before reaching the directory's declared end | Descriptor count of 50 but only 12 fit in declared size; or INT walk hits max imports without NULL thunk | Per‑file |
+
+### Delay‑Load Descriptor Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **DELAY_IMPORT_DESCRIPTOR_INVALID** | A per‑descriptor structural error: the INT or IAT RVA is zero despite the descriptor being non‑terminating, the sub‑table read failed, or the sub‑table was unparseable. Affects one descriptor at a time | Descriptor for "gdiplus.dll" has int_rva = 0 | Per‑descriptor |
+| **DELAY_IMPORT_DLL_NAME_INVALID** | A descriptor's DLL name RVA points to a string that is zero, unreadable, unterminated within the maximum scan length, or contains non‑printable bytes | Name RVA = 0x0, or name = "kernel32\x01dll" | Per‑descriptor |
+| **DELAY_IMPORT_INT_IAT_MISMATCH** | A descriptor's Import Name Table and Import Address Table have different lengths. Per spec, they must be parallel arrays of identical length terminated by a NULL thunk | INT has 14 entries, IAT has 12 entries — strong malformation signal | Per‑descriptor |
+| **DELAY_IMPORT_ATTRIBUTES_LEGACY_VA_MODE** | A descriptor's Attributes field has the low bit clear, indicating v0 (pre‑Windows 2000) mode where table fields are raw VAs rather than RVAs. Vanishingly rare in modern binaries | Attributes = 0x00000000 instead of 0x00000001 | Per‑descriptor |
+
+### Delay‑Load Entry Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|-------------|------------------|-----------------|-------|
+| **DELAY_IMPORT_ENTRY_INVALID** | A per‑import entry has structural malformation: the INT thunk is missing or zero, an ordinal value is zero (invalid), or the IMAGE_IMPORT_BY_NAME structure is malformed (unreadable, too short, unterminated, or non‑printable name) | INT entry with high bit set but ordinal = 0; or hint+name structure with NUL‑less buffer | Per‑entry |
+
+## DELAY‑LOAD IMPORT SUB‑REASONS
+
+Most delay‑load reason codes carry a reason field in their details payload that narrows the pathology. The full taxonomy:
+
+### DELAY_IMPORT_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top‑level decoding of the delay‑load directory |
+
+### DELAY_IMPORT_TABLE_TRUNCATED
+
+The table field (not reason) identifies the affected sub‑table:
+
+| table value | Meaning |
+|-------------|---------|
+| delay_import_descriptor_truncated | A descriptor's 32‑byte structure was short |
+| delay_import_descriptor_read_failed | pe.get_data raised when reading a descriptor |
+| delay_import_descriptor_unterminated | No zero descriptor found before the directory's declared end |
+| delay_import_descriptor_max_exceeded | Hit the hard descriptor limit (4096) without finding a NULL terminator |
+| int_truncated, iat_truncated | A sub‑table's declared extent exceeded available file bytes |
+| int_read_failed, iat_read_failed | pe.get_data raised when reading a thunk |
+| int_max_exceeded, iat_max_exceeded | Hit the imports‑per‑descriptor limit (16384) without finding a NULL terminator |
+| int_unpack_failed, iat_unpack_failed | struct.unpack failed on a thunk value |
+
+### DELAY_IMPORT_DESCRIPTOR_INVALID
+
+Carries both table and reason in details:
+
+| table	reason (priority order) | Meaning |
+|-------------------------------|---------|
+| int	int_rva_zero | INT RVA is zero despite the descriptor being non‑terminating |
+| int	int_truncated, int_read_failed, int_max_exceeded, int_unpack_failed | Sub‑table read or parse failure (also surfaces via DELAY_IMPORT_TABLE_TRUNCATED) |
+| iat	iat_rva_zero | IAT RVA is zero |
+| iat	iat_truncated, iat_read_failed, iat_max_exceeded, iat_unpack_failed | Same as INT |
+
+### DELAY_IMPORT_DLL_NAME_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| dll_name_rva_zero | DLL name RVA was explicitly zero |
+| read_failed | pe.get_data raised when reading the DLL name string |
+| unterminated | No NUL terminator found within the maximum scan length (512 bytes) |
+| dll_name_not_printable | Decoded successfully but contains bytes outside 0x20–0x7E |
+| non_ascii | Decode produced Unicode replacement characters |
+
+### DELAY_IMPORT_INT_IAT_MISMATCH
+
+No sub‑reasons; the code itself names the pathology. Cross‑table length disagreement.
+
+### DELAY_IMPORT_ATTRIBUTES_LEGACY_VA_MODE
+
+No sub‑reasons. Fires when the Attributes field's low bit is zero.
+
+### DELAY_IMPORT_ENTRY_INVALID
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| int_entry_missing | Parser could not read this entry's INT thunk |
+| int_entry_zero | INT entry is zero at an unexpected position (terminator before INT length matches IAT) |
+| ordinal_zero | High bit set on INT entry but ordinal value is zero |
+| name_read_failed | pe.get_data raised when reading the IMAGE_IMPORT_BY_NAME structure |
+| name_too_short | IMAGE_IMPORT_BY_NAME buffer was less than 3 bytes |
+| hint_unpack_failed | Could not unpack the WORD hint |
+| name_unterminated | Name string had no NUL terminator within the maximum scan length |
+| name_non_ascii | Name decode produced Unicode replacement characters |
+| name_not_printable | Name decoded successfully but contains non‑printable bytes |
 
 ---
 

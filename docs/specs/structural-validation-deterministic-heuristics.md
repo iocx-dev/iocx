@@ -33,6 +33,8 @@ This is **structural verification**.
 Each validator inspects a distinct subsystem of the PE format.
 Together, they form a complete, deterministic structural model of the binary.
 
+Some structural metadata extracted by parsers is **producer-facing**: it exists to enable validators and heuristics, not to be exposed via the public IOC schema. Examples include the export and delay-load structural details. Other structural metadata is **consumer-facing** and intended for public exposure: version-info string fields are an example of this, planned for promotion in a future release.
+
 ---
 
 # **2.1 Entropy Validator**
@@ -249,6 +251,43 @@ The export table is the second‑most parser‑sensitive surface in the PE forma
 The exports parser reads all four critical tables (header, EAT, ENPT, EOT) directly from raw bytes via struct.unpack_from, with bounded array reads and per‑position fallback to None when bytes are missing. The validator's per‑entry checks treat the parser's tombstone tags as a stable contract — each tag maps to a deterministic reason code and sub‑reason. Priority lists govern which sub‑reason wins when an entry carries multiple malformations.
 
 This ensures that for any given malformed export table, the validator produces the same set of reason codes on every run, regardless of platform or pefile version. Forwarder strings are validated against the PE spec's DllName.SymbolName and DllName.#Ordinal grammar via a single conservative regex, not by attempting runtime resolution.
+
+---
+
+## 2.12 Delay-Load Imports Validator
+
+### Validates the structural integrity of the PE delay-load import directory and its descriptor array.
+
+This validator performs:
+
+- Top-level decode failure detection and short-circuit for unrecoverable directory placement.
+- Delay-load directory placement within `SizeOfImage`.
+- Truncation reporting across the descriptor array and per-descriptor INT and IAT sub-tables.
+- Per-descriptor structural validation: zero-RVA sub-tables, sub-table read failures, length-budget exhaustion.
+- DLL name string validation: RVA presence, readability, NUL termination, printable ASCII compliance.
+- INT/IAT parallel-array length consistency check (the strongest single signal of malformation).
+- v0 (legacy VA-mode) attribute detection for pre-Windows 2000 binaries.
+- Per-entry validation of INT thunks and IMAGE_IMPORT_BY_NAME structures, including ordinal validity, hint readability, and name structural correctness.
+
+Absence of a delay-load directory is not treated as a structural defect — most binaries do not use delay-loading. Bound state (`bound_iat_rva != 0`) is captured by the parser but not flagged as anomalous; bound delay-load is the normal pattern for Microsoft-shipped binaries.
+
+The delay-load directory is one of the most divergence-prone surfaces in the PE format. Three properties make general-purpose delay-load parsers prone to inconsistent output:
+
+The directory is a chain of variable-content structures whose interpretation depends on a single bit in the Attributes field — v0 binaries (Attributes bit 0 clear) use raw virtual addresses requiring ImageBase subtraction, while v1 binaries use RVAs directly. Many parsers do not implement v0 support and silently coerce the values, producing output that differs across tool versions and across binaries depending on which mode is detected.
+
+The INT and IAT are parallel arrays whose elements must agree on length, but whose interpretations diverge: an INT entry is a thunk describing an import (ordinal or hint+name pointer); an IAT entry is initially a mirror of the INT thunk and later becomes a runtime-resolved address. Bound binaries have the IAT pre-populated with bound addresses, breaking the mirror property. Parsers that assume the mirror property unconditionally produce wrong results on bound binaries; parsers that assume the bound property unconditionally produce wrong results on unbound binaries.
+
+The descriptor array is terminated by a zero-filled IMAGE_DELAY_IMPORT_DESCRIPTOR rather than by a count field. Parsers that trust the directory's declared size and parsers that walk until terminator both work on well-formed binaries but disagree on truncated ones — the former stops at declared end and reports a clean truncation; the latter reads past declared end if a terminator is absent, producing data that the former considers out-of-bounds.
+
+The delay-load parser is implemented as a pure `struct`-level decoder over `pe.get_data`-acquired byte buffers:
+
+- The 32-byte IMAGE_DELAY_IMPORT_DESCRIPTOR structure is unpacked via a single `struct.unpack_from` call. No reliance on pefile's `DIRECTORY_ENTRY_DELAY_IMPORT` interpretation.
+- The Attributes v1 flag is captured from the raw value; v0 binaries are reported via a dedicated reason code rather than silently coerced. The PE32+ vs PE32 distinction is captured from `OPTIONAL_HEADER.Magic` once at parse-start and used for the entire walk to determine thunk size (DWORD vs QWORD).
+- The descriptor array walk has both an explicit zero-descriptor terminator check and a hard count limit (4096), with distinct truncation tags for each termination cause.
+- INT and IAT thunk arrays are walked with the same dual-bounded strategy: zero terminator detection plus hard limit (16384 per descriptor). Each thunk's struct.unpack failure is reported deterministically.
+- Bound state is detected by `bound_iat_rva != 0` (a single byte-level field comparison), not by inference from IAT value patterns. The detection is bit-exact across runs.
+- INT/IAT length mismatch is detected by a single integer comparison after both arrays are walked. The validator emits a dedicated reason code rather than letting the inconsistency propagate as per-entry errors.
+- The IMAGE_IMPORT_BY_NAME structure is read with a bounded scan (1024 bytes) and validated against printable ASCII rules. Substructure failures emit deterministic tombstone tags in per-entry `errors` lists.
 
 ---
 

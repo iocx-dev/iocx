@@ -1,347 +1,121 @@
-# **v0.7.5 — Unreleased**
+# v0.7.5 — Unreleased
+
+This release substantially expands IOCX's structural validator suite with four new parser/validator pairs (export tables, delay-load imports, VS_VERSIONINFO, and the resource directory's Type → Name → Language hierarchy), enriches public metadata with security-relevant Optional Header and per-resource fields, and adds 24 new structural reason codes across exports, resources, and delay-load. All new code lands with 100% line and branch coverage backed by real-binary verification.
 
 ## Added
 
-- **Resource directory hierarchy enforcement.** The resource validator now
-  tracks tree depth and enforces the PE specification's Type → Name → Language
-  layering. Two new reason codes are emitted:
-  - `RESOURCE_DIRECTORY_LANGUAGE_NOT_ID` — a depth-2 (Language layer) entry
-    uses a name instead of an integer LCID.
-  - `RESOURCE_DATA_AT_INVALID_DEPTH` — a data leaf appears outside the
-    Language layer.
-- **Deterministic VS_VERSIONINFO extraction.** New `pe_version_info` parser
-  module decodes the version-info envelope, VS_FIXEDFILEINFO, StringFileInfo
-  and VarFileInfo structures purely from bytes using `struct.unpack_from`.
-  Leaf selection across multiple RT_VERSION entries is deterministic, sorted
-  by `(name_id, language_id)`. The decoder never raises; sub-structure
-  failures emit tombstone tags in an `errors[]` list.
-- **Version-info structural validator.** New `validator_version_info` module
-  maps parser output to four new reason codes:
-  - `RESOURCE_VERSIONINFO_INVALID_HEADER` — placement, `szKey`, or `wLength`
-    malformed.
-  - `RESOURCE_VERSIONINFO_INVALID_FIXEDINFO` — VS_FIXEDFILEINFO signature or
-    struct version wrong, or parse failed.
-  - `RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO` — StringFileInfo,
-    StringTable, or String malformed.
-  - `RESOURCE_VERSIONINFO_INVALID_VARFILEINFO` — VarFileInfo or Var malformed,
-    or Translation array not DWORD-aligned.
+### New structural validators
 
-  Absence of RT_VERSION is not treated as a structural defect.
-- **Precise internal metadata typing.** `InternalMetadata.resources_struct` is
-  now `Optional[ResourcesStruct]` with a fully-typed `ResourceEntry` shape
-  replacing `List[Any]`. New `VersionInfoStruct` and its sub-types
-  (`FixedFileInfo`, `StringFileInfo`, `StringTable`, `VarFileInfo`,
-  `VarEntry`, `Translation`) are declared in the schema.
-- **Deterministic export table extraction.** New `pe_exports` module
-  decodes the 40-byte `IMAGE_EXPORT_DIRECTORY` header, the Export Address
-  Table, Export Name Pointer Table, and Export Ordinal Table purely from
-  bytes using `struct.unpack_from`. Forwarder detection follows the PE
-  spec rule (address RVA falls within the export directory range).
-  Name and forwarder string reads are bounded; the decoder never raises;
-  sub-structure failures emit tombstone tags in `truncations[]` and
-  per-entry `errors[]`.
-- **Export table structural validator.** New `exports` module
-  maps parser output to ten new reason codes:
-  - `EXPORT_DIRECTORY_INVALID_HEADER` — header malformed or declared
-    counts inconsistent with declared array RVAs.
-  - `EXPORT_DIRECTORY_OUT_OF_BOUNDS` — directory extends past
-    `SizeOfImage`.
-  - `EXPORT_TABLE_TRUNCATED` — declared sub-table size exceeds available
-    bytes (per-table emission via `details["table"]`).
-  - `EXPORT_NAME_RVA_INVALID` — name pointer RVA unusable
-    (priority-resolved sub-reasons: `name_rva_missing`, `name_rva_zero`,
-    `read_failed`, `unterminated`).
-  - `EXPORT_NAME_NOT_ASCII` — name decoded but contains non-printable
-    bytes (priority-resolved sub-reasons: `non_ascii`,
-    `name_not_printable_ascii`).
-  - `EXPORT_NAME_POINTER_TABLE_UNSORTED` — ENPT violates the PE-spec
-    requirement that names be sorted lexicographically for binary search.
-  - `EXPORT_NAME_ORDINAL_INDEX_INVALID` — EOT entry missing or points
-    outside the EAT.
-  - `EXPORT_ORDINAL_OUT_OF_RANGE` — `Base + NumberOfFunctions - 1`
-    exceeds 16-bit range.
-  - `EXPORT_FUNCTION_RVA_INVALID` — function address RVA exceeds
-    `SizeOfImage`.
-  - `EXPORT_FORWARDER_MALFORMED` — forwarder string unreadable or
-    violates `DllName.SymbolName` / `DllName.#Ordinal` grammar.
+- **Export table parser and validator** (pe_exports, exports). Decodes the 40-byte IMAGE_EXPORT_DIRECTORY, EAT, ENPT, and EOT purely from bytes; emits ten new reason codes covering directory, name-pointer, and function-entry anomalies. Forwarder detection follows the PE-spec rule (address RVA within export directory range). Absence of an export directory is not treated as a defect.
+- **Delay-load import parser and validator** (parser_delay_imports, validator_delay_imports). Decodes the 32-byte IMAGE_DELAY_IMPORT_DESCRIPTOR, INT, and IAT purely from bytes; emits eight new reason codes covering directory, descriptor, and entry anomalies. PE32+ vs PE32 thunk sizing determined once from OPTIONAL_HEADER.Magic; v1 vs v0 attribute mode captured explicitly rather than coerced; bound state detected by bound_iat_rva != 0. Absence of a delay-load directory is not treated as a defect.
+- **VS_VERSIONINFO parser and validator** (pe_version_info, validator_version_info). Decodes the version-info envelope, VS_FIXEDFILEINFO, StringFileInfo, and VarFileInfo purely from bytes; emits four new reason codes covering header, FixedInfo, StringFileInfo, and VarFileInfo malformations. Leaf selection across multiple RT_VERSION entries is deterministic, sorted by (name_id, language_id). Absence of RT_VERSION is not treated as a defect.
+- **Resource hierarchy enforcement.** Resource validator now tracks tree depth and enforces the PE spec's Type → Name → Language layering, emitting two new reason codes (RESOURCE_DIRECTORY_LANGUAGE_NOT_ID, RESOURCE_DATA_AT_INVALID_DEPTH).
 
-  Absence of an export directory is not treated as a structural defect;
-  most EXEs legitimately have no exports.
-- **Precise export-table typing.** New TypedDicts for `ExportStruct`,
-  `ExportDirectoryHeader`, `ExportFunctionEntry`, and
-  `ExportNamePointerEntry`. `InternalMetadata.export_struct` is typed as
-  `Optional[ExportStruct]`.
-- **Enriched resource metadata in CLI output.** The `_parse_resources`
-  function now exposes a structured `ResourceEntry` for every resource
-  in the PE, covering all four fields called out in requirement 4
-  (type, size, language and codepage, entropy) plus the schema-declared
-  `name`, `rva`, and `raw_offset` fields. Output is deterministic and
-  JSON-safe.
-- **Per-entry structured error reporting.** Resources whose data bytes
-  cannot be read are no longer silently dropped from the output. Instead,
-  the entry is emitted with an `errors` list populated with tombstone
-  tags describing the failure:
-  - `size_invalid` — declared size is zero or negative.
-  - `rva_invalid` — data RVA is negative.
-  - `data_out_of_bounds` — RVA + size exceeds the memory-mapped image.
-  - `raw_offset_invalid` — `get_offset_from_rva` failed to resolve the
-    file offset.
+### Reason codes added (24 total)
 
-  This makes the resource count visible to consumers even when individual
-  entries cannot be fully decoded.
-- **Codepage field on resource entries.** The `CodePage` field from the
-  PE resource data structure is now captured as `codepage` in the
-  output, typed as `Optional[int]` (null when zero or absent).
-- **Deterministic resource ordering.** The output list is sorted by
-  `(type, language, rva)` to ensure snapshot stability across runs.
-- **Per-resource Shannon entropy.** Computed over the resource's data
-  bytes, rounded to 4 decimal places for snapshot stability. Entries
-  with unreadable data produce `entropy: null` and the corresponding
-  error tombstone.
-- Optional Header metadata enrichment. The optional_header block
-  in public metadata now exposes security-relevant and sizing fields
-  previously not captured by IOCX, completing requirement 1. New fields:
-  - dll_characteristics — raw DllCharacteristics value.
-  - dll_characteristics_flags — decoded flag names from the
-    IMAGE_DLLCHARACTERISTICS_* set (e.g., "DYNAMIC_BASE",
-    "NX_COMPAT", "GUARD_CF"), sorted by bit position for snapshot
-    stability.
-  - dll_characteristics_unknown_bits — hex string for bits set in
-    DllCharacteristics but not in IOCX's known-flag mask, or null
-    when all set bits are recognised.
-  - win32_version_value — raw Win32VersionValue DWORD (deprecated
-    per PE spec; exposed for completeness).
-  - loader_flags — raw LoaderFlags DWORD (reserved per PE spec;
-    exposed for completeness).
-  - stack_reserve_size, stack_commit_size — SizeOfStackReserve
-    and SizeOfStackCommit (64-bit on PE32+ binaries).
-  - heap_reserve_size, heap_commit_size — SizeOfHeapReserve
-    and SizeOfHeapCommit.
-- Subsystem name decoding. The header block now includes
-  subsystem_name, a decoded string from the IMAGE_SUBSYSTEM_*
-  table (e.g., "WINDOWS_CUI", "NATIVE", "EFI_APPLICATION").
-  Returns null for subsystem values outside the well-known set.
-  The raw subsystem integer field is unchanged.
-- New constants module iocx.parsers.pe_constants. Houses the
-  SUBSYSTEM_NAMES and DLL_CHARACTERISTICS_FLAGS lookup tables,
-  plus the derived DLL_CHARACTERISTICS_KNOWN_MASK. Sourced from
-  the Microsoft PE format specification.
+- **Resource hierarchy (2):** RESOURCE_DIRECTORY_LANGUAGE_NOT_ID, RESOURCE_DATA_AT_INVALID_DEPTH
+- **VS_VERSIONINFO (4):** RESOURCE_VERSIONINFO_INVALID_HEADER, _INVALID_FIXEDINFO, _INVALID_STRINGFILEINFO, _INVALID_VARFILEINFO
+- **Exports (10):** EXPORT_DIRECTORY_INVALID_HEADER, _OUT_OF_BOUNDS, EXPORT_TABLE_TRUNCATED, EXPORT_NAME_RVA_INVALID, _NOT_ASCII, _POINTER_TABLE_UNSORTED, _ORDINAL_INDEX_INVALID, EXPORT_ORDINAL_OUT_OF_RANGE, EXPORT_FUNCTION_RVA_INVALID, EXPORT_FORWARDER_MALFORMED
+- **Delay-load (8):** DELAY_IMPORT_DIRECTORY_INVALID_HEADER, _OUT_OF_BOUNDS, DELAY_IMPORT_TABLE_TRUNCATED, DELAY_IMPORT_DESCRIPTOR_INVALID, DELAY_IMPORT_DLL_NAME_INVALID, _INT_IAT_MISMATCH, _ATTRIBUTES_LEGACY_VA_MODE, DELAY_IMPORT_ENTRY_INVALID
+
+All new codes follow the established pattern: priority-resolved sub-reasons surfaced via details["reason"], with sub-table scoping via details["table"] where applicable.
+
+### Public metadata enrichment
+
+- **Optional Header fields.** New fields in the optional_header block: dll_characteristics (raw value), dll_characteristics_flags (decoded flag names sorted by bit position), dll_characteristics_unknown_bits (hex string for unrecognised bits), win32_version_value, loader_flags, stack_reserve_size, stack_commit_size, heap_reserve_size, heap_commit_size.
+- **Header decoding.** New subsystem_name field in the header block, decoded from IMAGE_SUBSYSTEM_* (e.g., "WINDOWS_CUI"); returns null for unknown values. Raw subsystem integer unchanged. New machine_name field decoded from IMAGE_FILE_MACHINE_* (e.g., "AMD64", "I386", "ARM64"); the supporting MACHINE_NAMES table covers all 29 documented machine types.
+- **Resource metadata.** The resources field now exposes a structured ResourceEntry per resource covering type, name, language, language_name, codepage, size, entropy, rva, raw_offset, and errors. Per-resource Shannon entropy is rounded to 4 decimal places. Output is sorted by (type, language, rva) for snapshot stability. Resources whose data bytes cannot be read are no longer silently dropped; they are emitted with errors populated (tags: size_invalid, rva_invalid, data_out_of_bounds, raw_offset_invalid).
+
+### Schema typing
+
+- New TypedDicts: ExportStruct, ExportDirectoryHeader, ExportFunctionEntry, ExportNamePointerEntry, DelayImportStruct, DelayImportDescriptor, DelayImportEntry, VersionInfoStruct and its sub-types (FixedFileInfo, StringFileInfo, StringTable, VarFileInfo, VarEntry, Translation).
+- InternalMetadata.resources_struct is now Optional[ResourcesStruct] with a fully-typed ResourceEntry shape replacing List[Any]. InternalMetadata.export_struct, delay_import_struct, and version_info_struct are typed as Optional of their respective structs.
+- New constants module iocx.parsers.pe_constants houses SUBSYSTEM_NAMES, MACHINE_NAMES, DLL_CHARACTERISTICS_FLAGS, and the derived DLL_CHARACTERISTICS_KNOWN_MASK.
 
 ## Changed
 
-- **Resource parser hardens against corrupt RVAs.** `pe.get_offset_from_rva`
-  calls are now guarded against `pefile.PEFormatError` and `AttributeError`.
-  A corrupt RVA produces a `-1` sentinel in `raw_offset` rather than
-  propagating the exception. The validator's existing `data_raw < 0` arm
-  maps this to the existing `RESOURCE_DATA_OUT_OF_BOUNDS` reason code; no new
-  code introduced.
-- **Validator dispatcher order.** `validate_version_info` is registered
-  between `validate_resources` and `validate_entropy`, reflecting its
-  position as a payload-specific validator nested under the resource tree.
-- **Validator dispatcher order.** `validate_exports` is registered
-  between `validate_version_info` and `validate_entropy`, completing the
-  structural validator chain ahead of the entropy/derived layer.
-- **`ResourceEntry` schema expanded.** Fields are now `total=False`
-  Optional to accommodate per-entry computation failures. New fields:
-  `codepage`, `errors`. Existing fields retain their meanings; `name`,
-  `rva`, and `raw_offset` are now populated where they were previously
-  declared but absent from output.
-- **`_decode_langid` returns `None` for undecodable LANGIDs.**
-  Previously returned the magic string `"unknown"`, which conflated
-  several distinct states (not provided, structurally invalid, primary
-  language unmapped). The new behaviour returns `None` from every
-  "cannot decode" path, allowing consumers to distinguish cleanly.
-  The early-return guard `if langid < 0x0400` was removed; it was
-  rejecting valid neutral-sublang LANGIDs (e.g., LANGID `0x0001`
-  decodes correctly as `"ar"` for Arabic).
-- **Resource entropy now computed over the correct byte range.**
-  Previously sliced `get_memory_mapped_image()` with the raw file
-  offset; now correctly uses the RVA. This was a regression introduced
-  during the requirement 4 work and caught before snapshot stamping —
-  entropy values now match the previous release's behaviour for all
-  existing fixtures.
-- Convention for missing-field defaults. The new Optional Header
-  fields use None as the default value when pefile cannot extract
-  the field, distinct from 0 which indicates the binary's actual
-  value. This is a deliberate divergence from the existing fields'
-  default-to-zero convention. Rationale: the semantic split between
-  "missing" and "zero" is meaningful for security-relevant fields
-  (a DllCharacteristics of 0 means "no security features enabled,"
-  which is itself a signal; null means "could not extract"). Existing
-  fields retain their default-to-zero behaviour for backward
-  compatibility.
-- Extended metadata analyser refactored to remove duplicated decoding.
-  Following the parser-layer additions of subsystem_name (requirement 1)
-  and machine_name (this release), the analyse_extended module no
-  longer maintains its own _SUBSYSTEM_MAP and _MACHINE_MAP lookup
-  tables. The legacy subsystem_human and machine_human fields are
-  removed from extended metadata output. The parser layer is now the
-  single source of truth for both subsystem and machine name decoding.
-- Machine name decoding moved to the parser layer. Added
-  _MACHINE_NAMES to iocx.parsers.pe_constants and machine_name
-  to _parse_header output. Consistent with the subsystem_name
-  convention introduced in requirement 1 (uppercase-underscore form,
-  None for unknown values).
-- Resource entropy statistics tolerate per-entry errors. Following
-  requirement 4's introduction of resource-level errors reporting,
-  the extended analyser's resource summary computes entropy_min,
-  entropy_max, and entropy_avg over only the entries with computed
-  entropy values. Resources with entropy: None (due to per-entry
-  computation failures) are excluded from the aggregates. When no
-  resource has a computed entropy, all three statistics are None
-  rather than raising on empty min() / max().
+### Validator dispatcher
 
-## Marked as RESERVE but consider removing in the future
+Three new validators registered in the structural validator chain, in order:
 
-- Dead `size == 0` branch in `validate_directory` (unreachable: `size` is
-  derived from `len(entries)` and always ≥ 16).
-- Unused `rsrc_raw` and `rsrc_raw_size` locals in the resource validator.
+```
+validate_resources → validate_version_info → validate_exports → validate_delay_imports → validate_entropy
+```
+
+This completes the resource and import/export structural validator clusters ahead of the entropy/derived layer.
+
+### Parser robustness
+
+- **Guarded RVA→offset conversion.** pe.get_offset_from_rva calls are now guarded against pefile.PEFormatError and AttributeError. A corrupt RVA produces a -1 sentinel in raw_offset rather than propagating the exception. The validator's existing data_raw < 0 arm maps this to the existing RESOURCE_DATA_OUT_OF_BOUNDS reason code; no new code introduced.
+- **Resource entropy now computed over the correct byte range.** Previously sliced get_memory_mapped_image() with the raw file offset; now correctly uses the RVA. Caught before snapshot stamping; entropy values match the previous release's behaviour for all existing fixtures.
+
+### Schema and decoding semantics
+
+- **ResourceEntry schema expanded.** Fields are now total=False Optional to accommodate per-entry computation failures. New fields: codepage, errors. The name, rva, and raw_offset fields are now populated where they were previously declared but absent from output.
+- **_decode_langid returns None for undecodable LANGIDs** (previously returned the magic string "unknown"). The early-return guard if langid < 0x0400 was removed; it was rejecting valid neutral-sublang LANGIDs (LANGID 0x0001 now correctly decodes as "ar" for Arabic).
+- **Optional Header missing-field convention.** New Optional Header fields use None as the default value when pefile cannot extract the field, distinct from 0 which indicates the binary's actual value. This is a deliberate semantic split for security-relevant fields where "missing" and "zero" carry different meaning. Existing Optional Header fields retain their default-to-zero behaviour for backward compatibility.
+
+### Extended analyser refactor
+
+- **analyse_extended cleaned up.** Removed duplicated _SUBSYSTEM_MAP and _MACHINE_MAP lookup tables now that decoded names come from the parser layer. The legacy subsystem_human and machine_human fields are removed from extended metadata output. Resource entropy summary statistics (entropy_min, entropy_max, entropy_avg) now compute over only entries with computed entropy values, excluding entropy: None entries.
 
 ## Fixed
 
-- Resource validator no longer silently returns when a directory's own RVA
-  falls outside `.rsrc`. Behaviour previously suppressed any reporting for
-  malformed directory placement.
+- **Resource validator no longer silently returns** when a directory's own RVA falls outside .rsrc. Previously suppressed any reporting for malformed directory placement.
 
 ## Documentation
 
-- Reason-codes reference extended with two new subsections:
-  *Resource Hierarchy Anomalies* and *Resource Version-Info Anomalies*.
-- New validator documentation section (2.10) for the version-info validator,
-  including an explicit determinism rationale paragraph.
-- Brief clarifying note added to the resources validator section explaining
-  the layering between resource-tree validation and payload validators
-  nested beneath it.
-- Reason-codes reference extended with a new top-level *Export Anomalies*
-  section in three subsections (Directory, Name Pointer, Function Entry)
-  and a dedicated *Export Sub-Reasons* taxonomy section documenting the
-  `details["reason"]` contract for each code that carries one.
-- New validator documentation section 2.11 for the exports validator with
-  explicit determinism rationale.
-- Resource metadata documentation extended to describe the new
-  `ResourceEntry` shape, the `errors` field semantics, and the
-  `codepage` field's `null`-on-absent convention.
-- The `_decode_langid` semantics are documented inline: primary
-  language and sublang decomposition, fallback to default region,
-  fallback to primary-language-only, fallback to `None`.
-- Documented the new Optional Header fields in the schema reference,
-  including the dll_characteristics_unknown_bits field's role in
-  preserving complete information about non-decoded bits.
-- Documented the mixed-default convention (0 for existing fields,
-  None for new fields) with rationale for the divergence.
-- analyse_extended module purpose documented inline. Added a
-  module-level docstring clarifying that the module performs shape
-  conversion and derived-statistics computation only — not new
-  information extraction. Future contributors adding decoding logic
-  should consider whether it belongs in the parser layer instead.
-- Validator-vs-metadata boundary commented in the exports block.
-  Added an inline note documenting that the extended exports view is
-  metadata-shaped and that structural validity of the export table is
-  reported separately via validator reason codes. Avoids future confusion
-  about whether analyse_extended should mirror validator output.
+- **Reason codes reference** extended with new top-level sections for Resource Hierarchy Anomalies, Resource Version-Info Anomalies, Export Anomalies, and Delay-Load Import Anomalies, each with dedicated sub-reason taxonomy sections documenting the details["reason"] and details["table"] contracts.
+- **Validator documentation** gained sections 2.5 (VS_VERSIONINFO), 2.6 (exports), and 2.7 (delay-load imports), each with explicit determinism rationale. Section 2.7 frames the three spec-interpretation questions (v0 vs v1 attribute mode, INT/IAT mirror vs bound assumption, declared-size vs walk-to-terminator) that produce cross-tool divergence.
+- **Schema reference** documents the new Optional Header fields (including the dll_characteristics_unknown_bits role in preserving complete information about non-decoded bits) and the mixed-default convention with rationale.
+- **analyse_extended module purpose** documented inline via module docstring clarifying that the module performs shape conversion and derived-statistics computation only, not new information extraction.
+- **_decode_langid semantics** documented inline (primary language and sublang decomposition, fallback to default region, fallback to primary-language-only, fallback to None).
 
 ## Internal
 
-- 100% line and branch coverage on `pe_version_info`,
-  `validator_version_info`, and the resource validator additions.
-- Defensive-path coverage for every `except` clause via monkeypatched
-  `struct.error` injection.
-- Narrow-except negative tests confirm the parser's exception handling does
-  not silently swallow exceptions outside `(PEFormatError, AttributeError)`.
-- 100% line and branch coverage on `pe_exports` and
-  `exports` validator.
-- Defensive-path coverage via monkeypatched `struct.error` injection
-  and narrow-except negative tests.
-- One `# pragma: no cover` applied to a defensive return in the
-  validator's `_first_unsorted_index` helper, documented inline as
-  unreachable from the validator's call site.
-- Memory-mapped image slicing uses the RVA (not the raw file offset),
-  which is the correct index into `get_memory_mapped_image()` output.
-- Float precision pinned at 4 decimal places for entropy, matching the
-  precision convention used in other entropy-bearing fields elsewhere
-  in IOCX.
-- 100% line coverage on _parse_optional_header, _parse_header,
-  and pe_constants.
-- Test coverage includes:
-  - All 15 entries in SUBSYSTEM_NAMES exercised individually
-  - All 11 DLL characteristics flags exercised with bit-position
-    ordering pinned
-  - Unknown-bits detection for values outside the known mask
-  - Conservative field handling: individual missing fields do not
-    affect extraction of other fields
-  - JSON-safety contract: outputs round-trip through json.dumps
-  - Determinism: repeated parses produce identical output
+- **100% line and branch coverage** on all new modules: pe_version_info, validator_version_info, pe_exports, exports, parser_delay_imports, validator_delay_imports, _parse_optional_header, _parse_header, pe_constants, and resource validator additions.
+- **Defensive-path coverage** via monkeypatched struct.error injection across all four parsers. Narrow-except negative tests confirm parser exception handling does not silently swallow exceptions outside the documented catch list.
+- **One # pragma: no cover** applied to a defensive return in the exports validator's _first_unsorted_index helper, documented inline as unreachable from the caller.
+- **End-to-end binary verification.** Delay-load parser cross-checked against mspaint.exe via dumpbin /imports: 107 imports decoded from gdiplus.dll's delay-load directory with byte-exact agreement on DLL name, hint values, IAT addresses, ordering, and bound state across both tools.
+
+**Total: ~650 new tests bringing the suite to 1370 tests.**
 
 ## Compatibility
 
-- **No reason-code remapping.** Existing fixture expected outputs are
-  unchanged for all binaries that don't exercise the new pathways.
-- **No public IOC schema changes.** Version-info data is currently exposed
-  only in internal metadata and CLI rendering; public IOC schema exposure
-  is deferred to a later release with a deliberate fixture corpus refresh.
-- Invalid optional header fixtures JSON contracts updated: addition of export anomalies to heuristic output.
-- Resource fixture snapshots refreshed to reflect new field shape and `language_name` semantics.
-- **Resource output shape is additive but reformatted.** Consumers
-  reading the `resources` field will see new keys (`codepage`,
-  `errors`, `name`, `rva`, `raw_offset`) and may see additional
-  entries that previously didn't appear (those with errors). Existing
-  per-entry field meanings are unchanged.
-- **`language_name` no longer returns the string `"unknown"`.**
-  Consumers checking `language_name == "unknown"` will need to update
-  to `language_name is None`. This is a deliberate semantic correction
-  rather than a passive breaking change — the previous value was a
-  magic-string sentinel that conflated several states.
-- **Snapshot refresh required for any fixture with resources.** The
-  `language_name` return change and the new fields will produce diffs
-  in expected outputs. Refresh is mechanical via the existing fixture
-  regeneration tooling.
-- Existing field behaviour unchanged. Consumers reading
-  section_alignment, file_alignment, size_of_image, etc., see
-  the same values they did before. The default-to-zero behaviour is
-  preserved.
-- New fields are additive. Consumers reading existing keys are
-  unaffected. Consumers wanting the new security-relevant fields can
-  read them via the documented keys; missing values surface as null.
-- Snapshot refresh required for any fixture with an optional header.
-  Every fixture's optional_header block gains new keys; refresh is
-  mechanical via the existing fixture regeneration tooling.
-- subsystem_human and machine_human removed from extended
-  metadata. Consumers should use subsystem_name (always present in
-  header, uppercase-underscore form) and machine_name (added in this
-  release). Migration is a string-conversion exercise: "WINDOWS_CUI"
-  ↔ "Windows CUI". If display-friendly forms are needed for CLI
-  rendering, that translation belongs in the renderer, not the metadata
-  layer.
-- Snapshot refresh required. Any fixture whose extended metadata
-  output was snapshot-pinned will see subsystem_human and
-  machine_human removed, and the header block under
-  analysis.extended will match the public metadata's header block
-  exactly. Mechanical refresh.
+### No remapping of existing reason codes
+
+Existing fixture expected outputs are unchanged for binaries that don't exercise the new pathways.
+
+### Snapshot refresh required
+
+The following changes will produce diffs in fixture expected outputs and require a coordinated snapshot refresh:
+
+- Resource fixtures gain new ResourceEntry keys (codepage, errors, name, rva, raw_offset); resources with errors now appear where they were previously silently dropped.
+- language_name no longer returns "unknown"; consumers checking language_name == "unknown" must update to language_name is None.
+- Every fixture with an optional header gains new Optional Header keys (dll_characteristics, _flags, _unknown_bits, win32_version_value, loader_flags, stack/heap sizing fields).
+- header block gains subsystem_name and machine_name keys.
+- Extended metadata no longer emits subsystem_human and machine_human; consumers should use subsystem_name and machine_name (the parser layer is now the single source of truth for both).
+
+All refreshes are mechanical via the existing fixture regeneration tooling.
+
+### No public IOC schema changes in this release
+
+export_struct and delay_import_struct are exposed only in internal metadata by design - they feed validators, not consumer schema. Public IOC schema exposure for version-info is deferred to a coordinated future release with corresponding fixture corpus refresh.
 
 ## Known scheduled work
 
-- Six single-anomaly fixtures targeting the new resource directory reason codes (specs queued;
-  construction to follow).
-- `pefile_usage_policy.md` documenting the deterministic-subset usage pattern
-  (to be drafted alongside the reproducibility appendix work).
-- Public IOC schema field for `version_info` (planned for a future release
-  with corpus refresh and schema-version bump).
-- Single-anomaly fixtures targeting the new export reason codes (specs
-  drafted; construction to follow). Includes one negative-control
-  fixture (`exp_forwarder_to_ordinal_valid`) demonstrating that the
-  validator correctly accepts the spec-valid `#Ordinal` forwarder
-  syntax without false positive.
-- Resource fixtures targeting the new `errors` field paths
-  (`size_invalid`, `rva_invalid`, `data_out_of_bounds`,
-  `raw_offset_invalid`). Currently the corpus exercises only the
-  clean path; single-anomaly fixtures for each error tag would round
-  out coverage.
-- `SUBLANG` table refinement. The current implementation models
-  sublang values as language-independent, which is incorrect for
-  multilingual edge cases (sublang `0x02` means UK English with
-  primary English, but Swiss German with primary German). A flat
-  LCID → BCP-47 mapping is the structural fix; deferred as a separate
-  ticket since the current behaviour is correct for the common case.
+- **Single-anomaly fixtures** targeting the new reason codes across resources, version-info, exports, and delay-load (~25 fixtures planned). Includes negative-control fixtures (exp_forwarder_to_ordinal_valid, delay_well_formed_bound_modern, delay_well_formed_unbound_with_ordinal_import) demonstrating that validators do not false-positive on healthy spec-valid inputs.
+- **Public IOC schema promotion** of version_info_struct planned for a future release with corpus refresh. Contains consumer-facing metadata (CompanyName, ProductVersion, OriginalFilename, FileDescription) with established IOC value.
+- **Internal-only structural data.** export_struct, delay_import_struct, and Load Config metadata remain internal by design — they exist to feed validators and heuristics, not the public IOC schema. Consumers needing structural information about these directories should rely on the validators' reason codes and (for exports/delay-load) the existing consumer-facing metadata fields.
+- **SUBLANG table refinement.** The current implementation models sublang values as language-independent, which is incorrect for multilingual edge cases (sublang 0x02 means UK English with primary English, but Swiss German with primary German). A flat LCID → BCP-47 mapping is the structural fix; deferred since current behaviour is correct for the common case.
+- **TLS Directory parser and validator.** Originally deferred from this release; planned for the next release.
+- **Cross-tool divergence study** using the new fixtures. Delay-load is a particularly strong divergence candidate because the three identified spec-interpretation questions are known to produce inconsistent output across pefile, LIEF, Ghidra, and IDA. Tracked separately as a methodology contribution opportunity.
+- **Filed work items**:
+   - pefile_usage_policy.md documenting the deterministic-subset usage pattern.
+   - PE_CFG_DECLARATION_INCONSISTENT heuristic (DllCharacteristics ↔ Load Config GuardFlags cross-validator consistency).
+   - PE_FIELDS_IMPLAUSIBLE heuristic for "cannot exist in wild" binaries.
+   - PE_DLL_CHARACTERISTICS_INCONSISTENT heuristic for intra-field flag dependency violations (e.g., HIGH_ENTROPY_VA without DYNAMIC_BASE).
+   - Existing-field default migration (the 0 vs None inconsistency in OptionalHeaderInfo).
 
 ---
 
