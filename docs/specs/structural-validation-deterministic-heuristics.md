@@ -31,7 +31,7 @@ This is **structural verification**.
 
 # **2. The Validator Suite**
 Each validator inspects a distinct subsystem of the PE format.
-Together, they form a complete, deterministic structural model of the binary.
+Together, they form a comprehensive, deterministic structural model across the covered subsystems.
 
 Some structural metadata extracted by parsers is **producer-facing**: it exists to enable validators and heuristics, not to be exposed via the public IOC schema. Examples include the export and delay-load structural details. Other structural metadata is **consumer-facing** and intended for public exposure: version-info string fields are an example of this, planned for promotion in a future release.
 
@@ -121,7 +121,7 @@ This validator enforces:
 - Directories must not map into overlay data.
 - Zero‑length sections are invalid mapping targets.
 
-This validator is the backbone of structural correctness for imports, exports, resources, relocations, TLS, and security directories.
+This validator is the backbone of structural correctness for imports, exports, resources, relocations, and TLS directories. The security directory (index 4) is deliberately excluded from all RVA-based checks here; its VirtualAddress is a file offset, not an RVA, and its placement is owned by the signature validator (§2.7), so the two never double-count.
 
 ---
 
@@ -164,6 +164,8 @@ This validator enforces:
 
 This ensures the Authenticode block is structurally valid before any trust decisions are made.
 
+**v0.7.6 structural decoder.** The certificate subsystem is now backed by a pure `struct`-level decoder (pe_certificates) that walks the `WIN_CERTIFICATE` array independently of pefile's `DIRECTORY_ENTRY_SECURITY` interpretation. The decoder treats `DATA_DIRECTORY[4].VirtualAddress` as a *file offset*, not an RVA, and reads from the raw file bytes, since the certificate table is appended to the file and never mapped into the image. It extracts each entry's revision, type, and length, decodes on the 8-byte (QWORD) entry alignment, and records the structural fact of whether the table offset falls before the on-disk end of any section (`overlaps_image`). This decoder establishes raw structural truth via two new reason codes: `CERTIFICATE_OFFSET_INSIDE_IMAGE` (the table offset falls before the on-disk end of any section) and `CERTIFICATE_TABLE_MALFORMED` (top-level decode failure or a truncation tag surfaced with reason: "truncation"). The placement/overlap fact has a single owner to avoid double-counting with the RVA-graph backbone, and the signature validator continues to interpret the trust-facing symmetry above it.
+
 ---
 
 # **2.8 TLS Validator**
@@ -181,6 +183,8 @@ This validator enforces:
 - TLS callbacks not inside overlay.
 
 TLS callbacks are a common malware trick; this validator ensures the structure is sound before heuristics interpret it.
+
+**v0.7.6 structural decoder.** The TLS subsystem is now backed by a pure `struct`-level decoder (pe_tls) that reads `IMAGE_TLS_DIRECTORY` independently of pefile's `DIRECTORY_ENTRY_TLS` interpretation. The address fields are *virtual addresses*, not RVAs, so the decoder converts `AddressOfCallBacks` to an RVA by subtracting `ImageBase` before walking the NULL-terminated callback array; PE32 vs PE32+ pointer width is taken from `OPTIONAL_HEADER.Magic` once at parse-start. The callback walk is dual-bounded; NULL-terminator detection plus a hard limit (4096), so a looping or non-terminating array cannot destabilise the walk. A zero-length raw-data region (start == end) is decoded as valid by the parser; the validator flags `TLS_ZERO_LENGTH_DIRECTORY` only when the directory carries no resolved callbacks, eliminating the false positive on zero-length templates that still ship a valid callback array. This decoder adds two new reason codes - `TLS_DIRECTORY_TRUNCATED` (header decode failure, or a truncated/looping callback array) and `TLS_CALLBACK_RVA_INVALID` (a resolved callback target that cannot form a valid RVA or does not map to any section), feeding the executability and range interpretation performed above it. Directory placement remains owned by the RVA-graph backbone to avoid double-counting.
 
 ---
 
@@ -288,6 +292,61 @@ The delay-load parser is implemented as a pure `struct`-level decoder over `pe.g
 - Bound state is detected by `bound_iat_rva != 0` (a single byte-level field comparison), not by inference from IAT value patterns. The detection is bit-exact across runs.
 - INT/IAT length mismatch is detected by a single integer comparison after both arrays are walked. The validator emits a dedicated reason code rather than letting the inconsistency propagate as per-entry errors.
 - The IMAGE_IMPORT_BY_NAME structure is read with a bounded scan (1024 bytes) and validated against printable ASCII rules. Substructure failures emit deterministic tombstone tags in per-entry `errors` lists.
+
+---
+
+## 2.13 Relocations Validator
+
+### Validates the structural integrity of the PE base-relocation table extracted by pe_relocations.
+
+This validator performs:
+
+- Top-level decode failure detection and short-circuit for unrecoverable directory placement.
+- Relocation directory placement within `SizeOfImage`.
+- Truncation reporting across the block array and per-block entry regions.
+- Per-block structural validation: `SizeOfBlock` below the 8-byte header minimum, `SizeOfBlock` not aligned to the WORD entry stride, and declared entry counts exceeding the per-block ceiling.
+- Per-entry relocation-target validation: each non-`ABSOLUTE` entry's `page_rva + offset` must map to a real section.
+
+Absence of a relocation directory is not treated as a structural defect (stripped or fixed-base binaries legitimately omit it), and `IMAGE_REL_BASED_ABSOLUTE` (type 0) entries are padding and are never flagged.
+
+The relocation table is a chain of variable-length blocks whose walk depends entirely on a self-declared size field, which makes it a quiet divergence surface. Two properties make general-purpose relocation parsers prone to inconsistent output: each block advances the cursor by its own `SizeOfBlock` rather than by a count, so a block advertising a size that does not advance the cursor (zero, or below the header minimum) will loop a naive walker indefinitely or silently desynchronise the block stream; and each 16-bit entry packs a 4-bit type in the high nibble with a 12-bit page offset in the low bits, so parsers that mask the wrong width, or that resolve the offset against the wrong page base, emit relocation targets that disagree across tools while the raw bytes are identical.
+
+The relocation parser is implemented as a pure `struct`-level decoder over `pe.get_data`-acquired byte buffers:
+
+- The 8-byte `IMAGE_BASE_RELOCATION` header (`VirtualAddress`, `SizeOfBlock`) is unpacked via a single `struct.unpack_from` call. No reliance on pefile's `DIRECTORY_ENTRY_BASERELOC` interpretation.
+- The block walk is dual-bounded: a hard block-count limit (65536) plus an explicit stop at the declared directory end, with a non-advancing `SizeOfBlock` treated as fatal for the walk rather than as a loop, tagged deterministically.
+- Each entry is decoded by masking `(word >> 12) & 0xF` for the type and `word & 0x0FFF` for the offset; the target RVA is derived as `page_rva + offset` by fixed arithmetic, never by inference.
+- The readable entry region is clamped to the declared directory end so a block advertising a size past the directory cannot over-read; the shortfall is reported as a truncation tag rather than a partial read.
+
+The validator then maps these structural states to a small, well-defined set of reason codes (`RELOCATION_DIRECTORY_INVALID_HEADER`, `RELOCATION_DIRECTORY_OUT_OF_BOUNDS`, `RELOCATION_TABLE_TRUNCATED`, `RELOCATION_BLOCK_MALFORMED`, `RELOCATION_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-block malformations are priority-resolved so a block carrying several defects emits one deterministic sub-reason, and the count of invalid entry targets is always reported in the issue details even when the per-entry emission is capped.
+
+---
+
+## 2.14 Debug Directory Validator
+
+### Validates the structural integrity of the PE debug directory extracted by pe_debug.
+
+This validator performs:
+
+- Top-level decode failure detection and short-circuit for unrecoverable directory placement.
+- Debug directory placement within `SizeOfImage`.
+- Truncation reporting across the fixed-size entry array, including non-entry-aligned directory sizes.
+- Per-entry structural validation: entry unpack failure, CodeView blob read failure, and malformed or unrecognised CodeView records.
+- Per-entry data-region validation: each entry's `AddressOfRawData` region must map to a real section.
+- Deterministic PDB-path extraction from CodeView records (RSDS / NB10), including GUID and age.
+
+Absence of a debug directory is not treated as a structural defect. Entries whose debug data is reachable only via a raw file pointer (no `AddressOfRawData`) are not flagged for mapping, since they carry no RVA to validate against the section table.
+
+The debug directory is a fixed-stride array of 28-byte entries, but the CodeView entry type embeds a second, self-describing record whose layout is selected by a four-byte signature, and that inner record is a common divergence surface. Two properties make general-purpose debug parsers prone to inconsistent output: the debug data may be addressed by an RVA (`AddressOfRawData`) or by a raw file offset (`PointerToRawData`), and the two need not agree, so parsers that trust one field unconditionally read different bytes on binaries where the mapping is inconsistent; and the CodeView PDB path is a NUL-terminated string of unbounded declared length appended after a fixed header, so parsers that do not cap the scan, or that decode the GUID with the wrong field endianness, produce PDB paths and symbol-server keys that differ across tools while the raw record is identical.
+
+The debug parser is implemented as a pure `struct`-level decoder over both `pe.get_data`-acquired and raw-file byte buffers:
+
+- The 28-byte `IMAGE_DEBUG_DIRECTORY` structure is unpacked via a single `struct.unpack_from` call. No reliance on pefile's `DIRECTORY_ENTRY_DEBUG` interpretation.
+- CodeView blobs are read via `PointerToRawData` (raw file offset) first, with a fallback to `AddressOfRawData` (RVA), so extraction is deterministic regardless of which addressing field the producer populated.
+- The RSDS (PDB 7.0) and NB10 (PDB 2.0) records are decoded against their fixed header layouts; the GUID is formatted in the canonical mixed-endian symbol-server form (Data1/2/3 little-endian, Data4 big-endian) by fixed arithmetic, not library formatting.
+- The PDB path scan is bounded (512 bytes); an absent terminator emits a deterministic tombstone tag rather than an unbounded read, and non-ASCII bytes are reported rather than silently normalised.
+
+The validator then maps these structural states to a small, well-defined set of reason codes (`DEBUG_DIRECTORY_INVALID_HEADER`, `DEBUG_DIRECTORY_OUT_OF_BOUNDS`, `DEBUG_TABLE_TRUNCATED`, `DEBUG_DIRECTORY_ENTRY_MALFORMED`, `DEBUG_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The PDB path is a high-signal forensic surface; build paths routinely leak project names, usernames, and toolchain layout, so deterministic extraction is a prerequisite for treating it as a reliable triage signal.
 
 ---
 
