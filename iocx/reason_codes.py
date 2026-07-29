@@ -161,6 +161,34 @@ class ReasonCodes:
     # --- Delay-load entry anomalies ---
     DELAY_IMPORT_ENTRY_INVALID = "delay_import_entry_invalid"
 
+    # ----------------------------------------------------------------------
+    # v0.7.6 — Certificate table (WIN_CERTIFICATE)
+    # ----------------------------------------------------------------------
+    CERTIFICATE_TABLE_MALFORMED = "certificate_table_malformed"
+    CERTIFICATE_OFFSET_INSIDE_IMAGE = "certificate_offset_inside_image"
+
+    # ----------------------------------------------------------------------
+    # v0.7.6 — TLS directory (IMAGE_TLS_DIRECTORY)
+    # ----------------------------------------------------------------------
+    TLS_DIRECTORY_TRUNCATED = "tls_directory_truncated"
+    TLS_CALLBACK_RVA_INVALID = "tls_callback_rva_invalid"
+
+    # ----------------------------------------------------------------------
+    # v0.7.6 — Relocations (IMAGE_BASE_RELOCATION)
+    # ----------------------------------------------------------------------
+    RELOCATION_DIRECTORY_INVALID_HEADER = "relocation_directory_invalid_header"
+    RELOCATION_TABLE_TRUNCATED = "relocation_table_truncated"
+    RELOCATION_BLOCK_MALFORMED = "relocation_block_malformed"
+    RELOCATION_ENTRY_RVA_INVALID = "relocation_entry_rva_invalid"
+
+    # ----------------------------------------------------------------------
+    # v0.7.6 — Debug directory (IMAGE_DEBUG_DIRECTORY)
+    # ----------------------------------------------------------------------
+    DEBUG_DIRECTORY_INVALID_HEADER = "debug_directory_invalid_header"
+    DEBUG_TABLE_TRUNCATED = "debug_table_truncated"
+    DEBUG_DIRECTORY_ENTRY_MALFORMED = "debug_directory_entry_malformed"
+    DEBUG_ENTRY_RVA_INVALID = "debug_entry_rva_invalid"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

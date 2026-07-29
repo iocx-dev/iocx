@@ -16,6 +16,10 @@ from .parsers.pe_load_config import analyse_load_config
 from .parsers.pe_optional_header import extract_optional_header_metadata
 from .parsers.pe_exports import build_export_structure
 from .parsers.pe_delay_imports import build_delay_import_structure
+from .parsers.pe_relocations import build_relocation_structure
+from .parsers.pe_debug import build_debug_structure
+from .parsers.pe_certificates import build_certificate_structure
+from .parsers.pe_tls import build_tls_structure
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
@@ -169,6 +173,10 @@ class Engine:
             self._internal_metadata["export_struct"] = build_export_structure(pe)
             self._internal_metadata["delay_import_struct"] = build_delay_import_structure(pe)
             self._internal_metadata["data_directories_raw"] = analyse_data_directories_raw(pe)
+            self._internal_metadata["relocation_struct"] = build_relocation_structure(pe)
+            self._internal_metadata["debug_struct"] = build_debug_structure(pe)
+            self._internal_metadata["certificate_struct"] = build_certificate_structure(pe)
+            self._internal_metadata["tls_struct"] = build_tls_structure(pe)
             self._internal_metadata.update(extract_optional_header_metadata(pe))
             internal: InternalMetadata = self._internal_metadata
             structural = run_structural_validators(internal, metadata, analysis_dict)
