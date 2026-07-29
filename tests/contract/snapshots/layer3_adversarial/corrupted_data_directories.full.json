@@ -182,11 +182,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
-          "directory": "IMAGE_DIRECTORY_ENTRY_SECURITY",
-          "rva": 4294967280,
-          "size": 256,
-          "size_of_image": 12288
+          "reason": "data_directory_overlap",
+          "directory_a": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
+          "directory_b": "IMAGE_DIRECTORY_ENTRY_EXCEPTION"
         }
       },
       {
@@ -195,9 +193,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_overlap",
-          "directory_a": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
-          "directory_b": "IMAGE_DIRECTORY_ENTRY_EXCEPTION"
+          "reason": "top_level_decode",
+          "errors": [
+            "certificate_offset_past_eof"
+          ]
         }
       }
     ]
