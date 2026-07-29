@@ -62,6 +62,16 @@ _HEADER_DECODE_ERROR_TAGS = {
     "tls_directory_unpack_failed",
 }
 
+# Parser tombstones recorded when the callback ARRAY could not be resolved
+# to an RVA at all. In these cases the parser returns callbacks=[], so the
+# per-target loop below has nothing to walk; without surfacing these tags
+# the structural anomaly would be silently dropped. They map to
+# TLS_CALLBACK_RVA_INVALID (the callback array is unresolvable).
+_CALLBACK_RESOLUTION_ERROR_TAGS = {
+    "tls_image_base_unavailable",
+    "tls_callbacks_va_below_image_base",
+}
+
 # Cap on how many invalid-callback-target issues we raise, so a looping /
 # hostile array cannot flood the stream. Count is always in details.
 _MAX_CALLBACK_TARGET_ISSUES = 16
@@ -146,10 +156,17 @@ def validate_tls(internal: InternalMetadata,
 
     # Range sanity (VA space — PRESERVED)
     if start == end:
-        issues.append(StructuralIssue(
-            issue=ReasonCodes.TLS_ZERO_LENGTH_DIRECTORY,
-            details={"start_address": start, "end_address": end},
-        ))
+        # A zero-length raw-data region is only anomalous when the directory
+        # carries NO resolved callbacks. A zero-length template alongside a
+        # valid callback array is legitimate and common, so we do not flag it
+        # (the callback targets were already validated in step 4). Either way
+        # the degenerate range makes the pointer cascade below meaningless, so
+        # we return here.
+        if not (tls.get("callbacks") or []):
+            issues.append(StructuralIssue(
+                issue=ReasonCodes.TLS_ZERO_LENGTH_DIRECTORY,
+                details={"start_address": start, "end_address": end},
+            ))
         return issues
 
     if start > end:
@@ -237,6 +254,17 @@ def _validate_callback_targets(tls: Dict[str, Any],
     pointer-based TLS_CALLBACK_NOT_MAPPED_TO_SECTION check above (which maps
     the AddressOfCallBacks pointer, not the individual targets).
     """
+
+    # Surface callback-array resolution tombstones the parser recorded but
+    # that would otherwise be dropped (callbacks=[] in these cases). One
+    # deterministic issue per distinct tag, in a stable order.
+    errors = tls.get("errors") or []
+    for tag in sorted(set(errors) & _CALLBACK_RESOLUTION_ERROR_TAGS):
+        issues.append(StructuralIssue(
+            issue=ReasonCodes.TLS_CALLBACK_RVA_INVALID,
+            details={"reason": tag},
+        ))
+
     callbacks = tls.get("callbacks") or []
     if not callbacks:
         return
