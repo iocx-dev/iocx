@@ -111,7 +111,24 @@ def test_tls_callback_outside_range():
         ],
     )
 
-    analysis["structural"] = run_structural_validators({}, metadata, analysis)
+    # v0.7.6: validate_tls reads internal["tls_struct"], not the extended marker.
+    # Synthesise the struct as parser pe_tls would emit it. image_base=0 keeps
+    # VA==RVA so the range/section numbers match the extended metadata.
+    internal = {
+        "tls_struct": {
+            "rva": 0x1000, "size": 24, "is_64bit": False, "image_base": 0,
+            "start_address_of_raw_data": 0x1000,
+            "end_address_of_raw_data": 0x2000,
+            "address_of_index": 0,
+            "address_of_callbacks": 0x3000, # pointer outside [start, end)
+            "size_of_zero_fill": 0, "characteristics": 0,
+            "raw_data_size": 0x1000,
+            "callbacks": [], "callback_count": 0,
+            "truncations": [], "errors": [],
+        }
+    }
+
+    analysis["structural"] = run_structural_validators(internal, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     d = _find(dets, "pe_structure_anomaly", "callback_outside_tls_range")
@@ -290,7 +307,21 @@ def test_synthetic_triggers_all_heuristics():
         ],
     )
 
-    analysis["structural"] = run_structural_validators({}, metadata, analysis)
+    internal = {
+        "tls_struct": {
+            "rva": 0x1000, "size": 24, "is_64bit": False, "image_base": 0,
+            "start_address_of_raw_data": 0x1000,
+            "end_address_of_raw_data": 0x2000,
+            "address_of_index": 0,
+            "address_of_callbacks": 0x3000, # pointer outside [start, end)
+            "size_of_zero_fill": 0, "characteristics": 0,
+            "raw_data_size": 0x1000,
+            "callbacks": [], "callback_count": 0,
+            "truncations": [], "errors": [],
+        }
+    }
+
+    analysis["structural"] = run_structural_validators(internal, metadata, analysis)
     dets = analyse_pe_heuristics(metadata, analysis)
 
     expected = {
