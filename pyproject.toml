@@ -1,6 +1,6 @@
 [project]
 name = "iocx"
-version = "0.7.5"
+version = "0.7.6"
 description = "A deterministic, high‑performance static‑analysis engine that extracts high‑signal IOCs from PE binaries, text, and logs — built for SOC automation and modern threat‑analysis pipelines."
 authors = [
     { name = "MalX Labs" }

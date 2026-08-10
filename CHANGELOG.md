@@ -1,3 +1,51 @@
+# **v0.7.6 — Structural validator expansion: debug, relocations directories**
+**Released: 2026‑08‑10**
+
+## Added
+- **Expanded static PE directory coverage.** Deterministic, pefile-independent
+struct decoders for the following directories: **Relocations**,
+**Certificate Table**, **Debug Directory**, and **TLS**.
+- **Relocation parsing** — `IMAGE_BASE_RELOCATION` blocks with typed
+entries (HIGHLOW, DIR64, …), block-size and word-alignment validation,
+and per-entry target-RVA checks.
+- **Certificate table parsing** — `WIN_CERTIFICATE` entries (revision,
+type, length) read from raw file bytes, with an "offset must lie outside
+the image" invariant. The embedded PKCS#7 blob is left opaque.
+- **Debug directory parsing** — `IMAGE_DEBUG_DIRECTORY` entries with
+deterministic CodeView PDB-path extraction (RSDS/NB10) and canonical
+mixed-endian GUID formatting.
+- **TLS parsing** — `IMAGE_TLS_DIRECTORY` (PE32/PE32+) with VA→RVA callback
+resolution via `ImageBase`, bounded callback walking, and zero-length
+raw-data handling.
+- Structured, JSON-safe metadata for all new directories
+(`relocation_struct`, `certificate_struct`, `debug_struct`, `tls_struct`).
+- New deterministic reason codes: `certificate_table_malformed`,
+`certificate_offset_inside_image`, `tls_directory_truncated`,
+`tls_callback_rva_invalid`, plus the `relocation_*` and `debug_*`
+families.
+
+## Changed
+- **Signature & TLS validators** now consume the new deterministic
+`certificate_struct` / `tls_struct` from internal metadata instead of
+pefile-derived data. All prior reason codes and checks are preserved.
+- Structural validator dispatcher registers the new `relocations` and
+`debug` validators; directory placement remains solely owned by the
+RVA-graph validator to avoid double-counting.
+
+## Fixed
+- Corrected a latent VA/RVA unit mismatch when mapping TLS callback
+pointers to sections.
+- TLS: surface parser tombstones that were previously dropped
+(`tls_image_base_unavailable`, `tls_callbacks_va_below_image_base`).
+- TLS: a zero-length raw-data region accompanied by a valid callback array
+no longer raises a false-positive `tls_zero_length_directory`.
+
+## Notes
+- Static-only and deterministic by design: no dynamic execution,
+unpacking, emulation, ML, sandboxing, or network access.
+
+---
+
 # **v0.7.5 - Structural validator expansion**
 **Released: 2026‑07‑01**
 

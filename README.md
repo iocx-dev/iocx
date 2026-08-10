@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/iocx/"><img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white"></a>
-  <img src="https://img.shields.io/badge/tests-1370_passed-brightgreen">
+  <img src="https://img.shields.io/badge/tests-1620_passed-brightgreen">
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen">
   <img src="https://img.shields.io/badge/python-3.12-blue">
   <a href="https://github.com/iocx-dev/iocx/actions"><img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build"></a>
@@ -201,6 +201,15 @@ Fast path — no PE parsing.
 <details>
 <summary><strong>Show Version History</strong></summary>
 <br>
+
+### **v0.7.6 — Structural Validator Expansion: Debug and relocations directories**
+- Two new PE structural validators - relocations and debug
+- WIN_CERTIFICATE and tls validators now source structural truth from dedicated struct parsers, independent of pefile
+- 12 new reason codes with priority-resolved sub-reason taxonomies
+- Deterministic byte-level parsing - no reliance on pefile's lazy interpretation
+- 1620 tests at 100% coverage
+
+---
 
 ### **v0.7.5 — Structural Validator Expansion**
 - Four new PE structural validators — exports, delay-load imports, VS_VERSIONINFO, and resource hierarchy
