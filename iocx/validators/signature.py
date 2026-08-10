@@ -9,7 +9,7 @@ truth from the deterministic ``certificate_struct`` produced by
 parser pe_certificates (read from InternalMetadata), rather than from
 pefile's ``metadata["signatures"]`` list. The flag/metadata symmetry check
 still consults the public ``has_signature`` flag, and the overlay / section
-overlap checks still use the ``analysis`` geometry — so ALL existing checks
+overlap checks still use the ``analysis`` geometry, so ALL existing checks
 and reason codes are preserved.
 
 Two v0.7.6 reason codes are added, in territory the existing checks did not
@@ -61,13 +61,13 @@ def validate_signature(internal: InternalMetadata,
     cert_struct = internal.get("certificate_struct")
 
     # ---------------------------------------------------------
-    # 0) Structural decode failure takes precedence  (NEW: CERTIFICATE_TABLE_MALFORMED)
-    #     The parser returns a struct (not None) when a security directory is
-    #     declared. If it could not decode that directory at all, report it as
-    #     malformed FIRST — otherwise the empty `certificates` list would trip
-    #     the symmetry check below and mis-report a broken directory as
-    #     "flag set but no metadata". Distinct from the field-value checks
-    #     (SIGNATURE_INVALID_*), which own length/revision/type.
+    # Structural decode failure takes precedence:
+    # The parser returns a struct (not None) when a security directory is
+    # declared. If it could not decode that directory at all, report it as
+    # malformed FIRST, otherwise the empty `certificates` list would trip
+    # the symmetry check below and mis-report a broken directory as
+    # "flag set but no metadata". Distinct from the field-value checks
+    # (SIGNATURE_INVALID_*), which own length/revision/type.
     # ---------------------------------------------------------
     if cert_struct is not None and cert_struct.get("errors"):
         issues.append(StructuralIssue(
@@ -88,7 +88,7 @@ def validate_signature(internal: InternalMetadata,
     has_sig = bool(metadata.get("has_signature"))
 
     # ---------------------------------------------------------
-    # 1) Flag/metadata symmetry  (PRESERVED)
+    # 1) Flag/metadata symmetry
     # ---------------------------------------------------------
     if has_sig and not present:
         issues.append(StructuralIssue(
@@ -108,7 +108,7 @@ def validate_signature(internal: InternalMetadata,
         return issues
 
     # ---------------------------------------------------------
-    # 1a) Table truncation  (NEW: CERTIFICATE_TABLE_MALFORMED)
+    # 1a) Table truncation
     # ---------------------------------------------------------
     for tag in cert_struct.get("truncations", []) or []:
         issues.append(StructuralIssue(
@@ -118,11 +118,11 @@ def validate_signature(internal: InternalMetadata,
 
     # ---------------------------------------------------------
     # 1b) Table offset must lie OUTSIDE the mapped image
-    #     (NEW: CERTIFICATE_OFFSET_INSIDE_IMAGE). Table-level invariant from
-    #     the parser's overlaps_image fact. This is a different owner from the
-    #     per-certificate section-overlap check in step 4 (which is byte-range,
-    #     per-section); both may co-fire on a pathological sample. Kept
-    #     separate to preserve the existing check while meeting the spec.
+    # CERTIFICATE_OFFSET_INSIDE_IMAGE: Table-level invariant from
+    # the parser's overlaps_image fact. This is a different owner from the
+    # per-certificate section-overlap check in step 4 (which is byte-range,
+    # per-section); both may co-fire on a pathological sample. Kept
+    # separate to preserve the existing check while meeting the spec.
     # ---------------------------------------------------------
     if cert_struct.get("overlaps_image") is True:
         issues.append(StructuralIssue(
@@ -133,7 +133,7 @@ def validate_signature(internal: InternalMetadata,
         ))
 
     # ---------------------------------------------------------
-    # 2) Multiplicity  (PRESERVED)
+    # 2) Multiplicity
     # ---------------------------------------------------------
     if len(certs) > 1:
         issues.append(StructuralIssue(
@@ -142,7 +142,7 @@ def validate_signature(internal: InternalMetadata,
         ))
 
     # ---------------------------------------------------------
-    # 3) Per-certificate field sanity  (PRESERVED)
+    # 3) Per-certificate field sanity
     # ---------------------------------------------------------
     # file_size: prefer the analysis value to preserve the original bounds
     # behaviour; fall back to the parser's file_size if analysis omits it.
@@ -163,7 +163,7 @@ def validate_signature(internal: InternalMetadata,
         if not isinstance(offset, int) or not isinstance(size, int):
             continue
 
-        # Length sanity (PRESERVED). Owns the length<8 fact; we deliberately
+        # Length sanity: Owns the length<8 fact; we deliberately
         # do NOT also emit CERTIFICATE_TABLE_MALFORMED for the parser's
         # "length_too_small" tag, to avoid double-counting.
         if size < 8:
@@ -173,14 +173,14 @@ def validate_signature(internal: InternalMetadata,
             ))
             continue
 
-        # Revision sanity (PRESERVED)
+        # Revision sanity
         if revision not in (0x0100, 0x0200):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SIGNATURE_INVALID_REVISION,
                 details={"revision": revision},
             ))
 
-        # Type sanity (PRESERVED)
+        # Type sanity
         if cert_type not in (0x0001, 0x0002):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SIGNATURE_INVALID_TYPE,
@@ -188,7 +188,7 @@ def validate_signature(internal: InternalMetadata,
             ))
 
         # -----------------------------------------------------
-        # 4) Bounds + overlap checks  (PRESERVED)
+        # 4) Bounds + overlap checks
         # -----------------------------------------------------
         if isinstance(file_size, int):
             if offset < 0 or offset + size > file_size:
@@ -199,7 +199,7 @@ def validate_signature(internal: InternalMetadata,
                 ))
                 continue
 
-        # Overlay check (PRESERVED)
+        # Overlay check
         if isinstance(overlay_offset, int) and offset < overlay_offset < offset + size:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SIGNATURE_OVERLAPS_OTHER_DATA,
@@ -207,7 +207,7 @@ def validate_signature(internal: InternalMetadata,
                          "overlay_offset": overlay_offset},
             ))
 
-        # Section overlap check (PRESERVED)
+        # Section overlap check
         for sec in sections:
             raw = sec.get("raw_address")
             raw_size = sec.get("raw_size")

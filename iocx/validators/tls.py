@@ -12,7 +12,7 @@ multiplicity check still consults ``analysis["extended"]``.
 
 Two axes are validated:
 
-  * The PRESERVED cascade operates on the raw-data range
+  * The preserved cascade operates on the raw-data range
     (Start/EndAddressOfRawData) and the AddressOfCallBacks POINTER, exactly
     as before, including every early return. Note: struct addresses are
     VAs, so section mapping for the pointer is done in RVA space
@@ -20,7 +20,7 @@ Two axes are validated:
     latent VA/RVA unit mismatch from the pefile path while keeping the same
     codes and control flow.
 
-  * The NEW target-array checks operate on the RESOLVED callback array
+  * The new target-array checks operate on the resolved callback array
     (the list of callback target VAs the parser walked), which the pefile
     single-value model could not express. This is where the two new v0.7.6
     codes live, so they do not double-count the pointer-based checks:
@@ -62,7 +62,7 @@ _HEADER_DECODE_ERROR_TAGS = {
     "tls_directory_unpack_failed",
 }
 
-# Parser tombstones recorded when the callback ARRAY could not be resolved
+# Parser tombstones recorded when the callback array could not be resolved
 # to an RVA at all. In these cases the parser returns callbacks=[], so the
 # per-target loop below has nothing to walk; without surfacing these tags
 # the structural anomaly would be silently dropped. They map to
@@ -94,7 +94,7 @@ def validate_tls(internal: InternalMetadata,
     issues: List[StructuralIssue] = []
 
     # ---------------------------------------------------------
-    # 1) Multiple TLS directories  (PRESERVED — from extended markers)
+    # 1) Multiple TLS directories
     # ---------------------------------------------------------
     tls_entries = [
         e for e in analysis.get("extended", [])
@@ -111,8 +111,8 @@ def validate_tls(internal: InternalMetadata,
         return issues  # no TLS directory — not a defect
 
     # ---------------------------------------------------------
-    # 2) Header decode failure  (NEW: TLS_DIRECTORY_TRUNCATED)
-    #     Unrecoverable — the fixed struct could not be read/unpacked.
+    # 2) Header decode failure
+    # Unrecoverable - the fixed struct could not be read/unpacked.
     # ---------------------------------------------------------
     header_errs = [e for e in (tls.get("errors") or [])
                    if e in _HEADER_DECODE_ERROR_TAGS]
@@ -124,7 +124,7 @@ def validate_tls(internal: InternalMetadata,
         return issues
 
     # ---------------------------------------------------------
-    # 3) Callback-array truncation / loop  (NEW: TLS_DIRECTORY_TRUNCATED)
+    # 3) Callback-array truncation / loop
     # ---------------------------------------------------------
     for tag in tls.get("truncations", []) or []:
         issues.append(StructuralIssue(
@@ -133,14 +133,14 @@ def validate_tls(internal: InternalMetadata,
         ))
 
     # ---------------------------------------------------------
-    # 4) Resolved callback TARGET validation  (NEW: TLS_CALLBACK_RVA_INVALID)
-    #     Independent of the raw-data-range cascade below, so it always runs
-    #     even when the cascade returns early (e.g. zero-length raw data).
+    # 4) Resolved callback target validation
+    # Independent of the raw-data-range cascade below, so it always runs
+    # even when the cascade returns early (e.g. zero-length raw data).
     # ---------------------------------------------------------
     _validate_callback_targets(tls, analysis, issues)
 
     # ---------------------------------------------------------
-    # 5) PRESERVED cascade on raw-data range + AddressOfCallBacks pointer
+    # 5) Preserved cascade on raw-data range + AddressOfCallBacks pointer
     # ---------------------------------------------------------
     start = tls.get("start_address_of_raw_data")   # VA
     end = tls.get("end_address_of_raw_data")       # VA
@@ -154,7 +154,7 @@ def validate_tls(internal: InternalMetadata,
     overlay_offset = analysis.get("overlay_offset")
     size_of_headers = (metadata.get("optional_header") or {}).get("size_of_headers")
 
-    # Range sanity (VA space — PRESERVED)
+    # Range sanity (VA space)
     if start == end:
         # A zero-length raw-data region is only anomalous when the directory
         # carries NO resolved callbacks. A zero-length template alongside a
@@ -176,7 +176,7 @@ def validate_tls(internal: InternalMetadata,
         ))
         return issues
 
-    # Missing callbacks (PRESERVED)
+    # Missing callbacks
     if ptr == 0:
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_CALLBACKS_MISSING,
@@ -184,7 +184,7 @@ def validate_tls(internal: InternalMetadata,
         ))
         return issues
 
-    # Callback pointer outside TLS range (VA space — PRESERVED)
+    # Callback pointer outside TLS range (VA space)
     if not (start <= ptr < end):
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_CALLBACK_OUTSIDE_RANGE,
@@ -219,7 +219,7 @@ def validate_tls(internal: InternalMetadata,
             details={"callbacks": ptr, "section": name},
         ))
 
-    # Overlay / header checks (RVA space — PRESERVED)
+    # Overlay / header checks (RVA space)
     if isinstance(size_of_headers, int) and ptr_rva < size_of_headers:
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_CALLBACK_IN_HEADERS,
@@ -242,14 +242,14 @@ def validate_tls(internal: InternalMetadata,
 
 
 # =================================================================
-# NEW: resolved callback-target validation
+# Resolved callback-target validation
 # =================================================================
 
 def _validate_callback_targets(tls: Dict[str, Any],
                                analysis: AnalysisDict,
                                issues: List[StructuralIssue]) -> None:
     """
-    Flag resolved callback TARGET VAs that cannot form a valid RVA (below
+    Flag resolved callback target VAs that cannot form a valid RVA (below
     ImageBase) or do not map to any section. Distinct subject from the
     pointer-based TLS_CALLBACK_NOT_MAPPED_TO_SECTION check above (which maps
     the AddressOfCallBacks pointer, not the individual targets).
