@@ -194,7 +194,7 @@ class DelayImportStruct(TypedDict, total=False):
 
 
 # -------------------------
-# Relocation table (v0.7.6)
+# Relocation table
 # -------------------------
 
 class RelocationEntry(TypedDict):
@@ -225,48 +225,48 @@ class RelocationStruct(TypedDict, total=False):
 
 
 # -------------------------
-# Certificate table (v0.7.6)
+# Certificate table
 # -------------------------
 
 class CertificateEntry(TypedDict):
     index: int
-    offset: int               # file offset of this WIN_CERTIFICATE
-    length: int               # dwLength (incl. 8-byte header)
+    offset: int                    # file offset of this WIN_CERTIFICATE
+    length: int                    # dwLength (incl. 8-byte header)
     revision: int
     revision_name: Optional[str]   # WIN_CERT_REVISION_* name, None if unknown
     cert_type: int
     cert_type_name: Optional[str]  # WIN_CERT_TYPE_* name, None if unknown
-    data_length: int          # derived: bCertificate payload length
+    data_length: int               # derived: bCertificate payload length
     errors: List[str]
 
 
 class CertificateStruct(TypedDict, total=False):
-    offset: int               # file offset (NOT an RVA) per WIN_CERTIFICATE
+    offset: int                          # file offset (NOT an RVA) per WIN_CERTIFICATE
     size: int
-    file_size: Optional[int]        # backing file length, None if unavailable
-    image_raw_end: Optional[int]    # max(PointerToRawData + SizeOfRawData)
-    overlaps_image: Optional[bool]  # offset < image_raw_end (defect if True)
+    file_size: Optional[int]             # backing file length, None if unavailable
+    image_raw_end: Optional[int]         # max(PointerToRawData + SizeOfRawData)
+    overlaps_image: Optional[bool]       # offset < image_raw_end (defect if True)
     certificates: List[CertificateEntry]
-    certificate_count: int    # derived: len(certificates)
+    certificate_count: int               # derived: len(certificates)
     truncations: List[str]
     errors: List[str]
 
 
 # -------------------------
-# Debug directory (v0.7.6)
+# Debug directory
 # -------------------------
 
 class DebugEntry(TypedDict, total=False):
     index: int
     characteristics: int
-    timestamp: int            # TimeDateStamp
+    timestamp: int                  # TimeDateStamp
     major_version: int
     minor_version: int
     type: int
-    type_name: Optional[str]  # IMAGE_DEBUG_TYPE_* name, None if unknown
+    type_name: Optional[str]        # IMAGE_DEBUG_TYPE_* name, None if unknown
     size_of_data: int
-    address_of_raw_data: int  # RVA of the debug data
-    pointer_to_raw_data: int  # file offset of the debug data
+    address_of_raw_data: int        # RVA of the debug data
+    pointer_to_raw_data: int        # file offset of the debug data
     pdb_path: Optional[str]         # CodeView only; None otherwise
     cv_signature: Optional[str]     # "RSDS" | "NB10" | None
     guid: Optional[str]             # RSDS only; canonical mixed-endian
@@ -284,23 +284,23 @@ class DebugStruct(TypedDict, total=False):
 
 
 # -------------------------
-# TLS directory (v0.7.6)
+# TLS directory
 # -------------------------
 
 class TlsStruct(TypedDict, total=False):
     rva: int
     size: int
     is_64bit: bool
-    image_base: Optional[int]              # OPTIONAL_HEADER.ImageBase
+    image_base: Optional[int]                  # OPTIONAL_HEADER.ImageBase
     start_address_of_raw_data: Optional[int]   # VA
     end_address_of_raw_data: Optional[int]     # VA
     address_of_index: Optional[int]            # VA
     address_of_callbacks: Optional[int]        # VA of the callback array
     size_of_zero_fill: Optional[int]
     characteristics: Optional[int]
-    raw_data_size: Optional[int]  # derived: end - start; None if end < start
-    callbacks: List[int]          # resolved callback VAs (NULL-terminated)
-    callback_count: int           # derived: len(callbacks)
+    raw_data_size: Optional[int]               # derived: end - start; None if end < start
+    callbacks: List[int]                       # resolved callback VAs (NULL-terminated)
+    callback_count: int                        # derived: len(callbacks)
     truncations: List[str]
     errors: List[str]
 
@@ -315,9 +315,9 @@ class InternalMetadata(TypedDict, total=False):
     data_directories_raw: List[DataDirectoryRaw]
     export_struct: Optional[ExportStruct]
     delay_import_struct: Optional[DelayImportStruct]
-    relocation_struct: Optional[RelocationStruct]      # v0.7.6
-    certificate_struct: Optional[CertificateStruct]    # v0.7.6
-    debug_struct: Optional[DebugStruct]                # v0.7.6
-    tls_struct: Optional[TlsStruct]                    # v0.7.6
+    relocation_struct: Optional[RelocationStruct]
+    certificate_struct: Optional[CertificateStruct]
+    debug_struct: Optional[DebugStruct]
+    tls_struct: Optional[TlsStruct]
     optional_header_magic: int
     number_of_rva_and_sizes: int
