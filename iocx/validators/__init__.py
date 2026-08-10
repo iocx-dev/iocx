@@ -10,6 +10,8 @@ from .load_config_directory import validate_load_config_directory
 from .optional_header import validate_optional_header
 from .tls import validate_tls
 from .signature import validate_signature
+from .relocations import validate_relocations
+from .debug import validate_debug
 from .resources import validate_resources
 from .version_info import validate_version_info
 from .exports import validate_exports
@@ -31,6 +33,14 @@ STRUCTURAL_VALIDATORS = {
     "tls": validate_tls,
     # Signature directory correctness
     "signature": validate_signature,
+    # Base relocations (dir 5): block + entry structural correctness.
+    # Placement owned by rva_graph; this descends into
+    # block/entry contents only. Placed in ascending directory-index order
+    # after the placement backbone and security cluster, before entropy.
+    "relocations": validate_relocations,
+    # Debug directory (dir 6): entry + CodeView PDB structural correctness.
+    # Placement owned by rva_graph.
+    "debug": validate_debug,
     # Resource directory correctness
     "resources": validate_resources,
     # Version-info (RT_VERSION leaf within the resource tree)

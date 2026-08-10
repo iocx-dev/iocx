@@ -14,6 +14,26 @@ from .decorators import depends_on
 REQUIRED_NONZERO_DIRS: set[str] = set()
 
 
+# IMAGE_DIRECTORY_ENTRY_SECURITY (index 4) is special: its VirtualAddress
+# field is a FILE OFFSET, not an RVA (the attribute certificate table is
+# appended to the file and never mapped into the image). Every check here
+# interprets the field as an RVA, so applying them to the security directory
+# is a category error and double-counts with the certificate parser /
+# signature validator, which own that directory's placement truth (validated
+# against file_size, e.g. certificate_offset_past_eof). Exclude it from ALL
+# RVA-based checks — both the per-directory loop and the overlap detection.
+_SECURITY_DIRECTORY_INDEX = 4
+_SECURITY_DIRECTORY_NAME = "IMAGE_DIRECTORY_ENTRY_SECURITY"
+
+
+def _is_security_directory(d: Dict[str, Any]) -> bool:
+    """True for IMAGE_DIRECTORY_ENTRY_SECURITY, by index or name."""
+    return (
+        d.get("index") == _SECURITY_DIRECTORY_INDEX
+        or d.get("name") == _SECURITY_DIRECTORY_NAME
+    )
+
+
 @depends_on("metadata", "analysis")
 def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
@@ -45,6 +65,11 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
     # Directory validation
     # ---------------------------------------------------------
     for d in dirs:
+        # Skip for the security directory: its VirtualAddress is a file offset, not an RVA.
+        # Owned by signature / pe_certificates. See note above.
+        if _is_security_directory(d):
+            continue
+
         rva = d.get("rva")
         size = d.get("size")
         name = d.get("name") or d.get("index")
@@ -180,6 +205,11 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
     # ---------------------------------------------------------
     for i in range(len(dirs)):
         a = dirs[i]
+
+        # Exclude security: its offset is not an RVA, so an RVA-space overlap comparison is wrong
+        if _is_security_directory(a):
+            continue
+
         rva_a = a.get("rva")
         size_a = a.get("size")
         if not isinstance(rva_a, int) or not isinstance(size_a, int):
@@ -188,6 +218,10 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
 
         for j in range(i + 1, len(dirs)):
             b = dirs[j]
+
+            if _is_security_directory(b):
+                continue
+
             rva_b = b.get("rva")
             size_b = b.get("size")
             if not isinstance(rva_b, int) or not isinstance(size_b, int):
