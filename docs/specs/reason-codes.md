@@ -114,7 +114,7 @@
 
 ---
 
-## ** RESOURCE ANOMALIES**
+## **RESOURCE ANOMALIES**
 
 ### **Resource Directory Anomalies**
 
