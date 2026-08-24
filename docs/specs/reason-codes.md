@@ -85,6 +85,8 @@
 | **TLS_CALLBACK_IN_HEADERS** | Callback RVA falls inside the PE headers (`< SizeOfHeaders`) | Callback = `0x200`, SizeOfHeaders = `0x600` | Per‑file |
 | **TLS_CALLBACK_IN_OVERLAY** | Callback RVA maps to a raw offset beyond the last section (overlay) | Raw offset = `0x1F000`, overlay starts at `0x1E000` | Per‑file |
 | **TLS_CALLBACK_ARRAY_NOT_TERMINATED** *(optional future rule)* | Callback array exists but is not 0‑terminated | Callback list ends with non‑zero RVA | Per‑file |
+| **TLS_DIRECTORY_TRUNCATED** *(v0.7.6)* | `pe_tls` struct decoder failed: the IMAGE_TLS_DIRECTORY header could not be read, or the callback array was truncated or looping | Header short read, or callback walk hit the 4096 hard limit with no NULL terminator | Per‑file |
+| **TLS_CALLBACK_RVA_INVALID** *(v0.7.6)* | A resolved callback target (`AddressOfCallBacks − ImageBase`) cannot form a valid RVA or does not map to any section | Callback VA yielding a negative RVA, or an RVA covered by no section | Per‑file |
 
 ---
 
@@ -100,6 +102,15 @@
 | **SIGNATURE_INVALID_TYPE** | `wCertificateType` not X.509 (1) or PKCS#7 (2) | `certificate_type = 0x1234` | Per‑certificate |
 | **SIGNATURE_OUT_OF_FILE_BOUNDS** | Certificate offset + size exceeds file size or begins before 0 | Offset = 0x200000, FileSize = 0x180000 | Per‑certificate |
 | **SIGNATURE_OVERLAPS_OTHER_DATA** | Certificate overlaps a section, overlay, or other critical region | Certificate at raw 0x4000 overlaps `.text` | Per‑certificate |
+
+### CERTIFICATE TABLE ANOMALIES
+
+*Added in v0.7.6. Raw structural truth from the `pe_certificates` struct-level decoder, which walks the WIN_CERTIFICATE array from the file bytes. `DATA_DIRECTORY[4].VirtualAddress` is treated as a **file offset**, not an RVA — the certificate table is appended to the file and never mapped into the image. Placement/overlap has a single owner here to avoid double-counting with the RVA-graph backbone; the signature symmetry checks above interpret trust facts on top.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **CERTIFICATE_OFFSET_INSIDE_IMAGE** | The certificate table's file offset falls **before** the on-disk end of any section (`offset < image_raw_end`), i.e. it is not genuinely appended after the mapped image | Table offset = 0x3000, but `.rsrc` raw data ends at 0x5000 | Per‑file |
+| **CERTIFICATE_TABLE_MALFORMED** | Top-level decode failure, or a WIN_CERTIFICATE entry surfaced a truncation tag (`reason: "truncation"`) — e.g. `dwLength` runs past the file end, or the 8-byte header could not be read on the QWORD entry alignment | `dwLength` claims 0x900 bytes but only 0x40 remain in the file | Per‑file / Per‑certificate |
 
 ---
 
@@ -370,6 +381,135 @@ Priority‑resolved:
 | name_unterminated | Name string had no NUL terminator within the maximum scan length |
 | name_non_ascii | Name decode produced Unicode replacement characters |
 | name_not_printable | Name decoded successfully but contains non‑printable bytes |
+
+---
+
+## **RELOCATION ANOMALIES**
+
+*Added in v0.7.6 (validator §2.13). Backed by the `pe_relocations` struct-level decoder over `IMAGE_BASE_RELOCATION` blocks. Directory placement/bounds remain owned by the RVA-graph backbone; these codes cover block-stream and per-entry structural truth. `IMAGE_REL_BASED_ABSOLUTE` (type 0) padding entries are never flagged, and absence of a relocation directory is not a defect.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **RELOCATION_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first block header was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **RELOCATION_TABLE_TRUNCATED** | A block's declared `SizeOfBlock` extends past the directory's declared end, or the entry region could not be fully read | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
+| **RELOCATION_BLOCK_MALFORMED** | A block is structurally invalid: `SizeOfBlock` below the 8-byte header minimum, not aligned to the 2-byte entry stride, or a non-advancing size that would stall the walk | `SizeOfBlock = 0`, or `SizeOfBlock = 7` | Per‑block *(priority-resolved sub-reason)* |
+| **RELOCATION_ENTRY_RVA_INVALID** | A non-ABSOLUTE entry's target (`page_rva + offset`) does not map to any section | Entry target = 0x9000 with no covering section | Per‑entry *(count always reported in details even when emission is capped)* |
+
+---
+
+## **DEBUG DIRECTORY ANOMALIES**
+
+*Added in v0.7.6 (validator §2.14). Backed by the `pe_debug` struct-level decoder over the fixed-stride 28-byte `IMAGE_DEBUG_DIRECTORY` array and the CodeView (RSDS / NB10) records it references. Directory placement/bounds remain owned by the RVA-graph backbone. Absence of a debug directory is not a defect, and entries reachable only via a raw file pointer (no `AddressOfRawData`) are not flagged for mapping.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **DEBUG_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first entry was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **DEBUG_TABLE_TRUNCATED** | The declared directory size is not a whole multiple of the 28-byte entry stride, or the entry array could not be fully read | Directory size = 0x2A (one and a half entries) | Per‑file |
+| **DEBUG_DIRECTORY_ENTRY_MALFORMED** | An entry could not be unpacked, its CodeView blob could not be read, or the CodeView record was malformed / of an unrecognised signature | 28-byte entry short read, or CodeView signature neither `RSDS` nor `NB10` | Per‑entry *(priority-resolved sub-reason)* |
+| **DEBUG_ENTRY_RVA_INVALID** | An entry's `AddressOfRawData` region does not map to any section | Debug data RVA = 0x9000 with no covering section | Per‑entry |
+
+---
+
+## **EXCEPTION (.pdata) DIRECTORY ANOMALIES**
+
+*Added in v0.7.6.1 (validator §2.15). Backed by the `pe_exception` struct-level decoder — the deep semantic validator for the x64 `RUNTIME_FUNCTION` table (12-byte entries → `UNWIND_INFO` in `.xdata`) and the ARM/ARM64 8-byte `.pdata` record walk. Directory placement/bounds remain owned by the RVA-graph backbone; these codes cover the sorted function table and its unwind references. Absence of an exception directory is not a defect (x86 images carry no `.pdata`; x64/ARM images may legitimately omit it).*
+
+### Exception Directory Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_DIRECTORY_INVALID_HEADER** | Top-level parser decode failure; presence of any top-level error short-circuits all further checks | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **EXCEPTION_DIRECTORY_OUT_OF_BOUNDS** | The directory's `rva + size` extends past SizeOfImage | RVA = 0xF0000, size = 0x4000, SizeOfImage = 0xF2000 | Per‑file |
+| **EXCEPTION_DIRECTORY_UNALIGNED** | The directory RVA is not DWORD-aligned (`RUNTIME_FUNCTION` entries must be DWORD-aligned) | RVA = 0x2001 | Per‑file |
+| **EXCEPTION_DIRECTORY_SIZE_NOT_MULTIPLE** | The directory Size is not a whole multiple of the per-entry stride (12 for amd64, 8 for arm) | size = 25, entry_size = 12 (remainder 1) | Per‑file |
+| **EXCEPTION_TABLE_TRUNCATED** | A parser truncation tag surfaced while walking the counted entry array | Declared count exceeds the readable region; a partial trailing entry | Per‑file *(one issue per tag; `table` field names the cause)* |
+| **EXCEPTION_UNSUPPORTED_MACHINE** | The directory is present on a machine whose `.pdata` format is not deep-parsed (x86, IA-64, unknown). Reported once; the function walk is skipped | `IMAGE_FILE_MACHINE_I386` with a non-empty exception directory | Per‑file |
+
+### Exception Function-Table Entry Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_ENTRY_INVALID** | A per-entry parser error tag surfaced (unreadable / unpackable entry, or a zeroed mandatory RVA). Skips the cross-entry checks for that entry | `begin_rva = 0`, or the 12-byte entry could not be unpacked | Per‑entry *(priority-resolved sub-reason)* |
+| **EXCEPTION_FUNCTION_RANGE_INVALID** | `BeginAddress >= EndAddress` (empty or inverted range). `EndAddress` is the RVA of the first byte past the function, so a well-formed entry has begin < end | begin = 0x1050, end = 0x1050 (empty); or begin > end (inverted) | Per‑entry *(amd64 only; arm records carry no EndAddress)* |
+| **EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS** | One or more of begin / end / unwind RVA fall outside the mapped image | begin_rva = 0x99000, SizeOfImage = 0x40000 | Per‑entry *(`fields` lists the offending RVA names)* |
+| **EXCEPTION_ENTRIES_NOT_SORTED** | A `BeginAddress` is lower than the previous entry's. The loader binary-searches this table, so an out-of-order entry silently loses its unwind data at runtime | Entry N begins at 0x1010 after entry N−1 began at 0x1050 | Per‑entry |
+| **EXCEPTION_FUNCTION_OVERLAP** | A (sorted) entry's `BeginAddress` falls inside the previous entry's `[begin, end)` range | Entry N begins at 0x1040 while entry N−1 spans 0x1000–0x1050 | Per‑entry |
+
+### Exception Unwind-Info Anomalies (AMD64 UNWIND_INFO)
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_UNWIND_INFO_UNALIGNED** | A non-zero `UnwindInfoAddress` is not DWORD-aligned (`UNWIND_INFO` must be DWORD-aligned) | unwind_info_rva = 0x3021 | Per‑entry |
+| **EXCEPTION_UNWIND_INFO_INVALID** | The UNWIND_INFO decode surfaced a pathology, or its Version is not 1/2/3, or Flags carry bits outside the known mask (EHANDLER \| UHANDLER \| CHAININFO \| LARGE) | version = 5; or flags = 0x10 (reserved bit set) | Per‑entry *(priority-resolved sub-reason)* |
+| **EXCEPTION_UNWIND_CHAIN_INVALID** | An entry sets `UNW_FLAG_CHAININFO` but its chained target is missing, unaligned, out of bounds, or self-referential | chained_rva = 0; or chained_rva == this entry's own unwind_info_rva | Per‑entry *(priority-resolved sub-reason)* |
+
+## EXCEPTION DIRECTORY SUB‑REASONS
+
+Several exception reason codes carry a `reason` (or `table` / `fields`) field in their details payload that narrows the pathology. The full taxonomy:
+
+### EXCEPTION_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top‑level decoding of the exception directory |
+
+### EXCEPTION_TABLE_TRUNCATED
+
+The `table` field (not `reason`) identifies the truncation cause:
+
+| table value | Meaning |
+|------------|---------|
+| exception_table_ragged_tail | Declared directory size is not a whole multiple of the entry stride; the partial trailing entry is not decoded |
+| exception_table_max_exceeded | Declared entry count exceeded the hard limit (2^20) and was clamped |
+| exception_entry_read_failed | pe.get_data raised while reading an entry |
+| exception_entry_truncated | An entry's fixed-size structure was short |
+
+### EXCEPTION_ENTRY_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| entry_truncated | The entry's fixed-size structure was short |
+| entry_read_failed | pe.get_data raised when reading the entry |
+| entry_unpack_failed | struct.unpack failed on the entry bytes |
+| begin_rva_zero | BeginAddress was zero |
+| end_rva_zero | EndAddress was zero (amd64) |
+| unwind_rva_zero | UnwindInfoAddress was zero (amd64) / xdata RVA was zero (arm unpacked) |
+
+### EXCEPTION_UNWIND_INFO_INVALID
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| unwind_read_failed | pe.get_data raised when reading the UNWIND_INFO header |
+| unwind_truncated | The 4-byte UNWIND_INFO header was short |
+| unwind_unpack_failed | struct.unpack failed on the header bytes |
+| unwind_version_invalid | Version field was not 1, 2, or 3 |
+| unwind_flags_reserved_bits | Flags carried bits outside EHANDLER \| UHANDLER \| CHAININFO \| LARGE |
+| unwind_codes_truncated | The trailing chained RUNTIME_FUNCTION could not be read past the unwind-code array |
+
+### EXCEPTION_UNWIND_CHAIN_INVALID
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| chain_target_missing | UNW_FLAG_CHAININFO set but the chained RVA is absent or zero |
+| chain_target_unaligned | Chained RVA is not DWORD-aligned |
+| chain_target_out_of_bounds | Chained RVA falls outside SizeOfImage |
+| chain_self_reference | Chained RVA equals the entry's own UnwindInfoAddress |
+
+### EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS
+
+The `fields` list (not `reason`) names each RVA that fell outside the image:
+
+| fields value | Meaning |
+|------------|---------|
+| begin_rva | BeginAddress < 0 or ≥ SizeOfImage |
+| end_rva | EndAddress < 0 or > SizeOfImage |
+| unwind_info_rva | UnwindInfoAddress (non-zero) < 0 or ≥ SizeOfImage |
 
 ---
 
