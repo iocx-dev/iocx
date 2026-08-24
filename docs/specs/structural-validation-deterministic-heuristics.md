@@ -208,7 +208,7 @@ This closes one of the most subtle structural attack surfaces in the PE format.
 ---
 
 # 2.10 Version‑Info Validator
-## Validates the structural integrity of the VS_VERSIONINFO blob extracted from the RT_VERSION resource.
+### Validates the structural integrity of the VS_VERSIONINFO blob extracted from the RT_VERSION resource.
 
 This validator performs:
 
@@ -236,7 +236,7 @@ Version‑info is a high‑signal forensic surface: CompanyName, OriginalFilenam
 ---
 
 # 2.11 Exports Validator
-## Validates the structural integrity of the PE export table extracted by parser_exports.
+### Validates the structural integrity of the PE export table extracted by parser_exports.
 
 This validator performs:
 
@@ -258,7 +258,7 @@ This ensures that for any given malformed export table, the validator produces t
 
 ---
 
-## 2.12 Delay-Load Imports Validator
+# 2.12 Delay-Load Imports Validator
 
 ### Validates the structural integrity of the PE delay-load import directory and its descriptor array.
 
@@ -295,7 +295,7 @@ The delay-load parser is implemented as a pure `struct`-level decoder over `pe.g
 
 ---
 
-## 2.13 Relocations Validator
+# 2.13 Relocations Validator
 
 ### Validates the structural integrity of the PE base-relocation table extracted by pe_relocations.
 
@@ -322,7 +322,7 @@ The validator then maps these structural states to a small, well-defined set of 
 
 ---
 
-## 2.14 Debug Directory Validator
+# 2.14 Debug Directory Validator
 
 ### Validates the structural integrity of the PE debug directory extracted by pe_debug.
 
@@ -348,7 +348,7 @@ The debug parser is implemented as a pure `struct`-level decoder over both `pe.g
 
 The validator then maps these structural states to a small, well-defined set of reason codes (`DEBUG_DIRECTORY_INVALID_HEADER`, `DEBUG_DIRECTORY_OUT_OF_BOUNDS`, `DEBUG_TABLE_TRUNCATED`, `DEBUG_DIRECTORY_ENTRY_MALFORMED`, `DEBUG_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The PDB path is a high-signal forensic surface; build paths routinely leak project names, usernames, and toolchain layout, so deterministic extraction is a prerequisite for treating it as a reliable triage signal.
 
-## 2.15 Exception Directory Validator
+# 2.15 Exception Directory Validator
 
 ### Validates the structural integrity of the PE exception (`.pdata`) directory extracted by `pe_exception`.
 
