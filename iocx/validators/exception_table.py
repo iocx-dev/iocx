@@ -163,7 +163,7 @@ def validate_exception_table(internal: InternalMetadata,
     if ex.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXCEPTION_DIRECTORY_INVALID_HEADER,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(ex["errors"])},
         ))
         return issues
@@ -282,7 +282,7 @@ def _validate_function_table(ex: Dict[str, Any],
         if entry_reason != "unknown":
             issues.append(StructuralIssue(
                 issue=ReasonCodes.EXCEPTION_ENTRY_INVALID,
-                details={"index": index, "reason": entry_reason},
+                details={"index": index, "sub_reason": entry_reason},
             ))
             # A structurally unreadable entry can't feed the cross-entry
             # invariants below; skip it but keep walking the table.
@@ -388,7 +388,7 @@ def _validate_unwind_info(index: Optional[int],
     if unwind_reason != "unknown":
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXCEPTION_UNWIND_INFO_INVALID,
-            details={"index": index, "reason": unwind_reason,
+            details={"index": index, "sub_reason": unwind_reason,
                      "version": version, "flags": flags,
                      "unwind_info_rva": unwind_rva},
         ))
@@ -406,7 +406,7 @@ def _validate_unwind_info(index: Optional[int],
             issues.append(StructuralIssue(
                 issue=ReasonCodes.EXCEPTION_UNWIND_CHAIN_INVALID,
                 details={"index": index, "chained_rva": chained_rva,
-                         "unwind_info_rva": unwind_rva, "reason": reason},
+                         "unwind_info_rva": unwind_rva, "sub_reason": reason},
             ))
 
 
