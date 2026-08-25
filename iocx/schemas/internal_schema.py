@@ -194,6 +194,53 @@ class DelayImportStruct(TypedDict, total=False):
 
 
 # -------------------------
+# Exception (.pdata) directory
+# -------------------------
+# Produced by parser_exception.build_exception_structure and consumed by
+# validators.exception_table.validate_exception_table. All RVAs are 32-bit
+# image-relative. Absence of the directory is signalled by the parser
+# returning None (hence InternalMetadata.exception_struct is Optional).
+
+class ExceptionUnwindInfo(TypedDict, total=False):
+    version: Optional[int]                 # UNWIND_INFO header bits[2:0]; 1, 2, or 3
+    flags: Optional[int]                   # bits[7:3]; EHANDLER|UHANDLER|CHAININFO|LARGE
+    size_of_prolog: Optional[int]          # header byte 1
+    count_of_codes: Optional[int]          # header byte 2 (USHORT unwind-code count)
+    is_chained: bool                       # UNW_FLAG_CHAININFO set (V1/V2 resolved)
+    chained_rva: Optional[int]             # UnwindInfoAddress of the primary fragment
+    errors: List[str]                      # unwind_read_failed | unwind_truncated |
+                                           # unwind_unpack_failed | unwind_version_invalid |
+                                           # unwind_flags_reserved_bits | unwind_codes_truncated
+
+
+class ExceptionFunctionEntry(TypedDict, total=False):
+    index: int
+    begin_rva: Optional[int]
+    end_rva: Optional[int]                 # None on arm/arm64 (record carries no EndAddress)
+    unwind_info_rva: Optional[int]         # None for arm packed-unwind entries
+    unwind: Optional[ExceptionUnwindInfo]  # amd64 only; None otherwise
+    errors: List[str]                      # entry_truncated | entry_read_failed |
+                                           # entry_unpack_failed | begin_rva_zero |
+                                           # end_rva_zero | unwind_rva_zero
+    is_packed: Optional[bool]              # arm/arm64 only: True → packed unwind
+    packed_data: Optional[int]             # arm/arm64 only: word1 when packed, else None
+
+
+class ExceptionStruct(TypedDict, total=False):
+    rva: int
+    size: int
+    machine: Optional[int]                 # IMAGE_FILE_MACHINE_*
+    arch: str                              # "amd64" | "arm64" | "arm" | "unsupported"
+    entry_size: int                        # 12 (amd64) | 8 (arm/arm64) | 0 (unsupported)
+    functions: List[ExceptionFunctionEntry]
+    truncations: List[str]                 # exception_table_ragged_tail |
+                                           # exception_table_max_exceeded |
+                                           # exception_entry_read_failed | exception_entry_truncated
+    errors: List[str]                      # top-level; presence short-circuits to
+                                           # EXCEPTION_DIRECTORY_INVALID_HEADER
+
+
+# -------------------------
 # Relocation table
 # -------------------------
 
@@ -315,6 +362,7 @@ class InternalMetadata(TypedDict, total=False):
     data_directories_raw: List[DataDirectoryRaw]
     export_struct: Optional[ExportStruct]
     delay_import_struct: Optional[DelayImportStruct]
+    exception_struct: Optional[ExceptionStruct]
     relocation_struct: Optional[RelocationStruct]
     certificate_struct: Optional[CertificateStruct]
     debug_struct: Optional[DebugStruct]

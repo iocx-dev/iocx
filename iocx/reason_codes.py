@@ -180,6 +180,29 @@ class ReasonCodes:
     DEBUG_DIRECTORY_ENTRY_MALFORMED = "debug_directory_entry_malformed"
     DEBUG_ENTRY_RVA_INVALID = "debug_entry_rva_invalid"
 
+    # --- Exception directory (.pdata / IMAGE_DIRECTORY_ENTRY_EXCEPTION) ---
+    # Deep semantic validator for the x64 RUNTIME_FUNCTION table (and ARM/ARM64
+    # table walk). Directory placement is owned by rva_graph; these codes cover
+    # the sorted function table and its UNWIND_INFO references.
+    EXCEPTION_DIRECTORY_INVALID_HEADER = "exception_directory_invalid_header"
+    EXCEPTION_DIRECTORY_OUT_OF_BOUNDS = "exception_directory_out_of_bounds"
+    EXCEPTION_DIRECTORY_UNALIGNED = "exception_directory_unaligned"
+    EXCEPTION_DIRECTORY_SIZE_NOT_MULTIPLE = "exception_directory_size_not_multiple"
+    EXCEPTION_TABLE_TRUNCATED = "exception_table_truncated"
+    EXCEPTION_UNSUPPORTED_MACHINE = "exception_unsupported_machine"
+
+    # --- Exception function-table entry anomalies ---
+    EXCEPTION_ENTRY_INVALID = "exception_entry_invalid"
+    EXCEPTION_FUNCTION_RANGE_INVALID = "exception_function_range_invalid"
+    EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS = "exception_function_rva_out_of_bounds"
+    EXCEPTION_ENTRIES_NOT_SORTED = "exception_entries_not_sorted"
+    EXCEPTION_FUNCTION_OVERLAP = "exception_function_overlap"
+
+    # --- Exception unwind-info anomalies (AMD64 UNWIND_INFO) ---
+    EXCEPTION_UNWIND_INFO_UNALIGNED = "exception_unwind_info_unaligned"
+    EXCEPTION_UNWIND_INFO_INVALID = "exception_unwind_info_invalid"
+    EXCEPTION_UNWIND_CHAIN_INVALID = "exception_unwind_chain_invalid"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"
