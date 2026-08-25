@@ -231,8 +231,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "not_power_of_two",
-          "file_alignment": 768
+          "reason": "optional_header_invalid_file_alignment",
+          "file_alignment": 768,
+          "sub_reason": "not_power_of_two"
         }
       }
     ]

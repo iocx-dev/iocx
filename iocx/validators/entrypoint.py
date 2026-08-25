@@ -161,13 +161,13 @@ def validate_entrypoint(metadata: PublicMetadata, analysis: AnalysisDict) -> Lis
     if isinstance(vs, int) and vs == 0:
         issues.append(StructuralIssue(
             issue=ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION,
-            details={"entry_point": ep, "section": name, "reason": "zero_length_section"},
+            details={"entry_point": ep, "section": name, "sub_reason": "zero_length_section"},
         ))
     elif isinstance(va, int) and isinstance(vs, int) and ep >= va + vs:
         # Only emit the "beyond_virtual_size" variant if we didn't already flag zero-length
         issues.append(StructuralIssue(
             issue=ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION,
-            details={"entry_point": ep, "section": name, "reason": "beyond_virtual_size"},
+            details={"entry_point": ep, "section": name, "sub_reason": "beyond_virtual_size"},
         ))
 
     # --- D. EP must not point into overlays (RVA → file offset) ---

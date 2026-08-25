@@ -154,7 +154,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
         if not mapped:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.LOAD_CONFIG_COOKIE_INVALID,
-                details={"cookie_rva": cookie_rva, "reason": "unmapped"},
+                details={"cookie_rva": cookie_rva, "sub_reason": "unmapped"},
             ))
         else:
             cookie_raw, sec = mapped
@@ -169,7 +169,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
                         "cookie_rva": cookie_rva,
                         "section": sec.get("name"),
                         "characteristics": characteristics,
-                        "reason": "non_writable_section",
+                        "sub_reason": "non_writable_section",
                     },
                 ))
 
@@ -196,7 +196,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
                 details={
                     "seh_table_rva": seh_table_rva,
                     "seh_count": seh_count,
-                    "reason": "missing_table_rva",
+                    "sub_reason": "missing_table_rva",
                 },
             ))
         else:
@@ -210,7 +210,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
                         "seh_table_rva": seh_table_rva,
                         "seh_count": seh_count,
                         "size_of_image": size_of_image,
-                        "reason": "out_of_range",
+                        "sub_reason": "out_of_range",
                     },
                 ))
             else:
@@ -221,7 +221,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
                         details={
                             "seh_table_rva": seh_table_rva,
                             "seh_count": seh_count,
-                            "reason": "unmapped",
+                            "sub_reason": "unmapped",
                         },
                     ))
                 else:
@@ -234,7 +234,7 @@ def validate_load_config_directory(internal: InternalMetadata, metadata: PublicM
                                 "seh_count": seh_count,
                                 "seh_raw": seh_raw,
                                 "overlay_offset": overlay_offset,
-                                "reason": "in_overlay",
+                                "sub_reason": "in_overlay",
                             },
                         ))
 

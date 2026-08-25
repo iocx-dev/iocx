@@ -191,7 +191,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "top_level_decode",
+          "reason": "export_directory_invalid_header",
+          "sub_reason": "top_level_decode",
           "errors": [
             "header_read_failed"
           ]

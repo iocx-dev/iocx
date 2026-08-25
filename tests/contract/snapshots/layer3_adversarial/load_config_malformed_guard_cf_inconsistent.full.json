@@ -165,10 +165,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "non_writable_section",
+          "reason": "load_config_cookie_invalid",
           "cookie_rva": 13568,
           "section": ".rdata",
-          "characteristics": 1073741888
+          "characteristics": 1073741888,
+          "sub_reason": "non_writable_section"
         }
       },
       {

@@ -160,9 +160,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "zero_length_section",
+          "reason": "entrypoint_in_truncated_region",
           "entry_point": 4096,
-          "section": ".text"
+          "section": ".text",
+          "sub_reason": "zero_length_section"
         }
       }
     ]

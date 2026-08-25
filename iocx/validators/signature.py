@@ -72,7 +72,7 @@ def validate_signature(internal: InternalMetadata,
     if cert_struct is not None and cert_struct.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.CERTIFICATE_TABLE_MALFORMED,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(cert_struct["errors"])},
         ))
         return issues
@@ -113,7 +113,7 @@ def validate_signature(internal: InternalMetadata,
     for tag in cert_struct.get("truncations", []) or []:
         issues.append(StructuralIssue(
             issue=ReasonCodes.CERTIFICATE_TABLE_MALFORMED,
-            details={"reason": "truncation", "region": tag},
+            details={"sub_reason": "truncation", "region": tag},
         ))
 
     # ---------------------------------------------------------
