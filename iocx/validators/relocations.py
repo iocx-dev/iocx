@@ -25,11 +25,12 @@ Reason codes emitted:
   RELOCATION_ENTRY_RVA_INVALID
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.internal_schema import InternalMetadata
+from iocx.schemas.public_metadata import PublicMetadata
 from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 from ._directory_invariants import rva_in_any_section
@@ -48,20 +49,24 @@ _BLOCK_ERROR_PRIORITY = [
 _MAX_ENTRY_ISSUES_PER_BLOCK = 8
 
 
-@depends_on("internal", "analysis")
-def validate_relocations(metadata: InternalMetadata,
+@depends_on("internal", "metadata", "analysis")
+def validate_relocations(internal: InternalMetadata,
+                         metadata: PublicMetadata,
                          analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
-    reloc = metadata.get("relocation_struct")
+    reloc = internal.get("relocation_struct")
     if reloc is None:
         return issues  # no relocation directory — not a defect
+
+    opt = metadata.get("optional_header") or {}
+    size_of_image = opt.get("size_of_image")
 
     # ---- Top-level decode failures short-circuit ----
     if reloc.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.RELOCATION_DIRECTORY_INVALID_HEADER,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(reloc["errors"])},
         ))
         return issues
@@ -69,7 +74,7 @@ def validate_relocations(metadata: InternalMetadata,
     # NOTE: directory placement is intentionally NOT checked here — it is
     # owned by rva_graph. See module docstring.
     _validate_truncations(reloc, issues)
-    _validate_blocks(reloc, analysis, issues)
+    _validate_blocks(reloc, analysis, size_of_image, issues)
 
     return issues
 
@@ -94,6 +99,7 @@ def _validate_truncations(reloc: Dict[str, Any],
 
 def _validate_blocks(reloc: Dict[str, Any],
                      analysis: AnalysisDict,
+                     size_of_image: Optional[int],
                      issues: List[StructuralIssue]) -> None:
     """Emit per-block structural issues and per-entry RVA issues."""
     for block in reloc.get("blocks", []) or []:
@@ -107,14 +113,15 @@ def _validate_blocks(reloc: Dict[str, Any],
                 details={"index": index,
                          "page_rva": block.get("page_rva"),
                          "size_of_block": block.get("size_of_block"),
-                         "reason": reason},
+                         "sub_reason": reason},
             ))
 
-        _validate_block_entries(block, analysis, issues)
+        _validate_block_entries(block, analysis, size_of_image, issues)
 
 
 def _validate_block_entries(block: Dict[str, Any],
                             analysis: AnalysisDict,
+                            size_of_image: Optional[int],
                             issues: List[StructuralIssue]) -> None:
     """
     Flag relocation entries whose target RVA does not map to any section.
@@ -131,7 +138,7 @@ def _validate_block_entries(block: Dict[str, Any],
         if entry.get("type") == 0:  # IMAGE_REL_BASED_ABSOLUTE — padding
             continue
         target_rva = entry.get("rva")
-        mapped = rva_in_any_section(target_rva, analysis)
+        mapped = rva_in_any_section(target_rva, analysis, size_of_image)
         if mapped is False:
             invalid_rvas.append(target_rva)
 
