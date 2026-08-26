@@ -40,9 +40,10 @@ Some structural metadata extracted by parsers is **producer-facing**: it exists 
 > (§2.5) owns placement for every directory it can interpret as an RVA.
 > Subsystem validators that additionally assert placement locally — exports,
 > delay-load, exception — do so because the check is cheap and keeps the
-> validator self-contained; their codes are disjoint from the backbone's, so
-> no fact is counted twice. Relocations, debug and the security directory
-> defer entirely.
+> validator self-contained. Their codes are disjoint identifiers, so a directory
+> overrunning `SizeOfImage` surfaces under both the backbone's `DATA_DIRECTORY_OUT_OF_RANGE`
+> and the subsystem's own code — two distinct labels for one fact, not one code
+> emitted twice. Relocations, debug and the security directory defer entirely.
 
 ---
 
@@ -173,7 +174,7 @@ This validator enforces:
 
 This ensures the Authenticode block is structurally valid before any trust decisions are made.
 
-**v0.7.6 structural decoder.** The certificate subsystem is now backed by a pure `struct`-level decoder (pe_certificates) that walks the `WIN_CERTIFICATE` array independently of pefile's `DIRECTORY_ENTRY_SECURITY` interpretation. The decoder treats `DATA_DIRECTORY[4].VirtualAddress` as a *file offset*, not an RVA, and reads from the raw file bytes, since the certificate table is appended to the file and never mapped into the image. It extracts each entry's revision, type, and length, decodes on the 8-byte (QWORD) entry alignment, and records the structural fact of whether the table offset falls before the on-disk end of any section (`overlaps_image`). This decoder establishes raw structural truth via two new reason codes: `CERTIFICATE_OFFSET_INSIDE_IMAGE` (the table offset falls before the on-disk end of any section) and `CERTIFICATE_TABLE_MALFORMED` (top-level decode failure or a truncation tag surfaced with reason: "truncation"). The placement/overlap fact has a single owner to avoid double-counting with the RVA-graph backbone, and the signature validator continues to interpret the trust-facing symmetry above it.
+**v0.7.6 structural decoder.** The certificate subsystem is now backed by a pure `struct`-level decoder (pe_certificates) that walks the `WIN_CERTIFICATE` array independently of pefile's `DIRECTORY_ENTRY_SECURITY` interpretation. The decoder treats `DATA_DIRECTORY[4].VirtualAddress` as a *file offset*, not an RVA, and reads from the raw file bytes, since the certificate table is appended to the file and never mapped into the image. It extracts each entry's revision, type, and length, decodes on the 8-byte (QWORD) entry alignment, and records the structural fact of whether the table offset falls before the on-disk end of any section (`overlaps_image`). This decoder establishes raw structural truth via two new reason codes: `CERTIFICATE_OFFSET_INSIDE_IMAGE` (the table offset falls before the on-disk end of any section) and `CERTIFICATE_TABLE_MALFORMED` (top-level decode failure or a truncation tag surfaced with sub_reason: "truncation"). The placement/overlap fact has a single owner to avoid double-counting with the RVA-graph backbone, and the signature validator continues to interpret the trust-facing symmetry above it.
 
 ---
 
