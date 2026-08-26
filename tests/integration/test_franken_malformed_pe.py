@@ -45,10 +45,10 @@ def test_franken_expected_heuristics(franken_result):
         "data_directory_zero_rva_nonzero_size",
         "section_raw_misaligned",
         "section_overlap",
-        "section_raw_overlap"
+        "section_raw_overlap",
+        "exception_directory_size_not_multiple",
+        "exception_table_truncated"
     }
-
-    print(heur)
 
     assert heur == expected
 

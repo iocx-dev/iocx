@@ -67,7 +67,7 @@ def test_string_obfuscation_heuristics(string_obfuscation_tricks_result):
     # These anomalies are expected for this test binary
     assert structural_reasons == {
         "load_config_guard_cf_inconsistent",
-        "unmapped",
+        "load_config_cookie_invalid",
     }
 
 
