@@ -68,7 +68,7 @@ def test_crypto_entropy_payload_heuristics(crypto_payload_result):
 
     # These anomalies are expected for this test binary
     assert structural_reasons == {
-        'load_config_guard_cf_inconsistent', 'load_config_cookie_invalid'
+        "load_config_guard_cf_inconsistent", "load_config_cookie_invalid"
     }
 
 

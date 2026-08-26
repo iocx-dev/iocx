@@ -65,7 +65,7 @@ def _sections(analysis: Dict[str, Any]) -> List[Tuple[int, int]]:
 def rva_in_any_section(
     rva: Optional[int],
     analysis: Dict[str, Any],
-    size_of_image=None,
+    size_of_image: Optional[int] = None,
 ) -> Optional[bool]:
     """
     True if `rva` falls inside any section's virtual extent.
@@ -90,7 +90,7 @@ def region_in_any_section(
     rva: Optional[int],
     size: Optional[int],
     analysis: Dict[str, Any],
-    size_of_image=None,
+    size_of_image: Optional[int] = None,
 ) -> Optional[bool]:
     """
     True if the whole region [rva, rva+size) fits inside a single section.
