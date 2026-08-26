@@ -6,9 +6,21 @@ Unit tests for iocx.validators.relocations.validate_relocations.
 
 Strategy:
 - Input is the relocation_struct dict produced by parser pe_relocations,
-  carried under metadata["relocation_struct"].
+  carried under internal["relocation_struct"].
 - Build dicts directly to isolate validator logic from parser behaviour.
 - Tests assert on emitted REASONCODES and the details payload.
+
+Layer note: the validator is @depends_on("internal", "metadata", "analysis"),
+so it takes THREE positional arguments. SizeOfImage is read from
+metadata["optional_header"]["size_of_image"] and threaded explicitly into the
+_directory_invariants helpers; section geometry comes from analysis["sections"].
+Keeping those in separate fixtures is deliberate - see
+test_no_sections_falls_back_to_size_of_image.
+
+Details note: priority-resolved sub-reasons are carried in a "sub_reason" key.
+The key "reason" is reserved by the heuristics emission layer, which merges
+details over its own reason field - a details["reason"] would overwrite the
+parent reason code.
 """
 
 from __future__ import annotations
@@ -28,11 +40,26 @@ from iocx.validators.relocations import (
 # Input builders
 # =================================================================
 
+def _make_metadata(size_of_image: Optional[int] = 0x100000) -> Dict[str, Any]:
+    """
+    Public-metadata layer. SizeOfImage lives under optional_header; it is NOT
+    part of the analysis layer.
+    """
+    return {"optional_header": {"size_of_image": size_of_image}}
+
+
 def _make_analysis(
-    size_of_image: Optional[int] = 0x100000,
     sections: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    analysis: Dict[str, Any] = {"size_of_image": size_of_image}
+    """
+    Analysis layer. Carries section geometry only.
+
+    Deliberately does NOT accept a size_of_image argument: the previous fixture
+    injected one here, which made the SizeOfImage fallback path appear to work
+    in tests while it was dead in production (analysis never carries that key).
+    Use _make_metadata for SizeOfImage.
+    """
+    analysis: Dict[str, Any] = {}
     if sections is not None:
         analysis["sections"] = sections
     return analysis
@@ -86,8 +113,12 @@ def _make_reloc(
             "truncations": truncations or [], "errors": errors or []}
 
 
-def _run(reloc: Optional[Dict[str, Any]], analysis: Dict[str, Any]):
-    return validate_relocations({"relocation_struct": reloc}, analysis)
+def _run(reloc: Optional[Dict[str, Any]],
+         analysis: Dict[str, Any],
+         metadata: Optional[Dict[str, Any]] = None):
+    if metadata is None:
+        metadata = _make_metadata()
+    return validate_relocations({"relocation_struct": reloc}, metadata, analysis)
 
 
 def _codes(issues) -> List:
@@ -107,7 +138,7 @@ class TestAbsence:
         assert _run(None, _make_analysis()) == []
 
     def test_missing_key_no_issues(self):
-        assert validate_relocations({}, _make_analysis()) == []
+        assert validate_relocations({}, _make_metadata(), _make_analysis()) == []
 
 
 # =================================================================
@@ -120,7 +151,7 @@ class TestTopLevelDecodeFailure:
         issues = _run(reloc, _make_analysis())
         assert _codes(issues) == [ReasonCodes.RELOCATION_DIRECTORY_INVALID_HEADER]
         details = _details_for(issues, ReasonCodes.RELOCATION_DIRECTORY_INVALID_HEADER)[0]
-        assert details["reason"] == "top_level_decode"
+        assert details["sub_reason"] == "top_level_decode"
         assert details["errors"] == ["block_header_unpack_failed_at_0"]
 
     def test_short_circuit_skips_blocks_and_truncations(self):
@@ -152,6 +183,8 @@ class TestTruncations:
         reloc = _make_reloc(truncations=["relocation_entries_truncated",
                                          "relocation_block_read_failed"])
         issues = _run(reloc, _make_analysis())
+        # "region" is a distinct key and was never subject to the reason
+        # collision, so it is unchanged by the sub_reason migration.
         regions = [d["region"] for d in
                    _details_for(issues, ReasonCodes.RELOCATION_TABLE_TRUNCATED)]
         assert regions == ["relocation_entries_truncated",
@@ -169,7 +202,7 @@ class TestBlockValidation:
         issues = _run(reloc, _make_analysis())
         assert ReasonCodes.RELOCATION_BLOCK_MALFORMED in _codes(issues)
         d = _details_for(issues, ReasonCodes.RELOCATION_BLOCK_MALFORMED)[0]
-        assert d["reason"] == "size_of_block_too_small"
+        assert d["sub_reason"] == "size_of_block_too_small"
         assert d["index"] == 0
 
     def test_priority_first_match_wins(self):
@@ -179,7 +212,7 @@ class TestBlockValidation:
         issues = _run(reloc, _make_analysis())
         malformed = _details_for(issues, ReasonCodes.RELOCATION_BLOCK_MALFORMED)
         assert len(malformed) == 1
-        assert malformed[0]["reason"] == "size_of_block_too_small"
+        assert malformed[0]["sub_reason"] == "size_of_block_too_small"
 
     def test_clean_block_no_issue(self):
         reloc = _make_reloc(blocks=[_make_block(
@@ -228,10 +261,48 @@ class TestEntryValidation:
                                          ReasonCodes.RELOCATION_ENTRY_RVA_INVALID))
 
     def test_no_sections_falls_back_to_size_of_image(self):
-        # No sections -> region_within_image bound check against size_of_image
+        """
+        No sections -> region_within_image bound check against SizeOfImage.
+
+        SizeOfImage must come from the METADATA layer. The previous version of
+        this test put it in `analysis`, which the helpers used to read - so the
+        fallback passed here while being dead in production, where `analysis`
+        never carries that key.
+        """
         reloc = _make_reloc(blocks=[_make_block(entries=[
             _make_entry(rva=0x200000)])])  # beyond size_of_image
-        issues = _run(reloc, _make_analysis(size_of_image=0x100000))
+        issues = _run(reloc, _make_analysis(),
+                      metadata=_make_metadata(size_of_image=0x100000))
+        assert _codes(issues) == [ReasonCodes.RELOCATION_ENTRY_RVA_INVALID]
+
+    def test_no_sections_in_bounds_not_flagged(self):
+        """Counterpart: the fallback must not false-positive on a valid RVA."""
+        reloc = _make_reloc(blocks=[_make_block(entries=[
+            _make_entry(rva=0x2010)])])
+        issues = _run(reloc, _make_analysis(),
+                      metadata=_make_metadata(size_of_image=0x100000))
+        assert ReasonCodes.RELOCATION_ENTRY_RVA_INVALID not in _codes(issues)
+
+    def test_no_sections_and_no_size_of_image_skips_check(self):
+        """
+        With neither section geometry nor SizeOfImage the check is unknowable
+        and must be skipped rather than guessed. Pins the absent-optional-header
+        case explicitly so it is asserted on purpose.
+        """
+        reloc = _make_reloc(blocks=[_make_block(entries=[
+            _make_entry(rva=0x200000)])])
+        issues = _run(reloc, _make_analysis(), metadata={})
+        assert ReasonCodes.RELOCATION_ENTRY_RVA_INVALID not in _codes(issues)
+
+    def test_sections_take_precedence_over_size_of_image(self):
+        """
+        When section geometry is present it is authoritative: a target inside
+        SizeOfImage but outside every section is still flagged.
+        """
+        reloc = _make_reloc(blocks=[_make_block(entries=[
+            _make_entry(rva=0x9000)])])
+        issues = _run(reloc, _make_analysis(sections=_tiny_section()),
+                      metadata=_make_metadata(size_of_image=0x100000))
         assert _codes(issues) == [ReasonCodes.RELOCATION_ENTRY_RVA_INVALID]
 
 
@@ -245,8 +316,8 @@ class TestPlacementNotChecked:
         # placement finding from this validator (rva_graph owns that).
         reloc = _make_reloc(rva=0x90000, size=0x2000,
                             blocks=[_make_block(entries=[_make_entry(rva=0x1004)])])
-        issues = _run(reloc, _make_analysis(
-            size_of_image=0x10000, sections=_whole_image_sections()))
+        issues = _run(reloc, _make_analysis(sections=_whole_image_sections()),
+                      metadata=_make_metadata(size_of_image=0x10000))
         assert issues == []
 
 
@@ -281,7 +352,8 @@ class TestCombinedAnomalies:
 
 class TestOutputContract:
     def test_dependency_contract(self):
-        assert getattr(validate_relocations, "_depends_on") == ("internal", "analysis")
+        assert getattr(validate_relocations, "_depends_on") == (
+            "internal", "metadata", "analysis")
 
     def test_issue_shape(self):
         reloc = _make_reloc(blocks=[_make_block(entries=[
@@ -300,6 +372,32 @@ class TestOutputContract:
             blocks=[_make_block(errors=["size_of_block_too_small"])])
         issues = _run(reloc, _make_analysis())
         json.dumps([i for i in issues])  # must not raise
+
+    def test_no_details_payload_uses_reserved_reason_key(self):
+        """
+        "reason" is reserved by the heuristics emission layer: _det builds
+        metadata as {"reason": parent, **details}, so a details["reason"] would
+        overwrite the parent reason code. Validators must use "sub_reason".
+
+        Exercises every non-short-circuit emission path at once.
+        """
+        reloc = _make_reloc(
+            truncations=["relocation_entries_truncated"],
+            blocks=[_make_block(errors=["size_of_block_too_small"],
+                                entries=[_make_entry(rva=0x9000)])])
+        issues = _run(reloc, _make_analysis(sections=_tiny_section()))
+        assert issues, "fixture should produce issues"
+        offenders = [i["issue"] for i in issues if "reason" in i["details"]]
+        assert not offenders, (
+            f"details payload used the reserved key 'reason' for: {offenders}"
+        )
+
+    def test_top_level_decode_avoids_reserved_reason_key(self):
+        """The short-circuit path is unreachable above; pin it separately."""
+        reloc = _make_reloc(errors=["block_header_unpack_failed_at_0"])
+        issues = _run(reloc, _make_analysis())
+        assert issues
+        assert "reason" not in issues[0]["details"]
 
 
 # =================================================================
