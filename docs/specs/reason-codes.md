@@ -7,6 +7,12 @@
 > instead. Both are stable; consumers handling truncation generically must
 > read either.
 
+> **On the `sub_reason` field.** The key is deliberately not named `reason`:
+> the heuristics layer emits the parent code under `reason`, and a details key
+> of the same name would overwrite it. Sub-reasons are priority-resolved where
+> noted — a single entry carrying several tags reports exactly one, the first
+> in the documented order.
+
 ## **SECTION ANOMALIES**
 
 | Reason Code | What Triggers It | Example Malformed Pattern | Scope |
@@ -137,7 +143,7 @@ They are separable by a discriminating key:
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
+| **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `(start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
 | **TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
 | **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible) | Start = `0x6000`, End = `0x6000` | Per‑file |
 | **TLS_ZERO_LENGTH_DIRECTORY** | TLS directory exists but `start == end` (zero‑length region) | Start = `0x7000`, End = `0x7000` | Per‑file |
@@ -256,7 +262,7 @@ always in `invalid_callback_count`):
 | szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
 | length_inconsistent | `wLength` disagrees with the buffer size |
 
-#### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
+### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
 
 | Sub‑reason | Meaning |
 |------------|---------|
@@ -369,7 +375,7 @@ Several export reason codes carry a `sub_reason` field in their details payload 
 
 ### EXPORT_TABLE_TRUNCATED
 
-The table field (not reason) identifies the affected sub‑table:
+The table field (not sub_reason) identifies the affected sub‑table:
 
 | table value | Meaning |
 |-------------|---------|
@@ -424,12 +430,6 @@ Priority‑resolved:
 |------------|---------|
 | exceeds_image	 | Address RVA >= SizeOfImage |
 
-> **On the `sub_reason` field.** The key is deliberately not named `reason`:
-> the heuristics layer emits the parent code under `reason`, and a details key
-> of the same name would overwrite it. Sub-reasons are priority-resolved where
-> noted — a single entry carrying several tags reports exactly one, the first
-> in the documented order.
-
 ---
 
 ## DELAY‑LOAD IMPORT ANOMALIES
@@ -469,7 +469,7 @@ Most delay‑load reason codes carry a `sub_reason` field in their details paylo
 
 ### DELAY_IMPORT_TABLE_TRUNCATED
 
-The table field (not reason) identifies the affected sub‑table:
+The table field (not sub_reason) identifies the affected sub‑table:
 
 | table value | Meaning |
 |-------------|---------|
@@ -488,10 +488,10 @@ Carries both `table` and `sub_reason` in details:
 
 | table	+ sub-reason (priority order) | Meaning |
 |-------------------------------|---------|
-| int	int_rva_zero | INT RVA is zero despite the descriptor being non‑terminating |
-| int	int_truncated, int_read_failed, int_max_exceeded, int_unpack_failed | Sub‑table read or parse failure (also surfaces via DELAY_IMPORT_TABLE_TRUNCATED) |
-| iat	iat_rva_zero | IAT RVA is zero |
-| iat	iat_truncated, iat_read_failed, iat_max_exceeded, iat_unpack_failed | Same as INT |
+| int: int_rva_zero | INT RVA is zero despite the descriptor being non‑terminating |
+| int: int_truncated, int_read_failed, int_max_exceeded, int_unpack_failed | Sub‑table read or parse failure (also surfaces via DELAY_IMPORT_TABLE_TRUNCATED) |
+| iat: iat_rva_zero | IAT RVA is zero |
+| iat: iat_truncated, iat_read_failed, iat_max_exceeded, iat_unpack_failed | Same as INT |
 
 ### DELAY_IMPORT_DLL_NAME_INVALID
 
@@ -653,7 +653,7 @@ Several exception reason codes carry a `sub_reason` (or `table` / `fields`) fiel
 
 ### EXCEPTION_TABLE_TRUNCATED
 
-The `table` field (not `reason`) identifies the truncation cause:
+The `table` field (not `sub_reason`) identifies the truncation cause:
 
 | table value | Meaning |
 |------------|---------|
