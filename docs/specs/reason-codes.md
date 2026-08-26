@@ -127,9 +127,9 @@ They are separable by a discriminating key:
 | **DATA_DIRECTORY_NOT_MAPPED_TO_SECTION** | Directory is in range but does not fall inside any section | RVA = 0x9000, Size = 0x200, no section covers it | Per‑directory *(suppressed for empty, zero‑RVA, zero‑size, out‑of‑range and zero‑length‑section directories)* |
 | **DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS** | Directory range overlaps more than one section | RVA = 0x1800, Size = 0x1000 spans .text → .rdata | Per‑directory |
 | **DATA_DIRECTORY_OVERLAP** | Two directories’ RVA ranges overlap | Import and IAT overlap | Global |
-| **IMPORT_RVA_INVALID** | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
+| **IMPORT_RVA_INVALID** *coming soon* | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
 
-> Prior to the `raw_offset` guard fix, this code was additionally suppressed for any directory in a file carrying an overlay, because the raw-mapping guard skipped the section-mapping checks entirely. Files analysed before that fix may under-report it.
+> Prior to the `raw_offset` guard fix, `DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` was additionally suppressed for any directory in a file carrying an overlay, because the raw-mapping guard skipped the section-mapping checks entirely. Files analysed before that fix may under-report it.
 
 ---
 
@@ -234,7 +234,7 @@ always in `invalid_callback_count`):
 |------------|------------------|-----------------|--------|
 | **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource directory entry points to a **subdirectory** whose RVA lies outside the `.rsrc` section. Out-of-bounds *data* entries are reported as `RESOURCE_DATA_OUT_OF_BOUNDS`, not here. The target's own size is not considered at this point — a subdirectory that starts inside `.rsrc` but overflows the end is caught by `RESOURCE_DIRECTORY_OUT_OF_BOUNDS` when it is descended into | Type directory entry points to a Name directory at RVA `0x80000000` | Per‑file |
 | **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
-| **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | A resource data blob spans the overlay start, or its raw or virtual extent intersects a section other than `.rsrc`. Blob-versus-blob comparison is **not** performed | Data at raw `0x2000–0x2400` intersects `.text` raw range | *(one issue per check; the raw-overlap and VA-overlap loops each stop at the first intersecting section, so a blob crossing several sections reports once per check, not once per section)* |
+| **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | A resource data blob spans the overlay start, or its raw or virtual extent intersects a section other than `.rsrc`. Blob-versus-blob comparison is **not** performed | Data at raw `0x2000–0x2400` intersects `.text` raw range | Per-file *(one issue per check; the raw-overlap and VA-overlap loops each stop at the first intersecting section, so a blob crossing several sections reports once per check, not once per section)* |
 
 ### Resource Version‑Info Anomalies
 
