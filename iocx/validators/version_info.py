@@ -27,7 +27,7 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
     if vi is None:
         return issues  # no RT_VERSION present — not a defect
 
-    sections = analysis["sections"]
+    sections = analysis.get("sections")
     rsrc_section = next(
         (s for s in sections if s["name"].lower() == ".rsrc"),
         None,
