@@ -100,7 +100,6 @@ from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.internal_schema import InternalMetadata
 from iocx.schemas.public_metadata import PublicMetadata
-from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 
 
@@ -146,10 +145,9 @@ _UNWIND_ERROR_PRIORITY = [
 ]
 
 
-@depends_on("internal", "metadata", "analysis")
+@depends_on("internal", "metadata")
 def validate_exception_table(internal: InternalMetadata,
-                             metadata: PublicMetadata,
-                             analysis: AnalysisDict) -> List[StructuralIssue]:
+                             metadata: PublicMetadata) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     ex = internal.get("exception_struct")
