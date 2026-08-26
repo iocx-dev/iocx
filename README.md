@@ -202,6 +202,16 @@ Fast path — no PE parsing.
 <summary><strong>Show Version History</strong></summary>
 <br>
 
+### v0.7.6.1 — Exception Directory Validator
+
+- Adds deep semantic validation of the PE exception (`.pdata`) directory; 14 new reason codes; 15 validators total.
+- Fixes a defect that had been suppressing structural findings across the engine.
+- Four further checks found to be dead in production: two directory placement, a section-mapping, and a resource-directory bounds check.
+- **Output-visible:** findings previously suppressed or mislabelled will now appear.
+- Tests: 1620 → 2136. Coverage: 100%.
+
+---
+
 ### **v0.7.6 — Structural Validator Expansion: Debug and relocations directories**
 - Two new PE structural validators - relocations and debug
 - WIN_CERTIFICATE and tls validators now source structural truth from dedicated struct parsers, independent of pefile
