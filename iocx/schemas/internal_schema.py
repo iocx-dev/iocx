@@ -196,7 +196,7 @@ class DelayImportStruct(TypedDict, total=False):
 # -------------------------
 # Exception (.pdata) directory
 # -------------------------
-# Produced by parser_exception.build_exception_structure and consumed by
+# Produced by parsers.pe_exception.build_exception_structure and consumed by
 # validators.exception_table.validate_exception_table. All RVAs are 32-bit
 # image-relative. Absence of the directory is signalled by the parser
 # returning None (hence InternalMetadata.exception_struct is Optional).

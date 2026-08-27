@@ -65,7 +65,7 @@ Reason codes emitted:
   EXCEPTION_UNWIND_INFO_INVALID           unwind decode/version/flags anomaly (priority-resolved)
   EXCEPTION_UNWIND_CHAIN_INVALID          chained-unwind target invalid / cycle / depth
 
-Parser contract (metadata["exception_struct"], populated by parser_exception):
+Parser contract (metadata["exception_struct"], populated by pe_exception):
   {
     "rva": int, "size": int,            # directory VirtualAddress / Size
     "machine": Optional[int],           # IMAGE_FILE_MACHINE_*
