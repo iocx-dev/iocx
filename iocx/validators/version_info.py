@@ -27,7 +27,7 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
     if vi is None:
         return issues  # no RT_VERSION present — not a defect
 
-    sections = analysis["sections"]
+    sections = analysis.get("sections") or []
     rsrc_section = next(
         (s for s in sections if s["name"].lower() == ".rsrc"),
         None,
@@ -42,26 +42,26 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
         if not (rsrc_va <= rva and rva + size <= rsrc_va + rsrc_vs):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER,
-                details={"reason": "placement", "rva": rva, "size": size},
+                details={"sub_reason": "placement", "rva": rva, "size": size},
             ))
 
     # ---- Top-level header ----
     if not vi.get("decoded"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER,
-            details={"reason": "undecoded", "errors": vi.get("errors", [])},
+            details={"sub_reason": "undecoded", "errors": vi.get("errors", [])},
         ))
         return issues  # nothing further to validate
 
     if not vi.get("header_ok"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER,
-            details={"reason": "szkey_mismatch"},
+            details={"sub_reason": "szkey_mismatch"},
         ))
     if not vi.get("length_consistent"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER,
-            details={"reason": "length_inconsistent"},
+            details={"sub_reason": "length_inconsistent"},
         ))
 
     # ---- VS_FIXEDFILEINFO ----
@@ -72,7 +72,7 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
         if any(e.startswith("fixed_file_info") for e in vi.get("errors", [])):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO,
-                details={"reason": "parse_failed",
+                details={"sub_reason": "parse_failed",
                          "errors": [e for e in vi["errors"]
                                     if e.startswith("fixed_file_info")]},
             ))
@@ -80,13 +80,13 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
         if not ffi.get("signature_ok"):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO,
-                details={"reason": "signature",
+                details={"sub_reason": "signature",
                          "signature": ffi.get("signature")},
             ))
         if not ffi.get("struct_version_ok"):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO,
-                details={"reason": "struct_version",
+                details={"sub_reason": "struct_version",
                          "struct_version": ffi.get("struct_version")},
             ))
 

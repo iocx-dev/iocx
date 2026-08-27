@@ -14,6 +14,17 @@ Targets the branches the main suite missed:
 
 Each fixture is shaped to reach exactly one target while keeping the rest of
 the validator quiet, so the assertions stay unambiguous.
+
+Details note: sub-reasons are carried in a "sub_reason" key. The key "reason"
+is reserved by the heuristics emission layer, which merges details over its own
+reason field - a details["reason"] would overwrite the parent reason code.
+
+NESTED-KEY CAUTION: two of this validator's sub-reasons are written into dicts
+appended to a list (`invalid.append({...})`) and only later promoted to the
+top level of `details` via `{**item, ...}`. A key nested that way is NOT safe
+from the collision - the splat lifts it into the merged payload just like a
+directly-written key. Both were renamed; test_nested_sub_reason_is_promoted
+pins that behaviour so the distinction is not lost.
 """
 
 from __future__ import annotations
@@ -77,12 +88,15 @@ class TestCallbackArrayTruncation:
         issues = _run(tls)
         assert ReasonCodes.TLS_DIRECTORY_TRUNCATED in _codes(issues)
         assert _details_for(issues, ReasonCodes.TLS_DIRECTORY_TRUNCATED) == [
-            {"reason": "callback_array", "region": "tls_callbacks_truncated"}]
+            {"sub_reason": "callback_array",
+             "region": "tls_callbacks_truncated"}]
 
     def test_multiple_truncation_tags_in_order(self):
         tls = _tls(truncations=["tls_callbacks_read_failed",
                                 "tls_callbacks_max_exceeded"])
         issues = _run(tls)
+        # "region" is a distinct key and was never subject to the reason
+        # collision, so it is unchanged by the sub_reason migration.
         regions = [d["region"] for d in
                    _details_for(issues, ReasonCodes.TLS_DIRECTORY_TRUNCATED)]
         assert regions == ["tls_callbacks_read_failed",
@@ -124,7 +138,7 @@ class TestResolutionTombstones:
         issues = _run(tls)
         assert _codes(issues) == [ReasonCodes.TLS_CALLBACK_RVA_INVALID]
         assert _details_for(issues, ReasonCodes.TLS_CALLBACK_RVA_INVALID) == [
-            {"reason": "tls_callbacks_va_below_image_base"}]
+            {"sub_reason": "tls_callbacks_va_below_image_base"}]
 
     def test_both_resolution_tags_sorted_and_deduped(self):
         tls = _tls(errors=["tls_image_base_unavailable",
@@ -132,7 +146,7 @@ class TestResolutionTombstones:
                            "tls_image_base_unavailable"],  # dup
                    callbacks=[])
         issues = _run(tls)
-        reasons = [d["reason"] for d in
+        reasons = [d["sub_reason"] for d in
                    _details_for(issues, ReasonCodes.TLS_CALLBACK_RVA_INVALID)]
         # set() dedupes, sorted() orders deterministically
         assert reasons == ["tls_callbacks_va_below_image_base",
@@ -158,7 +172,7 @@ class TestCallbacksPresentNoImageBase:
         issues = _run(tls)
         assert _codes(issues).count(ReasonCodes.TLS_CALLBACK_RVA_INVALID) == 1
         assert _details_for(issues, ReasonCodes.TLS_CALLBACK_RVA_INVALID) == [
-            {"reason": "image_base_unavailable", "callback_count": 2}]
+            {"sub_reason": "image_base_unavailable", "callback_count": 2}]
 
 
 # =================================================================
@@ -195,7 +209,7 @@ class TestTargetNotMapped:
         d = _details_for(issues, ReasonCodes.TLS_CALLBACK_RVA_INVALID)
         assert d == [{"callback_va": image_base + 0x8000,
                       "callback_rva": 0x8000,
-                      "reason": "not_mapped",
+                      "sub_reason": "not_mapped",
                       "invalid_callback_count": 1}]
 
     def test_below_image_base_target_flagged(self):
@@ -205,5 +219,94 @@ class TestTargetNotMapped:
         issues = _run(tls, analysis={"extended": [], "sections": []})
         d = _details_for(issues, ReasonCodes.TLS_CALLBACK_RVA_INVALID)
         assert d == [{"callback_va": image_base - 0x10,
-                      "reason": "below_image_base",
+                      "sub_reason": "below_image_base",
                       "invalid_callback_count": 1}]
+
+
+# =================================================================
+# Output contract
+# =================================================================
+
+class TestOutputContract:
+    def test_dependency_contract(self):
+        assert getattr(validate_tls, "_depends_on") == (
+            "internal", "metadata", "analysis")
+
+    def test_nested_sub_reason_is_promoted_to_top_level(self):
+        """
+        The per-target sub-reasons are written NESTED, into dicts appended to
+        `invalid`, then promoted by `details={**item, ...}`.
+
+        This pins that the splat really does lift the key to the top level of
+        details - which is why nesting offered no protection from the reason
+        collision and both sites had to be renamed. If the emission is ever
+        refactored to keep the payload nested (e.g. details={"invalid": item}),
+        this test will catch the shape change.
+        """
+        image_base = 0x400000
+        tls = _tls(image_base=image_base, callbacks=[image_base + 0x8000])
+        issues = _run(tls, analysis={"extended": [],
+                                     "sections": [{"virtual_address": 0x1000,
+                                                   "virtual_size": 0x10}]})
+        assert issues
+        details = issues[0]["details"]
+        # promoted to the top level, not left nested under a sub-object
+        assert details.get("sub_reason") == "not_mapped"
+        assert "reason" not in details
+
+    def test_no_details_payload_uses_reserved_reason_key(self):
+        """
+        "reason" is reserved by the heuristics emission layer: _det builds
+        metadata as {"reason": parent, **details}, so a details["reason"] would
+        overwrite the parent reason code. Validators must use "sub_reason".
+
+        Exercises the truncation loop, the resolution-tombstone loop and the
+        per-target (nested/splatted) path together.
+        """
+        image_base = 0x400000
+        tls = _tls(image_base=image_base,
+                   truncations=["tls_callbacks_truncated"],
+                   errors=["tls_callbacks_va_below_image_base"],
+                   callbacks=[image_base + 0x8000, image_base - 0x10])
+        issues = _run(tls, analysis={"extended": [],
+                                     "sections": [{"virtual_address": 0x1000,
+                                                   "virtual_size": 0x10}]})
+        assert issues, "fixture should produce issues"
+        offenders = [i["issue"] for i in issues if "reason" in i["details"]]
+        assert not offenders, (
+            f"details payload used the reserved key 'reason' for: {offenders}"
+        )
+
+    def test_header_decode_path_avoids_reserved_reason_key(self):
+        """The short-circuit path is unreachable above; pin it separately."""
+        tls = _tls(errors=["tls_directory_truncated"])
+        issues = _run(tls)
+        assert issues
+        assert "reason" not in issues[0]["details"]
+
+    def test_image_base_unavailable_path_avoids_reserved_reason_key(self):
+        """This branch returns early and is mutually exclusive with the rest."""
+        tls = _tls(callbacks=[0x401000], image_base=None)
+        issues = _run(tls)
+        assert issues
+        assert all("reason" not in i["details"] for i in issues)
+
+
+# =================================================================
+# Determinism
+# =================================================================
+
+class TestDeterminism:
+    def test_repeated_calls_identical(self):
+        import json
+        image_base = 0x400000
+        tls = _tls(image_base=image_base,
+                   truncations=["tls_callbacks_truncated"],
+                   errors=["tls_callbacks_va_below_image_base"],
+                   callbacks=[image_base + 0x8000, image_base - 0x10])
+        analysis = {"extended": [],
+                    "sections": [{"virtual_address": 0x1000,
+                                  "virtual_size": 0x10}]}
+        a = _run(tls, analysis=analysis)
+        b = _run(tls, analysis=analysis)
+        assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)

@@ -1,5 +1,18 @@
 # **PE Structural Reason Codes**
 
+> **Truncation detail keys are not uniform.** `EXPORT_TABLE_TRUNCATED`,
+> `DELAY_IMPORT_TABLE_TRUNCATED` and `EXCEPTION_TABLE_TRUNCATED` name the
+> affected sub-table in a **`table`** key. `DEBUG_TABLE_TRUNCATED`,
+> `RELOCATION_TABLE_TRUNCATED` and `TLS_DIRECTORY_TRUNCATED` use **`region`**
+> instead. Both are stable; consumers handling truncation generically must
+> read either.
+
+> **On the `sub_reason` field.** The key is deliberately not named `reason`:
+> the heuristics layer emits the parent code under `reason`, and a details key
+> of the same name would overwrite it. Sub-reasons are priority-resolved where
+> noted — a single entry carrying several tags reports exactly one, the first
+> in the documented order.
+
 ## **SECTION ANOMALIES**
 
 | Reason Code | What Triggers It | Example Malformed Pattern | Scope |
@@ -20,6 +33,18 @@
 | **SECTION_DISCARDABLE_CODE** | Section is executable AND discardable | `.text` with `MEM_EXECUTE | MEM_DISCARDABLE` | Per‑section |
 | **SECTION_FLAGS_INCONSISTENT** | Contradictory flags: code/write/exec without read | `.text` with `EXECUTE` but missing `READ` | Per‑section |
 
+## SECTION SUB‑REASONS
+
+### SECTION_FLAGS_INCONSISTENT
+
+Emitted once per violated combination, so one section may raise several:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| code_without_read | `CNT_CODE` set but `MEM_READ` absent |
+| write_without_read | `MEM_WRITE` set but `MEM_READ` absent |
+| exec_without_read | `MEM_EXECUTE` set but `MEM_READ` absent |
+
 ---
 
 ## **ENTRYPOINT ANOMALIES**
@@ -34,6 +59,17 @@
 | **ENTRYPOINT_IN_HEADERS** | EP < SizeOfHeaders | EP = 0x100, SizeOfHeaders = 0x400 | Per‑file |
 | **ENTRYPOINT_IN_NON_CODE_SECTION** | EP inside `.rsrc`, `.reloc`, or non‑code section | EP inside `.rsrc` | Per‑file |
 | **ENTRYPOINT_IN_DISCARDABLE_SECTION** | EP inside discardable section | EP inside `.upx0` with discardable flag | Per‑file |
+
+## ENTRYPOINT SUB‑REASONS
+
+### ENTRYPOINT_IN_TRUNCATED_REGION
+
+Mutually exclusive — the zero-length case takes precedence:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| zero_length_section | The mapped section has `VirtualSize == 0` |
+| beyond_virtual_size | EP lies at or past `VirtualAddress + VirtualSize` |
 
 ---
 
@@ -50,6 +86,36 @@
 | **OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES** | `NumDirs` < actual directories OR > 16 | `NumDirs = 1`, actual = 3 | Per‑file |
 | **OPTIONAL_HEADER_SIZE_OF_IMAGE_MISALIGNED** | `SizeOfImage % SectionAlignment != 0` | `SizeOfImage = 512`, `SectionAlignment = 4096` | Per‑file |
 
+## OPTIONAL HEADER SUB‑REASONS
+
+### OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| not_power_of_two | `SectionAlignment` is not a power of two |
+| *(none)* | `SectionAlignment < FileAlignment` — this branch carries no sub‑reason and is identified by the presence of a `file_alignment` key in details |
+
+### OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT
+
+Both checks are independent, so a single value may raise both:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| not_power_of_two | `FileAlignment` is not a power of two |
+| out_of_range | `FileAlignment` outside the recommended 512–65536 range |
+
+### Codes distinguished by detail keys rather than sub‑reasons
+
+Two optional‑header codes have multiple emission sites with no `sub_reason`.
+They are separable by a discriminating key:
+
+| Reason Code | Branch | Discriminating key |
+|-------------|--------|--------------------|
+| OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS | misaligned to FileAlignment | `file_alignment` |
+| OPTIONAL_HEADER_INVALID_SIZE_OF_HEADERS | below required minimum | `required_minimum` |
+| OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES | count outside 0–16 | *(absent)* |
+| OPTIONAL_HEADER_INVALID_NUMBER_OF_RVA_AND_SIZES | count below actual directories | `actual_directories` |
+
 ---
 
 ## **RVA / DIRECTORY ANOMALIES**
@@ -64,10 +130,12 @@
 | **DATA_DIRECTORY_OUT_OF_RANGE** | Directory extends beyond `SizeOfImage` | RVA = 0x5000, Size = 0x2000, SizeOfImage = 0x4000 | Per‑directory *(primary error, mapping suppressed)* |
 | **DATA_DIRECTORY_IN_OVERLAY** | Directory maps to a raw offset ≥ overlay start | RVA maps to raw offset 0x6000, overlay starts at 0x5800 | Per‑directory |
 | **DATA_DIRECTORY_RAW_MISMATCH** | Directory RVA maps into a section’s virtual range but the computed raw offset lies outside that section’s raw data | RVA=0x2500 maps to .text, but raw offset=0xC00 is outside .text raw range | Per‑directory |
-| **DATA_DIRECTORY_NOT_MAPPED_TO_SECTION** | Directory is in range but does not fall inside any section | RVA = 0x9000, Size = 0x200, no section covers it | Per‑directory *(suppressed for empty, zero‑RVA, out‑of‑range, zero‑length‑section)* |
+| **DATA_DIRECTORY_NOT_MAPPED_TO_SECTION** | Directory is in range but does not fall inside any section | RVA = 0x9000, Size = 0x200, no section covers it | Per‑directory *(suppressed for empty, zero‑RVA, zero‑size, out‑of‑range and zero‑length‑section directories)* |
 | **DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS** | Directory range overlaps more than one section | RVA = 0x1800, Size = 0x1000 spans .text → .rdata | Per‑directory |
 | **DATA_DIRECTORY_OVERLAP** | Two directories’ RVA ranges overlap | Import and IAT overlap | Global |
-| **IMPORT_RVA_INVALID** | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
+| **IMPORT_RVA_INVALID** *coming soon* | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
+
+> Prior to the `raw_offset` guard fix, `DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` was additionally suppressed for any directory in a file carrying an overlay, because the raw-mapping guard skipped the section-mapping checks entirely. Files analysed before that fix may under-report it.
 
 ---
 
@@ -75,8 +143,8 @@
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
-| **[TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
+| **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `(start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
+| **TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
 | **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible) | Start = `0x6000`, End = `0x6000` | Per‑file |
 | **TLS_ZERO_LENGTH_DIRECTORY** | TLS directory exists but `start == end` (zero‑length region) | Start = `0x7000`, End = `0x7000` | Per‑file |
 | **TLS_CALLBACKS_MISSING** | TLS directory is non‑empty but callback pointer is `0` | Start = `0x4000`, End = `0x4100`, Callbacks = `0` | Per‑file |
@@ -85,6 +153,35 @@
 | **TLS_CALLBACK_IN_HEADERS** | Callback RVA falls inside the PE headers (`< SizeOfHeaders`) | Callback = `0x200`, SizeOfHeaders = `0x600` | Per‑file |
 | **TLS_CALLBACK_IN_OVERLAY** | Callback RVA maps to a raw offset beyond the last section (overlay) | Raw offset = `0x1F000`, overlay starts at `0x1E000` | Per‑file |
 | **TLS_CALLBACK_ARRAY_NOT_TERMINATED** *(optional future rule)* | Callback array exists but is not 0‑terminated | Callback list ends with non‑zero RVA | Per‑file |
+| **TLS_DIRECTORY_TRUNCATED** *(v0.7.6)* | `pe_tls` struct decoder failed: the IMAGE_TLS_DIRECTORY header could not be read, or the callback array was truncated or looping | Header short read, or callback walk hit the 4096 hard limit with no NULL terminator | Per‑file |
+| **TLS_CALLBACK_RVA_INVALID** *(v0.7.6)* | A resolved callback target (`AddressOfCallBacks − ImageBase`) cannot form a valid RVA or does not map to any section | Callback VA yielding a negative RVA, or an RVA covered by no section | Per‑file |
+
+## TLS SUB‑REASONS
+
+### TLS_DIRECTORY_TRUNCATED
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| header_decode | The fixed IMAGE_TLS_DIRECTORY could not be read or unpacked; unrecoverable, all later checks are skipped |
+| callback_array | A parser truncation tag surfaced while walking the callback array (the `region` key names the tag) |
+
+### TLS_CALLBACK_RVA_INVALID
+
+Parser resolution tombstones (callback array unresolvable, `callbacks = []`):
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| tls_image_base_unavailable | ImageBase unavailable, so VA → RVA conversion is impossible |
+| tls_callbacks_va_below_image_base | `AddressOfCallBacks` lies below ImageBase |
+
+Per-target failures (one issue per target, capped at 16; the true count is
+always in `invalid_callback_count`):
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| image_base_unavailable | Callbacks were resolved but ImageBase is not an int |
+| below_image_base | A callback VA lies below ImageBase, yielding a negative RVA |
+| not_mapped | A resolved callback RVA falls inside no section |
 
 ---
 
@@ -103,13 +200,31 @@
 
 ---
 
-## ** RESOURCE ANOMALIES**
+## CERTIFICATE TABLE ANOMALIES
+
+*Added in v0.7.6. Raw structural truth from the `pe_certificates` struct-level decoder, which walks the WIN_CERTIFICATE array from the file bytes. `DATA_DIRECTORY[4].VirtualAddress` is treated as a **file offset**, not an RVA — the certificate table is appended to the file and never mapped into the image. Placement/overlap has a single owner here to avoid double-counting with the RVA-graph backbone; the signature symmetry checks above interpret trust facts on top.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **CERTIFICATE_OFFSET_INSIDE_IMAGE** | The certificate table's file offset falls **before** the on-disk end of any section (`offset < image_raw_end`), i.e. it is not genuinely appended after the mapped image | Table offset = 0x3000, but `.rsrc` raw data ends at 0x5000 | Per‑file |
+| **CERTIFICATE_TABLE_MALFORMED** | Top-level decode failure, or a WIN_CERTIFICATE entry surfaced a truncation tag (`sub_reason: "truncation"`) — e.g. `dwLength` runs past the file end, or the 8-byte header could not be read on the QWORD entry alignment | `dwLength` claims 0x900 bytes but only 0x40 remain in the file | Per‑file / Per‑certificate |
+
+### CERTIFICATE_TABLE_MALFORMED sub‑reasons
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not decode the security directory at all; short-circuits before every other signature check |
+| truncation | A WIN_CERTIFICATE entry surfaced a truncation tag (the `region` key names it) |
+
+---
+
+## **RESOURCE ANOMALIES**
 
 ### **Resource Directory Anomalies**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **RESOURCE_DIRECTORY_OUT_OF_BOUNDS** | A resource directory RVA/size lies outside the `.rsrc` section or outside `SizeOfImage` | Directory RVA = `0x90000000`, `.rsrc` ends at `0x400000` | Per‑file |
+| **RESOURCE_DIRECTORY_OUT_OF_BOUNDS** | A resource directory's `rva + size` does not lie wholly inside the `.rsrc` section. Two cases reach this: the **root** directory lies outside `.rsrc` (`depth` = 0), or a **subdirectory** starts inside `.rsrc` but its extent overflows the end (`depth` ≥ 1). A subdirectory lying wholly outside is reported by the parent as `RESOURCE_ENTRY_OUT_OF_BOUNDS` instead, so the two never double-count. `SizeOfImage` is not consulted — `.rsrc` bounds are authoritative here | Root directory RVA = `0x90000000` while `.rsrc` spans `0x1000–0x3000`; or a Name directory at `0x2FF8` with size 24 | Per‑directory |
 | **RESOURCE_DIRECTORY_LOOP** | Recursive directory traversal detects a cycle (malformed or malicious resource tree) | Directory A → B → A | Per‑file |
 | **RESOURCE_DIRECTORY_ZERO_LENGTH** | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
 
@@ -123,9 +238,9 @@
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
-| **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource entry points to a data entry outside the `.rsrc` section or outside `SizeOfImage` | Entry RVA = `0x80000000` | Per‑file |
+| **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource directory entry points to a **subdirectory** whose RVA lies outside the `.rsrc` section. Out-of-bounds *data* entries are reported as `RESOURCE_DATA_OUT_OF_BOUNDS`, not here. The target's own size is not considered at this point — a subdirectory that starts inside `.rsrc` but overflows the end is caught by `RESOURCE_DIRECTORY_OUT_OF_BOUNDS` when it is descended into | Type directory entry points to a Name directory at RVA `0x80000000` | Per‑file |
 | **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
-| **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | Two resource data blobs overlap in raw or virtual space | Data A: `0x2000–0x2400`, Data B: `0x2300–0x2500` | Per‑file |
+| **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | A resource data blob spans the overlay start, or its raw or virtual extent intersects a section other than `.rsrc`. Blob-versus-blob comparison is **not** performed | Data at raw `0x2000–0x2400` intersects `.text` raw range | Per-file *(one issue per check; the raw-overlap and VA-overlap loops each stop at the first intersecting section, so a blob crossing several sections reports once per check, not once per section)* |
 
 ### Resource Version‑Info Anomalies
 
@@ -137,6 +252,27 @@
 | **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple	Var. | wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file
 
 *Note: absence of an RT_VERSION resource is not treated as a structural anomaly — many legitimate binary types (kernel drivers, MSI helpers, cross‑compiled artefacts) omit version‑info entirely.*
+
+### RESOURCE_VERSIONINFO_INVALID_HEADER sub‑reasons
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| placement | The VS_VERSIONINFO blob does not lie wholly inside `.rsrc` |
+| undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks |
+| szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
+| length_inconsistent | `wLength` disagrees with the buffer size |
+
+### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| parse_failed | VS_FIXEDFILEINFO is absent AND the parser recorded a `fixed_file_info*` error. A legitimate omission (`wValueLength == 0`) is not flagged |
+| signature | `dwSignature` is not `0xFEEF04BD` |
+| struct_version | `dwStrucVersion` is not `0x00010000` |
+
+`RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO` and
+`RESOURCE_VERSIONINFO_INVALID_VARFILEINFO` carry no sub‑reason; the parser's
+tags are passed through verbatim in an `errors` list.
 
 ### **Resource String‑Table Anomalies**
 
@@ -152,13 +288,13 @@
 |------------|------------------|-----------------|--------|
 | **ENTROPY_HIGH_SECTION** | Section entropy ≥ 7.5 and size ≥ 1 KB | `.text` entropy = 7.9 | Per‑section |
 | **ENTROPY_HIGH_OVERLAY** | Overlay entropy ≥ 7.5 and size ≥ 1 KB | Overlay entropy = 7.8 | Per‑file |
-| **ENTROPY_UNIFORM_ACROSS_SECTIONS** | All sections have high entropy with very low variance | Mean = 7.7, stddev = 0.05 | Per‑file |
-| **ENTROPY_VERY_LOW_SECTION** | Large section with entropy ≤ 0.2 (zero‑filled / padding abuse) | `.data` entropy = 0.03 | Per‑section |
-| **ENTROPY_HIGH_RESOURCES** | Resource directory entropy ≥ 7.5 | `.rsrc` entropy = 7.9 | Per‑region |
-| **ENTROPY_HIGH_RELOCATIONS** | Relocation table entropy ≥ 7.5 | `.reloc` entropy = 7.8 | Per‑region |
-| **ENTROPY_HIGH_IMPORTS** | Import table entropy ≥ 7.5 | Import blob entropy = 7.7 | Per‑region |
-| **ENTROPY_HIGH_TLS** | TLS directory entropy ≥ 7.5 | TLS entropy = 7.9 | Per‑region |
-| **ENTROPY_HIGH_CERTIFICATE** | Certificate blob entropy ≥ 7.5 | WIN_CERTIFICATE entropy = 7.8 | Per‑region |
+| **ENTROPY_UNIFORM_ACROSS_SECTIONS** | Mean entropy ≥ 7.5 **and** standard deviation ≤ 0.15, computed across sections whose raw size is ≥ 1 KB. Requires at least two such sections; smaller sections are excluded from the sample and can neither trigger nor prevent the finding. A single low-entropy section drags the mean below the threshold, so the check short-circuits before variance is considered | Mean = 7.7, stddev = 0.05 | Per‑file |
+| **ENTROPY_VERY_LOW_SECTION** | Section entropy ≤ 0.2 **and** raw size ≥ 16 KB. The size floor is deliberately far higher than the 1 KB used by the high-entropy checks, to avoid flagging ordinary small padding sections | `.data` entropy = 0.03 | Per‑section |
+| **ENTROPY_HIGH_RESOURCES** | Resource directory entropy ≥ 7.5 and region size ≥ 1 KB | `.rsrc` entropy = 7.9 | Per‑region |
+| **ENTROPY_HIGH_RELOCATIONS** | Relocation table entropy ≥ 7.5 and region size ≥ 1 KB | `.reloc` entropy = 7.8 | Per‑region |
+| **ENTROPY_HIGH_IMPORTS** | Import table entropy ≥ 7.5 and region size ≥ 1 KB | Import blob entropy = 7.7 | Per‑region |
+| **ENTROPY_HIGH_TLS** | TLS directory entropy ≥ 7.5 and region size ≥ 1 KB | TLS entropy = 7.9 | Per‑region |
+| **ENTROPY_HIGH_CERTIFICATE** | Certificate blob entropy ≥ 7.5 and region size ≥ 1 KB | WIN_CERTIFICATE entropy = 7.8 | Per‑region |
 
 ---
 
@@ -172,6 +308,28 @@
 | **LOAD_CONFIG_COOKIE_INVALID** | Security cookie RVA does not map to a valid writable section, or maps outside image bounds | Cookie RVA = 0x9000, no section covers it | Per‑directory |
 | **LOAD_CONFIG_COOKIE_IN_OVERLAY** | Security cookie maps to a raw offset ≥ overlay start | Cookie raw offset = 0x6000, overlay starts at 0x5800 | Per‑directory |
 | **LOAD_CONFIG_SEH_INVALID** | SEH table is missing, unmapped, out of range, or overlaps overlay; or SEHCount > 0 but SEHTableRVA = 0 | SEHCount = 4, SEHTableRVA = 0 | Per‑directory |
+
+## LOAD CONFIG SUB‑REASONS
+
+Note `unmapped` is emitted by **both** codes below. A consumer must pair the
+sub‑reason with its parent code to identify which check fired — the two are
+not distinguishable by sub‑reason alone.
+
+### LOAD_CONFIG_COOKIE_INVALID
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| unmapped | The security-cookie RVA maps to no section |
+| non_writable_section | The cookie maps to a section without `MEM_WRITE` |
+
+### LOAD_CONFIG_SEH_INVALID
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| missing_table_rva | `SEHCount > 0` but `SEHTableRVA` is absent or zero |
+| out_of_range | `SEHTableRVA + (SEHCount × 4)` exceeds SizeOfImage |
+| unmapped | The SEH table RVA maps to no section |
+| in_overlay | The SEH table's raw offset lies at or past the overlay start |
 
 ---
 
@@ -203,7 +361,7 @@
 
 ## EXPORT SUB‑REASONS
 
-Several export reason codes carry a reason field in their details payload that narrows the pathology. The full taxonomy:
+Several export reason codes carry a `sub_reason` field in their details payload that narrows the pathology. The full taxonomy:
 
 ### EXPORT_DIRECTORY_INVALID_HEADER
 
@@ -217,7 +375,7 @@ Several export reason codes carry a reason field in their details payload that n
 
 ### EXPORT_TABLE_TRUNCATED
 
-The table field (not reason) identifies the affected sub‑table:
+The table field (not sub_reason) identifies the affected sub‑table:
 
 | table value | Meaning |
 |-------------|---------|
@@ -301,7 +459,7 @@ Priority‑resolved:
 
 ## DELAY‑LOAD IMPORT SUB‑REASONS
 
-Most delay‑load reason codes carry a reason field in their details payload that narrows the pathology. The full taxonomy:
+Most delay‑load reason codes carry a `sub_reason` field in their details payload that narrows the pathology. The full taxonomy:
 
 ### DELAY_IMPORT_DIRECTORY_INVALID_HEADER
 
@@ -311,7 +469,7 @@ Most delay‑load reason codes carry a reason field in their details payload tha
 
 ### DELAY_IMPORT_TABLE_TRUNCATED
 
-The table field (not reason) identifies the affected sub‑table:
+The table field (not sub_reason) identifies the affected sub‑table:
 
 | table value | Meaning |
 |-------------|---------|
@@ -326,14 +484,14 @@ The table field (not reason) identifies the affected sub‑table:
 
 ### DELAY_IMPORT_DESCRIPTOR_INVALID
 
-Carries both table and reason in details:
+Carries both `table` and `sub_reason` in details:
 
-| table	reason (priority order) | Meaning |
+| table	+ sub-reason (priority order) | Meaning |
 |-------------------------------|---------|
-| int	int_rva_zero | INT RVA is zero despite the descriptor being non‑terminating |
-| int	int_truncated, int_read_failed, int_max_exceeded, int_unpack_failed | Sub‑table read or parse failure (also surfaces via DELAY_IMPORT_TABLE_TRUNCATED) |
-| iat	iat_rva_zero | IAT RVA is zero |
-| iat	iat_truncated, iat_read_failed, iat_max_exceeded, iat_unpack_failed | Same as INT |
+| int: int_rva_zero | INT RVA is zero despite the descriptor being non‑terminating |
+| int: int_truncated, int_read_failed, int_max_exceeded, int_unpack_failed | Sub‑table read or parse failure (also surfaces via DELAY_IMPORT_TABLE_TRUNCATED) |
+| iat: iat_rva_zero | IAT RVA is zero |
+| iat: iat_truncated, iat_read_failed, iat_max_exceeded, iat_unpack_failed | Same as INT |
 
 ### DELAY_IMPORT_DLL_NAME_INVALID
 
@@ -370,6 +528,186 @@ Priority‑resolved:
 | name_unterminated | Name string had no NUL terminator within the maximum scan length |
 | name_non_ascii | Name decode produced Unicode replacement characters |
 | name_not_printable | Name decoded successfully but contains non‑printable bytes |
+
+---
+
+## **RELOCATION ANOMALIES**
+
+*Added in v0.7.6 (validator §2.13). Backed by the `pe_relocations` struct-level decoder over `IMAGE_BASE_RELOCATION` blocks. Directory placement/bounds remain owned by the RVA-graph backbone; these codes cover block-stream and per-entry structural truth. `IMAGE_REL_BASED_ABSOLUTE` (type 0) padding entries are never flagged, and absence of a relocation directory is not a defect.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **RELOCATION_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first block header was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **RELOCATION_TABLE_TRUNCATED** | A block's declared `SizeOfBlock` extends past the directory's declared end, or the entry region could not be fully read | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
+| **RELOCATION_BLOCK_MALFORMED** | A block is structurally invalid: `SizeOfBlock` below the 8-byte header minimum, not aligned to the 2-byte entry stride, or a non-advancing size that would stall the walk | `SizeOfBlock = 0`, or `SizeOfBlock = 7` | Per‑block *(priority-resolved sub-reason)* |
+| **RELOCATION_ENTRY_RVA_INVALID** | A non-ABSOLUTE entry's target (`page_rva + offset`) does not map to any section | Entry target = 0x9000 with no covering section | Per‑entry *(count always reported in details even when emission is capped)* |
+
+## RELOCATION SUB‑REASONS
+
+### RELOCATION_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top-level decoding; short-circuits the block and entry checks |
+
+### RELOCATION_BLOCK_MALFORMED
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| size_of_block_too_small | `SizeOfBlock` below the 8-byte header minimum |
+| size_of_block_not_word_aligned | `SizeOfBlock` not a multiple of the 2-byte entry stride |
+| entry_count_exceeds_max | Declared entry count exceeded the parser's hard limit |
+
+### RELOCATION_TABLE_TRUNCATED
+
+The `region` field (not `table`, and not `sub_reason`) names the truncated
+region.
+
+---
+
+## **DEBUG DIRECTORY ANOMALIES**
+
+*Added in v0.7.6 (validator §2.14). Backed by the `pe_debug` struct-level decoder over the fixed-stride 28-byte `IMAGE_DEBUG_DIRECTORY` array and the CodeView (RSDS / NB10) records it references. Directory placement/bounds remain owned by the RVA-graph backbone. Absence of a debug directory is not a defect, and entries reachable only via a raw file pointer (no `AddressOfRawData`) are not flagged for mapping.*
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **DEBUG_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first entry was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **DEBUG_TABLE_TRUNCATED** | The declared directory size is not a whole multiple of the 28-byte entry stride, or the entry array could not be fully read | Directory size = 0x2A (one and a half entries) | Per‑file |
+| **DEBUG_DIRECTORY_ENTRY_MALFORMED** | An entry could not be unpacked, its CodeView blob could not be read, or the CodeView record was malformed / of an unrecognised signature | 28-byte entry short read, or CodeView signature neither `RSDS` nor `NB10` | Per‑entry *(priority-resolved sub-reason)* |
+| **DEBUG_ENTRY_RVA_INVALID** | An entry's `AddressOfRawData` region does not map to any section | Debug data RVA = 0x9000 with no covering section | Per‑entry |
+
+## DEBUG SUB‑REASONS
+
+### DEBUG_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top-level decoding; short-circuits the truncation and entry checks |
+
+### DEBUG_DIRECTORY_ENTRY_MALFORMED
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| entry_unpack_failed | The 28-byte IMAGE_DEBUG_DIRECTORY entry could not be unpacked |
+| codeview_read_failed | `pe.get_data` raised when reading the CodeView blob |
+| codeview_too_short | The CodeView record was shorter than its minimum |
+| codeview_rsds_truncated | An RSDS record was truncated |
+| codeview_nb10_truncated | An NB10 record was truncated |
+| codeview_signature_unknown | The CodeView signature was neither `RSDS` nor `NB10` |
+| pdb_path_unterminated | The PDB path had no NUL terminator within the scan length |
+| pdb_path_non_ascii | The PDB path decoded but contains non-printable bytes |
+
+### DEBUG_TABLE_TRUNCATED
+
+The `region` field (not `table`, and not `sub_reason`) names the truncated
+region.
+
+---
+
+## **EXCEPTION (.pdata) DIRECTORY ANOMALIES**
+
+*Added in v0.7.6.1 (validator §2.15). Backed by the `pe_exception` struct-level decoder — the deep semantic validator for the x64 `RUNTIME_FUNCTION` table (12-byte entries → `UNWIND_INFO` in `.xdata`) and the ARM/ARM64 8-byte `.pdata` record walk. Directory placement/bounds remain owned by the RVA-graph backbone; these codes cover the sorted function table and its unwind references. Absence of an exception directory is not a defect (x86 images carry no `.pdata`; x64/ARM images may legitimately omit it).*
+
+### Exception Directory Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_DIRECTORY_INVALID_HEADER** | Top-level parser decode failure; presence of any top-level error short-circuits all further checks | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
+| **EXCEPTION_DIRECTORY_OUT_OF_BOUNDS** | The directory's `rva + size` extends past SizeOfImage | RVA = 0xF0000, size = 0x4000, SizeOfImage = 0xF2000 | Per‑file |
+| **EXCEPTION_DIRECTORY_UNALIGNED** | The directory RVA is not DWORD-aligned (`RUNTIME_FUNCTION` entries must be DWORD-aligned) | RVA = 0x2001 | Per‑file |
+| **EXCEPTION_DIRECTORY_SIZE_NOT_MULTIPLE** | The directory Size is not a whole multiple of the per-entry stride (12 for amd64, 8 for arm) | size = 25, entry_size = 12 (remainder 1) | Per‑file |
+| **EXCEPTION_TABLE_TRUNCATED** | A parser truncation tag surfaced while walking the counted entry array | Declared count exceeds the readable region; a partial trailing entry | Per‑file *(one issue per tag; `table` field names the cause)* |
+| **EXCEPTION_UNSUPPORTED_MACHINE** | The directory is present on a machine whose `.pdata` format is not deep-parsed (x86, IA-64, unknown). Reported once; the function walk is skipped | `IMAGE_FILE_MACHINE_I386` with a non-empty exception directory | Per‑file |
+
+### Exception Function-Table Entry Anomalies
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_ENTRY_INVALID** | A per-entry parser error tag surfaced (unreadable / unpackable entry, or a zeroed mandatory RVA). Skips the cross-entry checks for that entry | `begin_rva = 0`, or the 12-byte entry could not be unpacked | Per‑entry *(priority-resolved sub-reason)* |
+| **EXCEPTION_FUNCTION_RANGE_INVALID** | `BeginAddress >= EndAddress` (empty or inverted range). `EndAddress` is the RVA of the first byte past the function, so a well-formed entry has begin < end | begin = 0x1050, end = 0x1050 (empty); or begin > end (inverted) | Per‑entry *(amd64 only; arm records carry no EndAddress)* |
+| **EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS** | One or more of begin / end / unwind RVA fall outside the mapped image | begin_rva = 0x99000, SizeOfImage = 0x40000 | Per‑entry *(`fields` lists the offending RVA names)* |
+| **EXCEPTION_ENTRIES_NOT_SORTED** | A `BeginAddress` is lower than the previous entry's. The loader binary-searches this table, so an out-of-order entry silently loses its unwind data at runtime | Entry N begins at 0x1010 after entry N−1 began at 0x1050 | Per‑entry |
+| **EXCEPTION_FUNCTION_OVERLAP** | A (sorted) entry's `BeginAddress` falls inside the previous entry's `[begin, end)` range | Entry N begins at 0x1040 while entry N−1 spans 0x1000–0x1050 | Per‑entry |
+
+### Exception Unwind-Info Anomalies (AMD64 UNWIND_INFO)
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **EXCEPTION_UNWIND_INFO_UNALIGNED** | A non-zero `UnwindInfoAddress` is not DWORD-aligned (`UNWIND_INFO` must be DWORD-aligned) | unwind_info_rva = 0x3021 | Per‑entry |
+| **EXCEPTION_UNWIND_INFO_INVALID** | The UNWIND_INFO decode surfaced a pathology, or its Version is not 1/2/3, or Flags carry bits outside the known mask (EHANDLER \| UHANDLER \| CHAININFO \| LARGE) | version = 5; or flags = 0x10 (reserved bit set) | Per‑entry *(priority-resolved sub-reason)* |
+| **EXCEPTION_UNWIND_CHAIN_INVALID** | An entry sets `UNW_FLAG_CHAININFO` but its chained target is missing, unaligned, out of bounds, or self-referential | chained_rva = 0; or chained_rva == this entry's own unwind_info_rva | Per‑entry *(priority-resolved sub-reason)* |
+
+## EXCEPTION DIRECTORY SUB‑REASONS
+
+Several exception reason codes carry a `sub_reason` (or `table` / `fields`) field in their details payload that narrows the pathology. The full taxonomy:
+
+### EXCEPTION_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top‑level decoding of the exception directory |
+
+### EXCEPTION_TABLE_TRUNCATED
+
+The `table` field (not `sub_reason`) identifies the truncation cause:
+
+| table value | Meaning |
+|------------|---------|
+| exception_table_ragged_tail | Declared directory size is not a whole multiple of the entry stride; the partial trailing entry is not decoded |
+| exception_table_max_exceeded | Declared entry count exceeded the hard limit (2^20) and was clamped |
+| exception_entry_read_failed | pe.get_data raised while reading an entry |
+| exception_entry_truncated | An entry's fixed-size structure was short |
+
+### EXCEPTION_ENTRY_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| entry_truncated | The entry's fixed-size structure was short |
+| entry_read_failed | pe.get_data raised when reading the entry |
+| entry_unpack_failed | struct.unpack failed on the entry bytes |
+| begin_rva_zero | BeginAddress was zero |
+| end_rva_zero | EndAddress was zero (amd64) |
+| unwind_rva_zero | UnwindInfoAddress was zero (amd64) / xdata RVA was zero (arm unpacked) |
+
+### EXCEPTION_UNWIND_INFO_INVALID
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| unwind_read_failed | pe.get_data raised when reading the UNWIND_INFO header |
+| unwind_truncated | The 4-byte UNWIND_INFO header was short |
+| unwind_unpack_failed | struct.unpack failed on the header bytes |
+| unwind_version_invalid | Version field was not 1, 2, or 3 |
+| unwind_flags_reserved_bits | Flags carried bits outside EHANDLER \| UHANDLER \| CHAININFO \| LARGE |
+| unwind_codes_truncated | The trailing chained RUNTIME_FUNCTION could not be read past the unwind-code array |
+
+### EXCEPTION_UNWIND_CHAIN_INVALID
+
+Priority‑resolved:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| chain_target_missing | UNW_FLAG_CHAININFO set but the chained RVA is absent or zero |
+| chain_target_unaligned | Chained RVA is not DWORD-aligned |
+| chain_target_out_of_bounds | Chained RVA falls outside SizeOfImage |
+| chain_self_reference | Chained RVA equals the entry's own UnwindInfoAddress |
+
+### EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS
+
+The `fields` list (not `reason`) names each RVA that fell outside the image:
+
+| fields value | Meaning |
+|------------|---------|
+| begin_rva | BeginAddress < 0 or ≥ SizeOfImage |
+| end_rva | EndAddress < 0 or > SizeOfImage |
+| unwind_info_rva | UnwindInfoAddress (non-zero) < 0 or ≥ SizeOfImage |
 
 ---
 

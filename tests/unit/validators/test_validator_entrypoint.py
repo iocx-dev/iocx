@@ -9,6 +9,14 @@ from iocx.reason_codes import ReasonCodes
 def make_issue_list(result):
     return [i["issue"] for i in result]
 
+def _has(issues, code, sub_reason=None):
+    """True if an issue with `code` (and optionally `sub_reason`) was emitted."""
+    return any(
+        i["issue"] == code
+        and (sub_reason is None or i["details"].get("sub_reason") == sub_reason)
+        for i in issues
+    )
+
 
 # ---------------------------------------------------------
 # 1) No extended header → early return
@@ -107,20 +115,19 @@ def test_entrypoint_out_of_bounds_beyond_image():
 # ---------------------------------------------------------
 
 def test_entrypoint_section_not_executable():
-    metadata = {"optional_header": {}}
     analysis = {
         "extended": [{"value": "header", "metadata": {"entry_point": 150}}],
-        "sections": [
-            {
-                "name": ".text",
-                "virtual_address": 100,
-                "virtual_size": 100,
-                "characteristics": 0, # not executable
-            }
-        ],
+        "sections": [{
+            "name": ".text", "virtual_address": 100, "virtual_size": 100,
+            # CNT_CODE (not executable) isolates this check: without it the
+            # `not has_code and not executable` branch also fires
+            # ENTRYPOINT_IN_NON_CODE_SECTION.
+            "characteristics": 0x00000020,
+        }],
     }
-    issues = validate_entrypoint(metadata, analysis)
-    assert ReasonCodes.ENTRYPOINT_SECTION_NOT_EXECUTABLE in make_issue_list(issues)
+    issues = validate_entrypoint({"optional_header": {}}, analysis)
+    assert len(issues) == 1
+    assert issues[0]["issue"] == ReasonCodes.ENTRYPOINT_SECTION_NOT_EXECUTABLE
 
 
 # ---------------------------------------------------------
@@ -128,20 +135,18 @@ def test_entrypoint_section_not_executable():
 # ---------------------------------------------------------
 
 def test_entrypoint_in_non_code_section():
-    metadata = {"optional_header": {}}
     analysis = {
         "extended": [{"value": "header", "metadata": {"entry_point": 150}}],
-        "sections": [
-            {
-                "name": ".rsrc",
-                "virtual_address": 100,
-                "virtual_size": 100,
-                "characteristics": 0, # not code
-            }
-        ],
+        "sections": [{
+            # EXECUTE|READ keeps ENTRYPOINT_SECTION_NOT_EXECUTABLE quiet; the
+            # ".rsrc" name alone drives this check.
+            "name": ".rsrc", "virtual_address": 100, "virtual_size": 100,
+            "characteristics": 0x20000000 | 0x40000000,
+        }],
     }
-    issues = validate_entrypoint(metadata, analysis)
-    assert ReasonCodes.ENTRYPOINT_IN_NON_CODE_SECTION in make_issue_list(issues)
+    issues = validate_entrypoint({"optional_header": {}}, analysis)
+    assert len(issues) == 1
+    assert issues[0]["issue"] == ReasonCodes.ENTRYPOINT_IN_NON_CODE_SECTION
 
 
 # ---------------------------------------------------------
@@ -186,7 +191,8 @@ def test_entrypoint_zero_length_section():
     }
 
     issues = validate_entrypoint(metadata, analysis)
-    assert ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION in make_issue_list(issues)
+    assert _has(issues, ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION,
+                "zero_length_section")
 
 
 # ---------------------------------------------------------
@@ -210,7 +216,8 @@ def test_entrypoint_beyond_virtual_size():
     }
 
     issues = validate_entrypoint(metadata, analysis)
-    assert ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION in make_issue_list(issues)
+    assert _has(issues, ReasonCodes.ENTRYPOINT_IN_TRUNCATED_REGION,
+                "beyond_virtual_size")
 
 
 # ---------------------------------------------------------
@@ -265,3 +272,35 @@ def test_map_rva_to_file_offset_return_none():
     # EP outside VA range → no match → return None
     result = _map_rva_to_file_offset(sections, 999)
     assert result is None
+
+
+# --------------------------------------------------------------------
+# 13) Contract and reason key tests
+# --------------------------------------------------------------------
+
+
+def test_dependency_contract():
+    assert getattr(validate_entrypoint, "_depends_on") == ("metadata", "analysis")
+
+
+def test_no_details_payload_uses_reserved_reason_key():
+    """
+    "reason" is reserved by the heuristics emission layer: _det builds metadata
+    as {"reason": parent, **details}, so a details["reason"] would overwrite
+    the parent reason code. Validators must use "sub_reason".
+    """
+    metadata = {"optional_header": {"size_of_headers": 300,
+                                    "size_of_image": 0x2000}}
+    analysis = {
+        "overlay_offset": 50,
+        "extended": [{"value": "header", "metadata": {"entry_point": 0}}],
+        "sections": [{"name": ".rsrc", "virtual_address": 0, "virtual_size": 0,
+                      "raw_address": 100, "raw_size": 50,
+                      "characteristics": 0x02000000}],
+    }
+    issues = validate_entrypoint(metadata, analysis)
+    assert issues, "fixture should produce issues"
+    offenders = [i["issue"] for i in issues if "reason" in i["details"]]
+    assert not offenders, (
+        f"details payload used the reserved key 'reason' for: {offenders}"
+    )

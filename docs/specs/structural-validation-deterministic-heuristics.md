@@ -35,6 +35,16 @@ Together, they form a comprehensive, deterministic structural model across the c
 
 Some structural metadata extracted by parsers is **producer-facing**: it exists to enable validators and heuristics, not to be exposed via the public IOC schema. Examples include the export and delay-load structural details. Other structural metadata is **consumer-facing** and intended for public exposure: version-info string fields are an example of this, planned for promotion in a future release.
 
+> **Placement ownership.** Where a directory's `(rva, size)` placement is
+> validated is a deliberate single-owner decision. The RVA-graph backbone
+> (§2.5) owns placement for every directory it can interpret as an RVA.
+> Subsystem validators that additionally assert placement locally — exports,
+> delay-load, exception — do so because the check is cheap and keeps the
+> validator self-contained. Their codes are disjoint identifiers, so a directory
+> overrunning `SizeOfImage` surfaces under both the backbone's `DATA_DIRECTORY_OUT_OF_RANGE`
+> and the subsystem's own code — two distinct labels for one fact, not one code
+> emitted twice. Relocations, debug and the security directory defer entirely.
+
 ---
 
 # **2.1 Entropy Validator**
@@ -121,7 +131,7 @@ This validator enforces:
 - Directories must not map into overlay data.
 - Zero‑length sections are invalid mapping targets.
 
-This validator is the backbone of structural correctness for imports, exports, resources, relocations, and TLS directories. The security directory (index 4) is deliberately excluded from all RVA-based checks here; its VirtualAddress is a file offset, not an RVA, and its placement is owned by the signature validator (§2.7), so the two never double-count.
+This validator is the backbone of structural correctness for imports, exports, resources, relocations, and TLS directories. The security directory (index 4) is deliberately excluded from all RVA-based checks here; its VirtualAddress is a file offset, not an RVA, and its placement is owned by the signature validator (§2.7), so the two never double-count. The relocation (§2.13) and debug (§2.14) directories likewise defer their placement checks to this validator.
 
 ---
 
@@ -164,7 +174,7 @@ This validator enforces:
 
 This ensures the Authenticode block is structurally valid before any trust decisions are made.
 
-**v0.7.6 structural decoder.** The certificate subsystem is now backed by a pure `struct`-level decoder (pe_certificates) that walks the `WIN_CERTIFICATE` array independently of pefile's `DIRECTORY_ENTRY_SECURITY` interpretation. The decoder treats `DATA_DIRECTORY[4].VirtualAddress` as a *file offset*, not an RVA, and reads from the raw file bytes, since the certificate table is appended to the file and never mapped into the image. It extracts each entry's revision, type, and length, decodes on the 8-byte (QWORD) entry alignment, and records the structural fact of whether the table offset falls before the on-disk end of any section (`overlaps_image`). This decoder establishes raw structural truth via two new reason codes: `CERTIFICATE_OFFSET_INSIDE_IMAGE` (the table offset falls before the on-disk end of any section) and `CERTIFICATE_TABLE_MALFORMED` (top-level decode failure or a truncation tag surfaced with reason: "truncation"). The placement/overlap fact has a single owner to avoid double-counting with the RVA-graph backbone, and the signature validator continues to interpret the trust-facing symmetry above it.
+**v0.7.6 structural decoder.** The certificate subsystem is now backed by a pure `struct`-level decoder (pe_certificates) that walks the `WIN_CERTIFICATE` array independently of pefile's `DIRECTORY_ENTRY_SECURITY` interpretation. The decoder treats `DATA_DIRECTORY[4].VirtualAddress` as a *file offset*, not an RVA, and reads from the raw file bytes, since the certificate table is appended to the file and never mapped into the image. It extracts each entry's revision, type, and length, decodes on the 8-byte (QWORD) entry alignment, and records the structural fact of whether the table offset falls before the on-disk end of any section (`overlaps_image`). This decoder establishes raw structural truth via two new reason codes: `CERTIFICATE_OFFSET_INSIDE_IMAGE` (the table offset falls before the on-disk end of any section) and `CERTIFICATE_TABLE_MALFORMED` (top-level decode failure or a truncation tag surfaced with sub_reason: "truncation"). The placement/overlap fact has a single owner to avoid double-counting with the RVA-graph backbone, and the signature validator continues to interpret the trust-facing symmetry above it.
 
 ---
 
@@ -207,8 +217,8 @@ This closes one of the most subtle structural attack surfaces in the PE format.
 
 ---
 
-# 2.10 Version‑Info Validator
-## Validates the structural integrity of the VS_VERSIONINFO blob extracted from the RT_VERSION resource.
+# **2.10 Version‑Info Validator**
+### Validates the structural integrity of the VS_VERSIONINFO blob extracted from the RT_VERSION resource.
 
 This validator performs:
 
@@ -235,8 +245,8 @@ Version‑info is a high‑signal forensic surface: CompanyName, OriginalFilenam
 
 ---
 
-# 2.11 Exports Validator
-## Validates the structural integrity of the PE export table extracted by parser_exports.
+# **2.11 Exports Validator**
+### Validates the structural integrity of the PE export table extracted by parser_exports.
 
 This validator performs:
 
@@ -258,7 +268,7 @@ This ensures that for any given malformed export table, the validator produces t
 
 ---
 
-## 2.12 Delay-Load Imports Validator
+# **2.12 Delay-Load Imports Validator**
 
 ### Validates the structural integrity of the PE delay-load import directory and its descriptor array.
 
@@ -295,14 +305,14 @@ The delay-load parser is implemented as a pure `struct`-level decoder over `pe.g
 
 ---
 
-## 2.13 Relocations Validator
+# **2.13 Relocations Validator**
 
 ### Validates the structural integrity of the PE base-relocation table extracted by pe_relocations.
 
 This validator performs:
 
 - Top-level decode failure detection and short-circuit for unrecoverable directory placement.
-- Relocation directory placement within `SizeOfImage`.
+- Directory placement is **not** re-checked here — `DATA_DIRECTORY_OUT_OF_RANGE` from the RVA-graph backbone (§2.5) owns it, so the two never double-count.
 - Truncation reporting across the block array and per-block entry regions.
 - Per-block structural validation: `SizeOfBlock` below the 8-byte header minimum, `SizeOfBlock` not aligned to the WORD entry stride, and declared entry counts exceeding the per-block ceiling.
 - Per-entry relocation-target validation: each non-`ABSOLUTE` entry's `page_rva + offset` must map to a real section.
@@ -318,18 +328,18 @@ The relocation parser is implemented as a pure `struct`-level decoder over `pe.g
 - Each entry is decoded by masking `(word >> 12) & 0xF` for the type and `word & 0x0FFF` for the offset; the target RVA is derived as `page_rva + offset` by fixed arithmetic, never by inference.
 - The readable entry region is clamped to the declared directory end so a block advertising a size past the directory cannot over-read; the shortfall is reported as a truncation tag rather than a partial read.
 
-The validator then maps these structural states to a small, well-defined set of reason codes (`RELOCATION_DIRECTORY_INVALID_HEADER`, `RELOCATION_DIRECTORY_OUT_OF_BOUNDS`, `RELOCATION_TABLE_TRUNCATED`, `RELOCATION_BLOCK_MALFORMED`, `RELOCATION_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-block malformations are priority-resolved so a block carrying several defects emits one deterministic sub-reason, and the count of invalid entry targets is always reported in the issue details even when the per-entry emission is capped.
+The validator then maps these structural states to a small, well-defined set of reason codes (`RELOCATION_DIRECTORY_INVALID_HEADER`, `RELOCATION_TABLE_TRUNCATED`, `RELOCATION_BLOCK_MALFORMED`, `RELOCATION_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-block malformations are priority-resolved so a block carrying several defects emits one deterministic sub-reason, and the count of invalid entry targets is always reported in the issue details even when the per-entry emission is capped.
 
 ---
 
-## 2.14 Debug Directory Validator
+# **2.14 Debug Directory Validator**
 
 ### Validates the structural integrity of the PE debug directory extracted by pe_debug.
 
 This validator performs:
 
 - Top-level decode failure detection and short-circuit for unrecoverable directory placement.
-- Debug directory placement within `SizeOfImage`.
+- Directory placement is **not** re-checked here — `DATA_DIRECTORY_OUT_OF_RANGE` from the RVA-graph backbone (§2.5) owns it, so the two never double-count.
 - Truncation reporting across the fixed-size entry array, including non-entry-aligned directory sizes.
 - Per-entry structural validation: entry unpack failure, CodeView blob read failure, and malformed or unrecognised CodeView records.
 - Per-entry data-region validation: each entry's `AddressOfRawData` region must map to a real section.
@@ -346,7 +356,33 @@ The debug parser is implemented as a pure `struct`-level decoder over both `pe.g
 - The RSDS (PDB 7.0) and NB10 (PDB 2.0) records are decoded against their fixed header layouts; the GUID is formatted in the canonical mixed-endian symbol-server form (Data1/2/3 little-endian, Data4 big-endian) by fixed arithmetic, not library formatting.
 - The PDB path scan is bounded (512 bytes); an absent terminator emits a deterministic tombstone tag rather than an unbounded read, and non-ASCII bytes are reported rather than silently normalised.
 
-The validator then maps these structural states to a small, well-defined set of reason codes (`DEBUG_DIRECTORY_INVALID_HEADER`, `DEBUG_DIRECTORY_OUT_OF_BOUNDS`, `DEBUG_TABLE_TRUNCATED`, `DEBUG_DIRECTORY_ENTRY_MALFORMED`, `DEBUG_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The PDB path is a high-signal forensic surface; build paths routinely leak project names, usernames, and toolchain layout, so deterministic extraction is a prerequisite for treating it as a reliable triage signal.
+The validator then maps these structural states to a small, well-defined set of reason codes (`DEBUG_DIRECTORY_INVALID_HEADER`, `DEBUG_TABLE_TRUNCATED`, `DEBUG_DIRECTORY_ENTRY_MALFORMED`, `DEBUG_ENTRY_RVA_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The PDB path is a high-signal forensic surface; build paths routinely leak project names, usernames, and toolchain layout, so deterministic extraction is a prerequisite for treating it as a reliable triage signal.
+
+---
+
+# **2.15 Exception Directory Validator**
+
+### Validates the structural integrity of the PE exception (`.pdata`) directory extracted by `pe_exception`.
+
+This validator performs:
+- Top-level decode failure detection and short-circuit for unrecoverable directory placement.
+- Exception directory placement within SizeOfImage, DWORD-alignment of the directory RVA, and Size being a whole multiple of the entry stride.
+- Architecture gating: deep parsing is defined for AMD64 (12-byte `RUNTIME_FUNCTION` → `UNWIND_INFO`) and ARM/ARM64 (8-byte packed/`.xdata` records); any other machine (notably x86, which carries no `.pdata`) is reported once as unsupported and the function walk is skipped, so no spurious per-entry codes fire.
+- A single ascending pass over the function table: per-entry parser-error resolution, begin/end/unwind RVA bounds, function-range validity (`begin < end`), **sortedness** (ascending `BeginAddress`), and adjacent-range overlap.
+- Per-entry `UNWIND_INFO` semantics (AMD64): DWORD-alignment of `UnwindInfoAddress`, Version validity (1/2/3), reserved-flag-bit detection, and chained-unwind target sanity (missing / unaligned / out-of-bounds / self-referential).
+
+Absence of an exception directory is not treated as a structural defect — most 32-bit images carry no `.pdata` at all (their SEH is stack-based), and a 64-bit or ARM image may legitimately omit it. Placement/bounds of the directory itself are **also** asserted by the RVA-graph backbone (§2.5); this validator repeats the check locally so it stands alone, and a directory overrunning `SizeOfImage` will surface under both codes. They are disjoint identifiers for the same fact rather than a double-count of one code.
+
+The exception directory is a quietly divergence-prone surface because its interpretation is entirely machine-dependent and its correctness hinges on an invariant the raw bytes do not enforce. Two properties make general-purpose `.pdata` parsers prone to inconsistent output: the record layout is architecture-specific — AMD64 uses a 12-byte `RUNTIME_FUNCTION` with an explicit `EndAddress` and an `.xdata` `UNWIND_INFO` pointer, whereas ARM/ARM64 uses an 8-byte record with no `EndAddress` and a 2-bit Flag selecting between a packed-unwind word and an `.xdata` pointer, so a parser that assumes one layout mis-reads the other while the bytes are identical; and the table is a *counted* array (directory `Size` ÷ stride) that the loader **binary-searches**, requiring entries to be sorted ascending by `BeginAddress` — an invariant that malformed or adversarial binaries routinely violate, causing a function to silently lose its unwind/exception data at runtime even though every byte is present on disk.
+
+The exception parser is implemented as a pure struct-level decoder over `pe.get_data`-acquired byte buffers:
+- The machine type is read once from `FILE_HEADER.Machine` and routed to the AMD64 or ARM(64) decoder; unsupported machines short-circuit to a single `EXCEPTION_UNSUPPORTED_MACHINE` fact with an empty function list.
+- The 12-byte `RUNTIME_FUNCTION` (`<III`) and 8-byte ARM record (`<II`) are unpacked via `struct.unpack_from`. No reliance on pefile's `DIRECTORY_ENTRY_EXCEPTION` interpretation.
+- The counted-array walk derives its entry count from `declared_size // entry_size`, is clamped by a hard limit (2^20), and records a ragged-tail truncation tag when the size is not a whole multiple of the stride, so a partial trailing entry is never half-decoded.
+- On AMD64, the 4-byte `UNWIND_INFO` header is decoded for Version/Flags/`SizeOfProlog`/`CountOfUnwindCodes`; when `UNW_FLAG_CHAININFO` is set (V1/V2), the walk steps past the even-padded unwind-code array to read the trailing chained `RUNTIME_FUNCTION`, exposing `chained_rva` for the validator's chain-sanity check. Version 3 (APX preview) is recognised but not deeply parsed — its Version/Flags are surfaced and the chain is not followed, an honest "recognised, not deeply parsed" outcome rather than a mis-decode.
+- On ARM/ARM64, the record's Flag bit selects packed unwind (`is_packed`, no `.xdata` pointer to bounds-check) versus an unpacked `.xdata` RVA; `end_rva` is left `None` because the record carries no `EndAddress`, so the validator's range/overlap checks naturally no-op for these entries while sortedness, bounds, and alignment still apply.
+
+The validator then maps these structural states to a well-defined set of reason codes (`EXCEPTION_DIRECTORY_INVALID_HEADER`, `EXCEPTION_DIRECTORY_OUT_OF_BOUNDS`, `EXCEPTION_DIRECTORY_UNALIGNED`, `EXCEPTION_DIRECTORY_SIZE_NOT_MULTIPLE`, `EXCEPTION_TABLE_TRUNCATED`, `EXCEPTION_UNSUPPORTED_MACHINE`, `EXCEPTION_ENTRY_INVALID`, `EXCEPTION_FUNCTION_RANGE_INVALID`, `EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS`, `EXCEPTION_ENTRIES_NOT_SORTED`, `EXCEPTION_FUNCTION_OVERLAP`, `EXCEPTION_UNWIND_INFO_UNALIGNED`, `EXCEPTION_UNWIND_INFO_INVALID`, `EXCEPTION_UNWIND_CHAIN_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry and per-unwind malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The sortedness check is a high-signal forensic surface: because the loader binary-searches the table, an out-of-order entry is a real evasion vector where a binary "loses" a function's unwind data by name-order alone while remaining structurally intact, so deterministic detection of the static ordering invariant is a prerequisite for treating it as a reliable triage signal.
 
 ---
 
@@ -363,6 +399,20 @@ Heuristics include:
 - **RWX sections** (validated structurally first).
 - **Import anomalies** (ordinal‑only imports, large tables).
 - **Structural anomaly heuristics** — every structural issue becomes a deterministic signal.
+
+> **Output contract.** Each structural issue surfaces as a
+> `pe_structure_anomaly` detection whose `metadata.reason` is the validator's
+> parent reason code. Where a validator narrows the pathology, the detail
+> appears alongside it under **`sub_reason`** — never under `reason`, which
+> the emission layer reserves for the parent code. Truncation codes name the
+> affected region in a `table` or `region` key instead. Sub-reasons are
+> priority-resolved: an entry carrying several malformations reports exactly
+> one, chosen by a fixed documented order, so the output is stable rather than
+> dependent on which defect the parser noticed first.
+>
+> This separation is what makes structural findings machine-consumable: the
+> parent code is the stable contract, the sub-reason is diagnostic detail, and
+> neither can shadow the other.
 
 Heuristics never contradict validators.
 They only interpret validated truth.

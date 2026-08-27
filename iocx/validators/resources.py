@@ -8,6 +8,7 @@ from iocx.schemas.internal_schema import InternalMetadata
 from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 
+
 @depends_on("internal", "analysis")
 def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
@@ -56,8 +57,24 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
         rva = dir_node["rva"]
         size = dir_node["size"]
 
-        # Skip if the directory is not inside .rsrc
+        # The directory node itself must fit wholly inside .rsrc.
+        #
+        # Two distinct malformations reach here:
+        #   * the ROOT directory lies outside .rsrc entirely, or
+        #   * a CHILD starts inside .rsrc but its extent overflows the end -
+        #     the caller's entry check tests target_rva WITHOUT a size, so such
+        #     a child passes there and is caught here.
+        #
+        # A child lying wholly outside is already reported by the caller as
+        # RESOURCE_ENTRY_OUT_OF_BOUNDS, and its `continue` prevents descent, so
+        # the two codes never double-count. `depth` distinguishes the cases:
+        # depth 0 is the root, deeper values are the overflow case.
         if not rva_in_rsrc(rva, size):
+            issues.append(StructuralIssue(
+                issue=ReasonCodes.RESOURCE_DIRECTORY_OUT_OF_BOUNDS,
+                details={"rva": rva, "size": size, "depth": depth,
+                         "rsrc_start": rsrc_va, "rsrc_end": rsrc_va + rsrc_vs},
+            ))
             return
 
         entries = dir_node["entries"]
@@ -81,7 +98,7 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
             return
         visited_dirs.add(rva)
 
-        # --- language layer (depth 2) must use integer LCIDs ---
+        # Language layer (depth 2) must use integer LCIDs:
         # Per PE spec, the Type → Name → Language tree's deepest directory
         # layer is keyed by language ID. Named entries here are malformed.
         if depth == 2:
@@ -105,17 +122,17 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
                     ))
                     continue
 
-                validate_directory(target, depth + 1)  # <-- depth bumped
+                validate_directory(target, depth + 1) # <-- depth bumped
                 continue
 
-            # --- data entries should only appear at depth 2 (Language layer) ---
+            # Data entries should only appear at depth 2 (Language layer):
             # A data leaf at depth 0 or 1 means the tree shape violates the
             # Type → Name → Language hierarchy.
             if depth != 2:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.RESOURCE_DATA_AT_INVALID_DEPTH,
                     details={"rva": rva, "depth": depth,
-                            "data_rva": entry["data_rva"]},
+                             "data_rva": entry["data_rva"]},
                 ))
 
             # ------------------------------
@@ -161,6 +178,7 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
             for sec in sections:
                 if sec is rsrc_section:
                     continue
+
                 if raw_overlaps_section(data_raw, data_size, sec):
                     issues.append(StructuralIssue(
                         issue=ReasonCodes.RESOURCE_DATA_OVERLAPS_OTHER_DATA,
@@ -172,6 +190,7 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
             for sec in sections:
                 if sec is rsrc_section:
                     continue
+
                 if va_overlaps_section(data_rva, data_size, sec):
                     issues.append(StructuralIssue(
                         issue=ReasonCodes.RESOURCE_DATA_OVERLAPS_OTHER_DATA,

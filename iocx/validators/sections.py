@@ -152,17 +152,17 @@ def validate_sections(metadata: PublicMetadata, analysis: AnalysisDict) -> List[
         if has_code and not readable:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SECTION_FLAGS_INCONSISTENT,
-                details={"section": name, "reason": "code_without_read"},
+                details={"section": name, "sub_reason": "code_without_read"},
             ))
         if writable and not readable:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SECTION_FLAGS_INCONSISTENT,
-                details={"section": name, "reason": "write_without_read"},
+                details={"section": name, "sub_reason": "write_without_read"},
             ))
         if executable and not readable:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.SECTION_FLAGS_INCONSISTENT,
-                details={"section": name, "reason": "exec_without_read"},
+                details={"section": name, "sub_reason": "exec_without_read"},
             ))
 
     # ---------------------------------------------------------

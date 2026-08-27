@@ -12,6 +12,7 @@ from .tls import validate_tls
 from .signature import validate_signature
 from .relocations import validate_relocations
 from .debug import validate_debug
+from .exception_table import validate_exception_table
 from .resources import validate_resources
 from .version_info import validate_version_info
 from .exports import validate_exports
@@ -33,6 +34,12 @@ STRUCTURAL_VALIDATORS = {
     "tls": validate_tls,
     # Signature directory correctness
     "signature": validate_signature,
+    # Exception directory (dir 3): RUNTIME_FUNCTION table + UNWIND_INFO deep
+    # semantics (x64) and ARM/ARM64 table walk. Placement owned by rva_graph;
+    # this descends into the sorted function table and its unwind references.
+    # Lowest directory-index member of the ascending deep-parse cluster, so it
+    # leads relocations (dir 5) and debug (dir 6).
+    "exception_table": validate_exception_table,
     # Base relocations (dir 5): block + entry structural correctness.
     # Placement owned by rva_graph; this descends into
     # block/entry contents only. Placed in ascending directory-index order

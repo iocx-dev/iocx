@@ -20,6 +20,7 @@ from .parsers.pe_relocations import build_relocation_structure
 from .parsers.pe_debug import build_debug_structure
 from .parsers.pe_certificates import build_certificate_structure
 from .parsers.pe_tls import build_tls_structure
+from .parsers.pe_exception import build_exception_structure
 from .detectors import all_detectors
 from .models import Detection, PluginContext
 from .plugins.loader import PluginLoader
@@ -177,6 +178,7 @@ class Engine:
             self._internal_metadata["debug_struct"] = build_debug_structure(pe)
             self._internal_metadata["certificate_struct"] = build_certificate_structure(pe)
             self._internal_metadata["tls_struct"] = build_tls_structure(pe)
+            self._internal_metadata["exception_struct"] = build_exception_structure(pe)
             self._internal_metadata.update(extract_optional_header_metadata(pe))
             internal: InternalMetadata = self._internal_metadata
             structural = run_structural_validators(internal, metadata, analysis_dict)

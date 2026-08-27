@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.internal_schema import InternalMetadata
-from iocx.schemas.analysis import AnalysisDict
+from iocx.schemas.public_metadata import PublicMetadata
 from .decorators import depends_on
 
 
@@ -73,22 +73,23 @@ _ENTRY_ERROR_PRIORITY = [
 ]
 
 
-@depends_on("internal", "analysis")
-def validate_delay_imports(metadata: InternalMetadata,
-                           analysis: AnalysisDict) -> List[StructuralIssue]:
+@depends_on("internal", "metadata")
+def validate_delay_imports(internal: InternalMetadata, metadata: PublicMetadata) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
-    di = metadata.get("delay_import_struct")
+    di = internal.get("delay_import_struct")
     if di is None:
         return issues  # no delay-load directory — not a defect
 
-    size_of_image = analysis.get("size_of_image")
+    opt = metadata.get("optional_header") or {}
+
+    size_of_image = opt.get("size_of_image")
 
     # ---- Top-level decode failures short-circuit ----
     if di.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.DELAY_IMPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(di["errors"])},
         ))
         return issues
@@ -113,7 +114,7 @@ def _validate_placement(di: Dict[str, Any],
     rva = di.get("rva")
     size = di.get("size") or 0
 
-    # Skip placement check if the analysis layer didn't populate
+    # Skip placement check if the metadata layer didn't populate
     # size_of_image. This shouldn't happen in normal operation — if it
     # does, an upstream bug needs investigating, not a placement issue.
     if rva is None or size_of_image is None:
@@ -183,7 +184,7 @@ def _validate_descriptors(di: Dict[str, Any],
                 details={"index": index,
                          "dll_name_rva": descriptor.get("dll_name_rva"),
                          "dll_name": descriptor.get("dll_name"),
-                         "reason": dll_name_reason},
+                         "sub_reason": dll_name_reason},
             ))
 
         # ---- INT/IAT table-level errors ----
@@ -197,7 +198,7 @@ def _validate_descriptors(di: Dict[str, Any],
                 issue=ReasonCodes.DELAY_IMPORT_DESCRIPTOR_INVALID,
                 details={"index": index,
                          "table": "int",
-                         "reason": int_reason,
+                         "sub_reason": int_reason,
                          "int_rva": descriptor.get("int_rva")},
             ))
 
@@ -209,7 +210,7 @@ def _validate_descriptors(di: Dict[str, Any],
                 issue=ReasonCodes.DELAY_IMPORT_DESCRIPTOR_INVALID,
                 details={"index": index,
                          "table": "iat",
-                         "reason": iat_reason,
+                         "sub_reason": iat_reason,
                          "iat_rva": descriptor.get("iat_rva")},
             ))
 
@@ -255,7 +256,7 @@ def _validate_import_entries(descriptor: Dict[str, Any],
                 "ordinal": entry.get("ordinal"),
                 "name": entry.get("name"),
                 "name_rva": entry.get("name_rva"),
-                "reason": reason,
+                "sub_reason": reason,
             },
         ))
 

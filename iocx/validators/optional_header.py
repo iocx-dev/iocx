@@ -116,7 +116,7 @@ def validate_optional_header(internalMetadata: InternalMetadata, metadata: Publi
         if not _is_power_of_two(section_alignment):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.OPTIONAL_HEADER_INVALID_SECTION_ALIGNMENT,
-                details={"section_alignment": section_alignment, "reason": "not_power_of_two"},
+                details={"section_alignment": section_alignment, "sub_reason": "not_power_of_two"},
             ))
 
     # ---------------------------------------------------------
@@ -126,14 +126,14 @@ def validate_optional_header(internalMetadata: InternalMetadata, metadata: Publi
         if not _is_power_of_two(file_alignment):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT,
-                details={"file_alignment": file_alignment, "reason": "not_power_of_two"},
+                details={"file_alignment": file_alignment, "sub_reason": "not_power_of_two"},
             ))
 
         # Microsoft recommends 512–64K
         if file_alignment < 512 or file_alignment > 65536:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.OPTIONAL_HEADER_INVALID_FILE_ALIGNMENT,
-                details={"file_alignment": file_alignment, "reason": "out_of_range"},
+                details={"file_alignment": file_alignment, "sub_reason": "out_of_range"},
             ))
 
     # ---------------------------------------------------------

@@ -152,8 +152,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "unmapped",
-          "cookie_rva": 2415919104
+          "reason": "load_config_cookie_invalid",
+          "cookie_rva": 2415919104,
+          "sub_reason": "unmapped"
         }
       }
     ]

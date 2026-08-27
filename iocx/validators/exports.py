@@ -26,7 +26,7 @@ from typing import Any, Dict, List
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.internal_schema import InternalMetadata
-from iocx.schemas.analysis import AnalysisDict
+from iocx.schemas.public_metadata import PublicMetadata
 from .decorators import depends_on
 
 
@@ -46,22 +46,23 @@ _NAME_ENCODING_ERROR_PRIORITY = [
 ]
 
 
-@depends_on("internal", "analysis")
-def validate_exports(metadata: InternalMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
+@depends_on("internal", "metadata")
+def validate_exports(internal: InternalMetadata, metadata: PublicMetadata) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
-    exp = metadata.get("export_struct")
+    exp = internal.get("export_struct")
     if exp is None:
         return issues
 
-    size_of_image = analysis.get("size_of_image")
+    opt = metadata.get("optional_header") or {}
+    size_of_image = opt.get("size_of_image")
 
     # If the parser couldn't decode the header at all, the rest of the
     # validation can't run meaningfully.
     if exp.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(exp["errors"])},
         ))
         return issues
@@ -94,7 +95,7 @@ def _validate_placement(exp, size_of_image, issues):
     rva = exp.get("rva")
     size = exp.get("size") or 0
 
-    # Skip placement check if the analysis layer didn't populate
+    # Skip placement check if the metadata layer didn't populate
     # size_of_image. This shouldn't happen in normal operation. If it
     # does, an upstream bug needs investigating, not a placement issue.
     if rva is None or size_of_image is None:
@@ -153,28 +154,28 @@ def _validate_header_consistency(exp: Dict[str, Any],
     if num_funcs > 0 and addr_funcs == 0:
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "eat_rva_zero_with_nonzero_count",
+            details={"sub_reason": "eat_rva_zero_with_nonzero_count",
                      "NumberOfFunctions": num_funcs},
         ))
 
     if num_names > 0 and addr_names == 0:
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "enpt_rva_zero_with_nonzero_count",
+            details={"sub_reason": "enpt_rva_zero_with_nonzero_count",
                      "NumberOfNames": num_names},
         ))
 
     if num_names > 0 and addr_name_ord == 0:
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "eot_rva_zero_with_nonzero_count",
+            details={"sub_reason": "eot_rva_zero_with_nonzero_count",
                      "NumberOfNames": num_names},
         ))
 
     if num_names > num_funcs:
         issues.append(StructuralIssue(
             issue=ReasonCodes.EXPORT_DIRECTORY_INVALID_HEADER,
-            details={"reason": "num_names_exceeds_num_functions",
+            details={"sub_reason": "num_names_exceeds_num_functions",
                      "NumberOfNames": num_names,
                      "NumberOfFunctions": num_funcs},
         ))
@@ -210,7 +211,7 @@ def _validate_name_pointers(exp: Dict[str, Any],
                 issue=ReasonCodes.EXPORT_NAME_RVA_INVALID,
                 details={"index": index,
                          "name_rva": entry.get("name_rva"),
-                         "reason": rva_reason},
+                         "sub_reason": rva_reason},
             ))
 
         # ---- Name encoding: one issue per entry, priority-resolved ----
@@ -222,7 +223,7 @@ def _validate_name_pointers(exp: Dict[str, Any],
                 issue=ReasonCodes.EXPORT_NAME_NOT_ASCII,
                 details={"index": index,
                          "name": entry.get("name"),
-                         "reason": encoding_reason},
+                         "sub_reason": encoding_reason},
             ))
 
         # ---- Ordinal index bounds ----
@@ -230,7 +231,7 @@ def _validate_name_pointers(exp: Dict[str, Any],
             issues.append(StructuralIssue(
                 issue=ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID,
                 details={"index": index,
-                         "reason": "missing"},
+                         "sub_reason": "missing"},
             ))
         elif "ordinal_index_out_of_range" in entry_errors:
             issues.append(StructuralIssue(
@@ -238,7 +239,7 @@ def _validate_name_pointers(exp: Dict[str, Any],
                 details={"index": index,
                          "ordinal_index": entry.get("ordinal_index"),
                          "num_functions": num_funcs,
-                         "reason": "out_of_range"},
+                         "sub_reason": "out_of_range"},
             ))
 
 
@@ -307,7 +308,7 @@ def _validate_functions(exp, header, size_of_image, issues):
         if max_ordinal > 0xFFFF:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.EXPORT_ORDINAL_OUT_OF_RANGE,
-                details={"reason": "max_exceeds_u16",
+                details={"sub_reason": "max_exceeds_u16",
                          "base": base,
                          "num_functions": num_funcs,
                          "max_ordinal": max_ordinal},
@@ -324,13 +325,13 @@ def _validate_functions(exp, header, size_of_image, issues):
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.EXPORT_FORWARDER_MALFORMED,
                     details={"index": index, "ordinal": ordinal,
-                             "reason": "unreadable"},
+                             "sub_reason": "unreadable"},
                 ))
             elif not entry.get("forwarder_valid"):
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.EXPORT_FORWARDER_MALFORMED,
                     details={"index": index, "ordinal": ordinal,
-                             "forwarder": forwarder, "reason": "format"},
+                             "forwarder": forwarder, "sub_reason": "format"},
                 ))
             continue
 
@@ -345,7 +346,7 @@ def _validate_functions(exp, header, size_of_image, issues):
                 details={"index": index, "ordinal": ordinal,
                          "address_rva": address_rva,
                          "size_of_image": size_of_image,
-                         "reason": "exceeds_image"},
+                         "sub_reason": "exceeds_image"},
             ))
 
 

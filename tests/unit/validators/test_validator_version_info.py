@@ -12,6 +12,20 @@ Strategy:
   cover everything the validator reads.
 - Each test asserts on the set of REASONCODES emitted and the details
   payload, since both are part of the contract.
+
+Layer note: this validator is @depends_on("internal", "analysis") and takes
+TWO positional arguments. It reads only analysis["sections"] and does not use
+SizeOfImage, so it was unaffected by the metadata-layer migration.
+
+Details note: sub-reasons are carried in a "sub_reason" key. The key "reason"
+is reserved by the heuristics emission layer, which merges details over its own
+reason field - a details["reason"] would overwrite the parent reason code.
+
+CAUTION when editing: several tests below narrow the details list with a
+predicate such as `d.get("sub_reason") == "placement"` and then assert the
+result is empty. If that key name ever drifts out of sync with the validator,
+the predicate silently matches nothing and the test passes vacuously. Each such
+test therefore ALSO asserts on the whole issue list, which cannot go vacuous.
 """
 
 from __future__ import annotations
@@ -117,6 +131,14 @@ def _details_for(issues, code) -> List[Dict[str, Any]]:
     return [issue["details"] for issue in issues if issue["issue"] == code]
 
 
+def _placement_details(issues) -> List[Dict[str, Any]]:
+    """Header-issue details whose sub_reason is the placement check."""
+    return [
+        d for d in _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
+        if d.get("sub_reason") == "placement"
+    ]
+
+
 # =================================================================
 # Absence / clean cases
 # =================================================================
@@ -183,15 +205,13 @@ class TestPlacement:
         vi = _make_vi(rva=0x500, size=100)
         analysis = _make_analysis(rsrc_va=0x1000, rsrc_vs=0x2000)
         issues = validate_version_info({"version_info_struct": vi}, analysis)
-        details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        assert any(d.get("reason") == "placement" for d in details)
+        assert len(_placement_details(issues)) == 1
 
     def test_placement_rva_extends_past_rsrc_flagged(self):
         vi = _make_vi(rva=0x2F00, size=0x200)
         analysis = _make_analysis(rsrc_va=0x1000, rsrc_vs=0x2000)
         issues = validate_version_info({"version_info_struct": vi}, analysis)
-        details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        placement_details = [d for d in details if d.get("reason") == "placement"]
+        placement_details = _placement_details(issues)
         assert len(placement_details) == 1
         assert placement_details[0]["rva"] == 0x2F00
         assert placement_details[0]["size"] == 0x200
@@ -201,20 +221,17 @@ class TestPlacement:
         vi = _make_vi(rva=0x5000, size=100)
         analysis = _make_analysis(include_rsrc=False)
         issues = validate_version_info({"version_info_struct": vi}, analysis)
-        placement_details = [d for d in _details_for(
-            issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER
-        ) if d.get("reason") == "placement"]
-        assert placement_details == []
+        assert _placement_details(issues) == []
+        # Whole-list assertion: cannot pass vacuously if the predicate drifts.
+        assert issues == []
 
     def test_placement_rva_none_skipped(self):
         """If the parser couldn't determine an RVA, placement isn't checked."""
         vi = _make_vi(rva=None, size=None)
         analysis = _make_analysis()
         issues = validate_version_info({"version_info_struct": vi}, analysis)
-        placement_details = [d for d in _details_for(
-            issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER
-        ) if d.get("reason") == "placement"]
-        assert placement_details == []
+        assert _placement_details(issues) == []
+        assert issues == []
 
     def test_placement_size_none_treated_as_zero(self):
         """size=None is coerced to 0 by `vi['size'] or 0`."""
@@ -222,20 +239,27 @@ class TestPlacement:
         analysis = _make_analysis(rsrc_va=0x1000, rsrc_vs=0x2000)
         issues = validate_version_info({"version_info_struct": vi}, analysis)
         # 0x1100 + 0 is within .rsrc, so no placement issue
-        placement_details = [d for d in _details_for(
-            issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER
-        ) if d.get("reason") == "placement"]
-        assert placement_details == []
+        assert _placement_details(issues) == []
+        assert issues == []
 
     def test_placement_exact_boundary_no_issue(self):
         """RVA at rsrc_va and rva+size == rsrc_va + rsrc_vs is in-bounds."""
         vi = _make_vi(rva=0x1000, size=0x2000)
         analysis = _make_analysis(rsrc_va=0x1000, rsrc_vs=0x2000)
         issues = validate_version_info({"version_info_struct": vi}, analysis)
-        placement_details = [d for d in _details_for(
-            issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER
-        ) if d.get("reason") == "placement"]
-        assert placement_details == []
+        assert _placement_details(issues) == []
+        assert issues == []
+
+    def test_placement_predicate_is_not_vacuous(self):
+        """
+        Guard for the helper itself: prove _placement_details CAN return a
+        match. Without this, a drifted key name would make every
+        "placement isn't checked" assertion above pass for the wrong reason.
+        """
+        vi = _make_vi(rva=0x5000, size=100)
+        issues = validate_version_info({"version_info_struct": vi},
+                                       _make_analysis())
+        assert len(_placement_details(issues)) == 1
 
 
 # =================================================================
@@ -262,9 +286,9 @@ class TestTopLevelHeader:
         assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO not in codes
         assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_VARFILEINFO not in codes
 
-        # Details should carry the "undecoded" reason and the parser errors
+        # Details should carry the "undecoded" sub_reason and the parser errors
         header_details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        undecoded = [d for d in header_details if d.get("reason") == "undecoded"]
+        undecoded = [d for d in header_details if d.get("sub_reason") == "undecoded"]
         assert len(undecoded) == 1
         assert undecoded[0]["errors"] == ["too_short"]
 
@@ -272,21 +296,21 @@ class TestTopLevelHeader:
         vi = _make_vi(header_ok=False)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        szkey_details = [d for d in details if d.get("reason") == "szkey_mismatch"]
+        szkey_details = [d for d in details if d.get("sub_reason") == "szkey_mismatch"]
         assert len(szkey_details) == 1
 
     def test_length_inconsistent_emits_invalid_header(self):
         vi = _make_vi(length_consistent=False)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        length_details = [d for d in details if d.get("reason") == "length_inconsistent"]
+        length_details = [d for d in details if d.get("sub_reason") == "length_inconsistent"]
         assert len(length_details) == 1
 
     def test_both_szkey_and_length_emit_two_separate_issues(self):
         vi = _make_vi(header_ok=False, length_consistent=False)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        reasons = [d.get("reason") for d in details]
+        reasons = [d.get("sub_reason") for d in details]
         assert "szkey_mismatch" in reasons
         assert "length_inconsistent" in reasons
 
@@ -295,7 +319,8 @@ class TestTopLevelHeader:
         vi = _make_vi(decoded=False, errors=[])
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
-        undecoded = [d for d in details if d.get("reason") == "undecoded"]
+        undecoded = [d for d in details if d.get("sub_reason") == "undecoded"]
+        assert len(undecoded) == 1
         assert undecoded[0]["errors"] == []
 
 
@@ -321,13 +346,10 @@ class TestFixedFileInfo:
             fixed_file_info=None,
             errors=["fixed_file_info_truncated"],
         )
-        print("VI errors:", vi.get("errors"))  # debug
-        print("VI ffi:", vi.get("fixed_file_info"))  # debug
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
-        print("Issues:", issues)  # debug
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO)
         assert len(details) == 1
-        assert details[0]["reason"] == "parse_failed"
+        assert details[0]["sub_reason"] == "parse_failed"
         assert "fixed_file_info_truncated" in details[0]["errors"]
 
     def test_absent_ffi_with_non_ffi_errors_not_flagged(self):
@@ -344,7 +366,7 @@ class TestFixedFileInfo:
         vi = _make_vi(fixed_file_info=ffi)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO)
-        sig_details = [d for d in details if d.get("reason") == "signature"]
+        sig_details = [d for d in details if d.get("sub_reason") == "signature"]
         assert len(sig_details) == 1
         assert sig_details[0]["signature"] == 0xDEADBEEF
 
@@ -353,7 +375,7 @@ class TestFixedFileInfo:
         vi = _make_vi(fixed_file_info=ffi)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO)
-        sv_details = [d for d in details if d.get("reason") == "struct_version"]
+        sv_details = [d for d in details if d.get("sub_reason") == "struct_version"]
         assert len(sv_details) == 1
         assert sv_details[0]["struct_version"] == 0x00020000
 
@@ -362,7 +384,7 @@ class TestFixedFileInfo:
         vi = _make_vi(fixed_file_info=ffi)
         issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
         details = _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO)
-        reasons = [d.get("reason") for d in details]
+        reasons = [d.get("sub_reason") for d in details]
         assert "signature" in reasons
         assert "struct_version" in reasons
 
@@ -580,6 +602,10 @@ class TestCombinedAnomalies:
 class TestOutputContract:
     """Pin the shape of returned StructuralIssue objects."""
 
+    def test_dependency_contract(self):
+        assert getattr(validate_version_info, "_depends_on") == (
+            "internal", "analysis")
+
     def test_returns_list(self):
         result = validate_version_info({"version_info_struct": _make_vi()}, _make_analysis())
         assert isinstance(result, list)
@@ -599,6 +625,44 @@ class TestOutputContract:
             assert "issue" in issue
             assert "details" in issue
             assert isinstance(issue["details"], dict)
+
+    def test_no_details_payload_uses_reserved_reason_key(self):
+        """
+        "reason" is reserved by the heuristics emission layer: _det builds
+        metadata as {"reason": parent, **details}, so a details["reason"] would
+        overwrite the parent reason code. Validators must use "sub_reason".
+
+        Exercises placement, both header branches, both FFI branches, and the
+        SFI/VFI paths together.
+        """
+        vi = _make_vi(
+            rva=0x5000, size=100,          # placement
+            header_ok=False,                # szkey_mismatch
+            length_consistent=False,        # length_inconsistent
+            fixed_file_info=_make_ffi(signature_ok=False, struct_version_ok=False),
+            string_file_info=[{"tables": [], "errors": ["string_table_header"]}],
+            var_file_info=[{"vars": [], "errors": ["var_header"]}],
+        )
+        issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
+        assert issues, "fixture should produce issues"
+        offenders = [i["issue"] for i in issues if "reason" in i["details"]]
+        assert not offenders, (
+            f"details payload used the reserved key 'reason' for: {offenders}"
+        )
+
+    def test_undecoded_path_avoids_reserved_reason_key(self):
+        """The early-return path is unreachable above; pin it separately."""
+        vi = _make_vi(decoded=False, fixed_file_info=None, errors=["too_short"])
+        issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
+        assert issues
+        assert all("reason" not in i["details"] for i in issues)
+
+    def test_ffi_parse_failed_path_avoids_reserved_reason_key(self):
+        """The absent-FFI branch is mutually exclusive with the FFI checks."""
+        vi = _make_vi(fixed_file_info=None, errors=["fixed_file_info_truncated"])
+        issues = validate_version_info({"version_info_struct": vi}, _make_analysis())
+        assert issues
+        assert all("reason" not in i["details"] for i in issues)
 
 
 # =================================================================

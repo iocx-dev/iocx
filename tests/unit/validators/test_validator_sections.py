@@ -9,6 +9,14 @@ from iocx.reason_codes import ReasonCodes
 def make_issue_list(result):
     return [i["issue"] for i in result]
 
+def _has(issues, code, sub_reason=None):
+    """True if an issue with `code` (and optionally `sub_reason`) was emitted."""
+    return any(
+        i["issue"] == code
+        and (sub_reason is None or i["details"].get("sub_reason") == sub_reason)
+        for i in issues
+    )
+
 
 # ---------------------------------------------------------
 # 1) RWX section
@@ -20,7 +28,8 @@ def test_section_rwx():
         "sections": [
             {
                 "name": ".text",
-                "characteristics": 0x20000000 | 0x80000000, # EXEC + WRITE
+                # READ is set so the characteristics are inert scaffolding: EXECUTE without READ would additionally trip SECTION_FLAGS_INCONSISTENT/exec_without_read.
+                "characteristics": 0x20000000 | 0x80000000 | 0x40000000,
             }
         ]
     }
@@ -33,17 +42,15 @@ def test_section_rwx():
 # ---------------------------------------------------------
 
 def test_section_non_executable_code_like():
-    metadata = {}
-    analysis = {
-        "sections": [
-            {
-                "name": ".text",
-                "characteristics": 0x00000020, # CODE flag only
-            }
-        ]
-    }
-    issues = validate_sections(metadata, analysis)
-    assert ReasonCodes.SECTION_NON_EXECUTABLE_CODE_LIKE in make_issue_list(issues)
+    analysis = {"sections": [{
+        # ".foo" avoids also tripping SECTION_CODELIKE_NAME_NOT_EXECUTABLE;
+        # READ avoids SECTION_FLAGS_INCONSISTENT/code_without_read.
+        "name": ".foo",
+        "characteristics": 0x00000020 | 0x40000000,
+    }]}
+    issues = validate_sections({}, analysis)
+    assert len(issues) == 1
+    assert issues[0]["issue"] == ReasonCodes.SECTION_NON_EXECUTABLE_CODE_LIKE
 
 
 # ---------------------------------------------------------
@@ -74,7 +81,7 @@ def test_section_name_non_ascii():
         "sections": [
             {
                 "name": "têxt", # non-ASCII
-                "characteristics": 0x20000000,
+                "characteristics": 0x20000000 | 0x40000000,
             }
         ]
     }
@@ -119,7 +126,7 @@ def test_section_name_padding():
         "sections": [
             {
                 "name": "    ",
-                "characteristics": 0x20000000,
+                "characteristics": 0x20000000 | 0x40000000,
             }
         ]
     }
@@ -132,21 +139,14 @@ def test_section_name_padding():
 # ---------------------------------------------------------
 
 def test_section_impossible_flags():
-    metadata = {}
-    analysis = {
-        "sections": [
-            {
-                "name": ".x",
-                "characteristics": (
-                    0x02000000 | # discardable
-                    0x20000000 | # exec
-                    0x80000000 # write
-                ),
-            }
-        ]
-    }
-    issues = validate_sections(metadata, analysis)
-    assert ReasonCodes.SECTION_IMPOSSIBLE_FLAGS in make_issue_list(issues)
+    # D+E+W necessarily also satisfies SECTION_RWX (E+W) and
+    # SECTION_DISCARDABLE_CODE (D+E); the overlap is inherent to the condition,
+    # so assert presence rather than an exact issue count. READ is set to
+    # suppress the unrelated flags_inconsistent noise.
+    analysis = {"sections": [{"name": ".x",
+        "characteristics": 0x02000000 | 0x20000000 | 0x80000000 | 0x40000000}]}
+    issues = validate_sections({}, analysis)
+    assert _has(issues, ReasonCodes.SECTION_IMPOSSIBLE_FLAGS)
 
 
 # ---------------------------------------------------------
@@ -159,7 +159,7 @@ def test_section_raw_misaligned():
         "sections": [
             {
                 "name": ".data",
-                "characteristics": 0x20000000,
+                "characteristics": 0x20000000 | 0x40000000,
                 "raw_address": 123, # not aligned
                 "raw_size": 100,
             }
@@ -179,7 +179,7 @@ def test_section_overlaps_headers():
         "sections": [
             {
                 "name": ".data",
-                "characteristics": 0x20000000,
+                "characteristics": 0x20000000 | 0x40000000,
                 "raw_address": 100, # inside headers
                 "raw_size": 100,
             }
@@ -199,7 +199,7 @@ def test_section_zero_length():
         "sections": [
             {
                 "name": ".empty",
-                "characteristics": 0x20000000,
+                "characteristics": 0x20000000 | 0x40000000,
                 "virtual_address": 1000,
                 "virtual_size": 0,
                 "raw_address": 2000,
@@ -221,7 +221,10 @@ def test_section_discardable_code():
         "sections": [
             {
                 "name": ".text",
-                "characteristics": 0x02000000 | 0x20000000, # discardable + exec
+                 # DISCARDABLE | EXECUTE is the anomaly; READ is added so the
+                 # fixture doesn't also trip SECTION_FLAGS_INCONSISTENT/
+                 # exec_without_read.
+                "characteristics": 0x02000000 | 0x20000000 | 0x40000000,
             }
         ]
     }
@@ -234,17 +237,13 @@ def test_section_discardable_code():
 # ---------------------------------------------------------
 
 def test_section_flags_inconsistent_code_without_read():
-    metadata = {}
-    analysis = {
-        "sections": [
-            {
-                "name": ".text",
-                "characteristics": 0x00000020, # CODE but no READ
-            }
-        ]
-    }
-    issues = validate_sections(metadata, analysis)
-    assert ReasonCodes.SECTION_FLAGS_INCONSISTENT in make_issue_list(issues)
+    # ".foo" avoids the code-like-name check; CNT_CODE without READ is the
+    # anomaly. SECTION_NON_EXECUTABLE_CODE_LIKE also fires - inherent, since
+    # CNT_CODE without EXECUTE is exactly that condition.
+    analysis = {"sections": [{"name": ".foo", "characteristics": 0x00000020}]}
+    issues = validate_sections({}, analysis)
+    assert _has(issues, ReasonCodes.SECTION_FLAGS_INCONSISTENT,
+                "code_without_read")
 
 
 def test_section_flags_inconsistent_write_without_read():
@@ -258,7 +257,8 @@ def test_section_flags_inconsistent_write_without_read():
         ]
     }
     issues = validate_sections(metadata, analysis)
-    assert ReasonCodes.SECTION_FLAGS_INCONSISTENT in make_issue_list(issues)
+    assert _has(issues, ReasonCodes.SECTION_FLAGS_INCONSISTENT,
+                "write_without_read")
 
 
 def test_section_flags_inconsistent_exec_without_read():
@@ -272,7 +272,8 @@ def test_section_flags_inconsistent_exec_without_read():
         ]
     }
     issues = validate_sections(metadata, analysis)
-    assert ReasonCodes.SECTION_FLAGS_INCONSISTENT in make_issue_list(issues)
+    assert _has(issues, ReasonCodes.SECTION_FLAGS_INCONSISTENT,
+                "exec_without_read")
 
 
 # ---------------------------------------------------------
@@ -428,3 +429,30 @@ def test_section_valid_no_issues():
     }
     issues = validate_sections(metadata, analysis)
     assert issues == []
+
+
+# --------------------------------------------------------------------
+# 17) Contract and reason key tests
+# --------------------------------------------------------------------
+
+def test_dependency_contract():
+    assert getattr(validate_sections, "_depends_on") == ("metadata", "analysis")
+
+
+def test_no_details_payload_uses_reserved_reason_key():
+    """
+    "reason" is reserved by the heuristics emission layer: _det builds metadata
+    as {"reason": parent, **details}, so a details["reason"] would overwrite
+    the parent reason code. Validators must use "sub_reason".
+
+    CNT_CODE|WRITE|EXECUTE without READ trips all three sub_reason sites.
+    """
+    analysis = {"sections": [{"name": ".foo",
+        "characteristics": 0x00000020 | 0x80000000 | 0x20000000}]}
+    issues = validate_sections({}, analysis)
+    assert issues, "fixture should produce issues"
+    offenders = [i["issue"] for i in issues if "reason" in i["details"]]
+    assert not offenders, (
+        f"details payload used the reserved key 'reason' for: {offenders}"
+    )
+

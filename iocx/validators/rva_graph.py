@@ -11,6 +11,10 @@ from .decorators import depends_on
 
 
 # No directories are strictly required to be non-zero.
+#
+# The set is intentionally empty: the DATA_DIRECTORY_ZERO_SIZE_UNEXPECTED
+# branch below is therefore unreachable in production and exists so a future
+# policy change ("directory X must be present") needs only an entry here.
 REQUIRED_NONZERO_DIRS: set[str] = set()
 
 
@@ -21,7 +25,7 @@ REQUIRED_NONZERO_DIRS: set[str] = set()
 # is a category error and double-counts with the certificate parser /
 # signature validator, which own that directory's placement truth (validated
 # against file_size, e.g. certificate_offset_past_eof). Exclude it from ALL
-# RVA-based checks — both the per-directory loop and the overlap detection.
+# RVA-based checks - both the per-directory loop and the overlap detection.
 _SECURITY_DIRECTORY_INDEX = 4
 _SECURITY_DIRECTORY_NAME = "IMAGE_DIRECTORY_ENTRY_SECURITY"
 
@@ -38,6 +42,9 @@ def _is_security_directory(d: Dict[str, Any]) -> bool:
 def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
+    # Directory source: the analysis layer wins, falling back to metadata.
+    # Note an EMPTY analysis list is falsy and therefore falls through to
+    # metadata as well.
     dirs = analysis.get("data_directories") or metadata.get("data_directories") or []
     opt = metadata.get("optional_header") or {}
     sections = analysis.get("sections", []) or []
@@ -51,15 +58,12 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
 
     # Build section ranges
     section_ranges = []
-    zero_length_sections = set()
     for sec in sections:
         va = sec.get("virtual_address")
         vs = sec.get("virtual_size")
         name = sec.get("name")
         if isinstance(va, int) and isinstance(vs, int):
             section_ranges.append((va, va + vs, name))
-            if vs == 0:
-                zero_length_sections.add(name)
 
     # ---------------------------------------------------------
     # Directory validation
@@ -111,6 +115,8 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
             continue
 
         # 4) Directory in headers
+        # Deliberately does NOT short-circuit: a directory can lie inside the
+        # headers AND be unmapped / out-of-range, and both are worth reporting.
         if isinstance(size_of_headers, int) and rva < size_of_headers:
             issues.append(StructuralIssue(
                 issue=ReasonCodes.DATA_DIRECTORY_IN_HEADERS,
@@ -143,7 +149,12 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
 
                     raw_offset = base_raw + (rva - va_start)
 
-                     # RVA→raw consistency check
+                    # RVA→raw consistency check:
+                    # NOTE raw_size defaults to 0, so a section without one
+                    # has an empty raw range and ANY directory mapping into it
+                    # will mismatch. On mismatch we `continue` rather than
+                    # break, so a later section covering the same VA can still
+                    # resolve raw_offset.
                     sec_raw_start = base_raw
                     sec_raw_end = base_raw + sec.get("raw_size", 0)
 
@@ -151,29 +162,32 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
                         issues.append(StructuralIssue(
                             issue=ReasonCodes.DATA_DIRECTORY_RAW_MISMATCH,
                             details={
-                                "directory": name,
-                                "rva": rva,
+                                "directory": name, "rva": rva,
                                 "raw_offset": raw_offset,
                                 "section": sec_name,
                                 "section_raw_start": sec_raw_start,
-                                "section_raw_end": sec_raw_end,
+                                "section_raw_end": sec_raw_end
                             },
                         ))
                         continue
 
                     break
 
-            # raw mapping safety — skip overlay check if raw_offset invalid
-            if raw_offset is None:
-                continue
-
-            if raw_offset >= overlay_offset:
+            # Raw mapping safety - skip ONLY the overlay check when raw_offset could
+            # not be resolved (the RVA maps to no section, or the matching section has
+            # no raw_address).
+            #
+            # Deliberately scoped: this previously used a bare `continue`, which also
+            # skipped the section-mapping checks below, so the mere presence of an
+            # overlay suppressed DATA_DIRECTORY_NOT_MAPPED_TO_SECTION.
+            if raw_offset is not None and raw_offset >= overlay_offset:
                 issues.append(StructuralIssue(
                     issue=ReasonCodes.DATA_DIRECTORY_IN_OVERLAY,
                     details={"directory": name, "rva": rva, "raw_offset": raw_offset},
                 ))
 
         # 7) Skip mapping if directory lands on a zero-length section
+        # (va_start == rva and the section has no extent).
         zero_length_hit = False
         for va_start, va_end, sec_name in section_ranges:
             if va_start == rva and va_start == va_end:
@@ -183,7 +197,8 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
         if zero_length_hit:
             continue
 
-        # 8) Section mapping
+        # 8) Section mapping (half-open interval: a directory ending exactly at
+        # a section start does not count as spanning it).
         mapped_sections = []
         for va_start, va_end, sec_name in section_ranges:
             if rva < va_end and (rva + size) > va_start:
@@ -202,6 +217,9 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
 
     # ---------------------------------------------------------
     # Directory overlap detection
+    #
+    # Runs independently of the per-directory loop above: a directory skipped
+    # there (e.g. zero size) is still compared here.
     # ---------------------------------------------------------
     for i in range(len(dirs)):
         a = dirs[i]
@@ -212,6 +230,7 @@ def validate_rva_graph(metadata: PublicMetadata, analysis: AnalysisDict) -> List
 
         rva_a = a.get("rva")
         size_a = a.get("size")
+
         if not isinstance(rva_a, int) or not isinstance(size_a, int):
             continue
         end_a = rva_a + size_a

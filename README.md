@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/iocx/"><img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white"></a>
-  <img src="https://img.shields.io/badge/tests-1620_passed-brightgreen">
+  <img src="https://img.shields.io/badge/tests-2136_passed-brightgreen">
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen">
   <img src="https://img.shields.io/badge/python-3.12-blue">
   <a href="https://github.com/iocx-dev/iocx/actions"><img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build"></a>
@@ -201,6 +201,16 @@ Fast path — no PE parsing.
 <details>
 <summary><strong>Show Version History</strong></summary>
 <br>
+
+### v0.7.6.1 — Exception Directory Validator
+
+- Adds deep semantic validation of the PE exception (`.pdata`) directory; 14 new reason codes; 15 validators total.
+- Fixes a defect that had been suppressing structural findings across the engine.
+- Four further checks found to be dead in production: two directory placement, a section-mapping, and a resource-directory bounds check.
+- **Output-visible:** findings previously suppressed or mislabelled will now appear.
+- Tests: 1620 → 2136. Coverage: 100%.
+
+---
 
 ### **v0.7.6 — Structural Validator Expansion: Debug and relocations directories**
 - Two new PE structural validators - relocations and debug

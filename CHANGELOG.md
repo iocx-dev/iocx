@@ -1,3 +1,81 @@
+# **v0.7.6.1 — Exception Directory Validator, and a Silent Output Defect**
+**Released: 2026‑08‑27**
+
+## Added
+- **Exception directory validator (§2.15)** — deep semantic validation of the
+  PE exception (`.pdata`) directory: the x64 `RUNTIME_FUNCTION` table and its
+  `.xdata` `UNWIND_INFO` records, plus the ARM/ARM64 8-byte record walk.
+  Detects the loader-visible sortedness invariant, function-range validity,
+  adjacent-range overlap, RVA bounds, unwind version/flag anomalies, and
+  chained-unwind target faults.
+- **`pe_exception` parser** — pure `struct`-level decoder over
+  `pe.get_data`-acquired bytes, independent of pefile's
+  `DIRECTORY_ENTRY_EXCEPTION` interpretation. Machine-gated to AMD64 /
+  ARM64 / ARM64EC / ARMNT; unsupported machines are reported once and the
+  walk is skipped. UNWIND_INFO V3 (APX preview) is recognised but not
+  deeply parsed.
+- **14 exception reason codes** — `EXCEPTION_DIRECTORY_INVALID_HEADER`,
+  `_OUT_OF_BOUNDS`, `_UNALIGNED`, `_SIZE_NOT_MULTIPLE`,
+  `EXCEPTION_TABLE_TRUNCATED`, `EXCEPTION_UNSUPPORTED_MACHINE`,
+  `EXCEPTION_ENTRY_INVALID`, `EXCEPTION_FUNCTION_RANGE_INVALID`,
+  `_RVA_OUT_OF_BOUNDS`, `EXCEPTION_ENTRIES_NOT_SORTED`,
+  `EXCEPTION_FUNCTION_OVERLAP`, `EXCEPTION_UNWIND_INFO_UNALIGNED`,
+  `_INVALID`, `EXCEPTION_UNWIND_CHAIN_INVALID`.
+- `ExceptionStruct` / `ExceptionFunctionEntry` / `ExceptionUnwindInfo` in
+  the internal schema.
+- Reason-code contract regression suite
+  (`tests/unit/analysis/test_reason_codes.py`) pinning the emission
+  contract at both the source and output ends.
+- Sub-reason taxonomies documented for nine previously undocumented codes.
+
+## Fixed
+- **Validator `details` could overwrite the parent reason code.** The
+  emission layer merged `details` over its own `reason` field, so any
+  validator using a top-level `reason` key clobbered it. Eleven documented
+  reason codes had never appeared in output; consumers saw bare sub-reason
+  strings instead. Validators now use `sub_reason`, the parent code is
+  written last, and a legacy `reason` payload is re-keyed defensively.
+  **Output-visible.**
+- **`SizeOfImage` was read from the wrong layer**, returning `None` in
+  production and silently disabling `EXPORT_DIRECTORY_OUT_OF_BOUNDS`,
+  `DELAY_IMPORT_DIRECTORY_OUT_OF_BOUNDS`, and the SizeOfImage fallback in
+  `DEBUG_ENTRY_RVA_INVALID` / `RELOCATION_ENTRY_RVA_INVALID`. Now sourced
+  from `metadata["optional_header"]` and threaded explicitly into
+  `_directory_invariants`. **Output-visible.**
+- **`DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` was suppressed for any file
+  carrying an overlay.** The `raw_offset is None` guard used a bare
+  `continue`, skipping the section-mapping checks entirely; it is now
+  scoped to the overlay check alone. **Output-visible.**
+- **`RESOURCE_DIRECTORY_OUT_OF_BOUNDS` was declared and documented but
+  never emitted** — a directory outside `.rsrc` caused a silent `return`.
+  Now reported, with `depth` distinguishing the root case from a
+  subdirectory whose extent overflows the section end. **Output-visible.**
+- `version_info` no longer raises on an analysis dict missing `sections`.
+- Removed a dead `zero_length_sections` set in `rva_graph`.
+
+## Changed
+- `validate_exports` and `validate_delay_imports` are now
+  `@depends_on("internal", "metadata")`; `validate_debug` and
+  `validate_relocations` are now
+  `@depends_on("internal", "metadata", "analysis")`.
+- `rva_in_any_section` / `region_in_any_section` take an explicit optional
+  `size_of_image` argument. Existing two- and three-argument call sites keep
+  working.
+- Tests: 1620 → 2136. Coverage held at 100%.
+
+## Documentation
+- `reason-codes.md`: `reason` → `sub_reason` throughout; nine sub-reason
+  taxonomies added; six descriptions corrected against implementation
+  (`RESOURCE_ENTRY_OUT_OF_BOUNDS` is subdirectory-only;
+  `RESOURCE_DATA_OVERLAPS_OTHER_DATA` does not compare blobs to each other;
+  entropy uniformity and size thresholds stated precisely).
+- `structural-validation-deterministic-heuristics.md`: §2.13 and §2.14 no
+  longer claim placement checks they do not perform, and no longer cite two
+  reason codes that do not exist. Placement ownership and the `sub_reason`
+  output contract are now stated explicitly.
+
+---
+
 # **v0.7.6 — Structural validator expansion: debug, relocations directories**
 **Released: 2026‑08‑10**
 

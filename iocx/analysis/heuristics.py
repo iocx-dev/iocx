@@ -52,7 +52,9 @@ def _det(value: str, reason: str, metadata: Optional[Dict[str, Any]] = None) -> 
         start=0,
         end=0,
         category="pe_heuristic",
-        metadata={"reason": reason, **(metadata or {})},
+        # `reason` is written LAST so a caller-supplied payload key of the same
+        # name cannot overwrite the parent reason code. Do not reorder.
+        metadata={**(metadata or {}), "reason": reason},
     )
 
 
@@ -205,6 +207,8 @@ def _analyse_structural(analysis: Dict[str, Any]) -> List[Detection]:
                 continue
 
             metadata = {**details}
+            if "reason" in metadata:
+                metadata["sub_reason"] = metadata.pop("reason")
 
             out.append(_det(
                 "pe_structure_anomaly",

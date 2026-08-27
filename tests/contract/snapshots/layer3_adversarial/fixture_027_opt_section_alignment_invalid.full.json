@@ -204,8 +204,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "not_power_of_two",
-          "section_alignment": 384
+          "reason": "optional_header_invalid_section_alignment",
+          "section_alignment": 384,
+          "sub_reason": "not_power_of_two"
         }
       },
       {

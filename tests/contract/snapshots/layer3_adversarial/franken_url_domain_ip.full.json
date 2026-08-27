@@ -717,8 +717,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "unmapped",
-          "cookie_rva": 5368725760
+          "reason": "load_config_cookie_invalid",
+          "cookie_rva": 5368725760,
+          "sub_reason": "unmapped"
         }
       }
     ]

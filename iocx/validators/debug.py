@@ -26,11 +26,12 @@ Reason codes emitted:
   DEBUG_ENTRY_RVA_INVALID
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
 from iocx.schemas.internal_schema import InternalMetadata
+from iocx.schemas.public_metadata import PublicMetadata
 from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 from ._directory_invariants import region_in_any_section
@@ -48,20 +49,24 @@ _ENTRY_ERROR_PRIORITY = [
 ]
 
 
-@depends_on("internal", "analysis")
-def validate_debug(metadata: InternalMetadata,
+@depends_on("internal", "metadata", "analysis")
+def validate_debug(internal: InternalMetadata,
+                   metadata: PublicMetadata,
                    analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
-    debug = metadata.get("debug_struct")
+    debug = internal.get("debug_struct")
     if debug is None:
         return issues  # no debug directory — not a defect
+
+    opt = metadata.get("optional_header") or {}
+    size_of_image = opt.get("size_of_image")
 
     # ---- Top-level decode failures short-circuit ----
     if debug.get("errors"):
         issues.append(StructuralIssue(
             issue=ReasonCodes.DEBUG_DIRECTORY_INVALID_HEADER,
-            details={"reason": "top_level_decode",
+            details={"sub_reason": "top_level_decode",
                      "errors": list(debug["errors"])},
         ))
         return issues
@@ -69,7 +74,7 @@ def validate_debug(metadata: InternalMetadata,
     # NOTE: directory placement is intentionally NOT checked here — it is
     # owned by rva_graph. See module docstring.
     _validate_truncations(debug, issues)
-    _validate_entries(debug, analysis, issues)
+    _validate_entries(debug, analysis, size_of_image, issues)
 
     return issues
 
@@ -94,6 +99,7 @@ def _validate_truncations(debug: Dict[str, Any],
 
 def _validate_entries(debug: Dict[str, Any],
                       analysis: AnalysisDict,
+                      size_of_image: Optional[int],
                       issues: List[StructuralIssue]) -> None:
     """Emit per-entry malformation and data-region RVA issues."""
     for entry in debug.get("entries", []) or []:
@@ -107,14 +113,15 @@ def _validate_entries(debug: Dict[str, Any],
                 details={"index": index,
                          "type": entry.get("type"),
                          "type_name": entry.get("type_name"),
-                         "reason": reason},
+                         "sub_reason": reason},
             ))
 
-        _validate_entry_rva(entry, analysis, issues)
+        _validate_entry_rva(entry, analysis, size_of_image, issues)
 
 
 def _validate_entry_rva(entry: Dict[str, Any],
                         analysis: AnalysisDict,
+                        size_of_image: Optional[int],
                         issues: List[StructuralIssue]) -> None:
     """
     Flag a debug entry whose AddressOfRawData region does not map to any
@@ -128,7 +135,7 @@ def _validate_entry_rva(entry: Dict[str, Any],
     if not addr_raw:
         return
 
-    mapped = region_in_any_section(addr_raw, size_of_data, analysis)
+    mapped = region_in_any_section(addr_raw, size_of_data, analysis, size_of_image)
     if mapped is False:
         issues.append(StructuralIssue(
             issue=ReasonCodes.DEBUG_ENTRY_RVA_INVALID,

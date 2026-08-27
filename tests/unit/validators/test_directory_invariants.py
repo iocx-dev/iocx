@@ -14,6 +14,18 @@ dict, so every branch is driven directly. Covers:
 
 The tri-state contract (True / False / None) is asserted explicitly, since
 callers rely on None meaning "unknown", not "out of bounds".
+
+LAYER NOTE (important): SizeOfImage is passed as an EXPLICIT third/fourth
+positional argument. These helpers deliberately do NOT read it from the
+analysis dict - it does not live there. SizeOfImage is optional-header truth
+(metadata["optional_header"]["size_of_image"]); the caller reads it from the
+metadata layer and threads it in.
+
+Historically the helpers did `analysis.get("size_of_image")`, which was always
+None in production because the analysis layer never carries that key. The
+fallback path was therefore dead on real files while these tests - which
+supplied the key in the analysis dict - passed. The fixtures below keep
+SizeOfImage strictly out of the analysis dict so that mismatch cannot recur.
 """
 
 from __future__ import annotations
@@ -114,6 +126,19 @@ class TestSections:
         ]}
         assert _sections(analysis) == [(0x1000, 0x100), (0x2000, 0x200)]
 
+    def test_production_section_shape_without_virtual_address(self):
+        """
+        The serialised analysis.sections shape carries name/raw_size/
+        virtual_size/characteristics/entropy but NO virtual_address. Such a
+        section yields no extent, so callers fall back to the SizeOfImage
+        bound. Pinned so the dependency on virtual_address is explicit.
+        """
+        analysis = {"sections": [
+            {"name": ".text", "raw_size": 512, "virtual_size": 4096,
+             "characteristics": 0x60000020, "entropy": 0.0},
+        ]}
+        assert _sections(analysis) == []
+
 
 # =================================================================
 # rva_in_any_section
@@ -121,7 +146,7 @@ class TestSections:
 
 class TestRvaInAnySection:
     def test_none_rva_returns_none(self):
-        assert rva_in_any_section(None, {"size_of_image": 0x1000}) is None
+        assert rva_in_any_section(None, {}, 0x1000) is None
 
     def test_hit_inside_section(self):
         analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x1000}]}
@@ -146,19 +171,32 @@ class TestRvaInAnySection:
         assert rva_in_any_section(0x1000, analysis) is False
 
     def test_fallback_within_size_of_image_true(self):
-        # no sections -> SizeOfImage bound check
-        assert rva_in_any_section(0x500, {"size_of_image": 0x1000}) is True
+        # no sections -> SizeOfImage bound check (explicit 3rd argument)
+        assert rva_in_any_section(0x500, {}, 0x1000) is True
 
     def test_fallback_out_of_size_of_image_false(self):
-        assert rva_in_any_section(0x2000, {"size_of_image": 0x1000}) is False
+        assert rva_in_any_section(0x2000, {}, 0x1000) is False
 
     def test_no_sections_and_no_size_of_image_none(self):
         assert rva_in_any_section(0x500, {}) is None
 
     def test_empty_sections_list_uses_fallback(self):
         # [] is falsy -> fallback path, not the section loop
-        assert rva_in_any_section(0x500, {"sections": [],
-                                          "size_of_image": 0x1000}) is True
+        assert rva_in_any_section(0x500, {"sections": []}, 0x1000) is True
+
+    def test_size_of_image_in_analysis_is_ignored(self):
+        """
+        REGRESSION GUARD. SizeOfImage must come from the explicit argument.
+        A stale analysis["size_of_image"] must NOT be consulted - if it were,
+        this would return True and the production dead-path would be back.
+        """
+        assert rva_in_any_section(0x500, {"size_of_image": 0x1000}) is None
+
+    def test_sections_take_precedence_over_size_of_image(self):
+        """Section geometry is authoritative when present."""
+        analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x10}]}
+        # 0x9000 is inside SizeOfImage but outside every section
+        assert rva_in_any_section(0x9000, analysis, 0x100000) is False
 
 
 # =================================================================
@@ -167,8 +205,7 @@ class TestRvaInAnySection:
 
 class TestRegionInAnySection:
     def test_none_rva_returns_none(self):
-        assert region_in_any_section(None, 0x10,
-                                     {"size_of_image": 0x1000}) is None
+        assert region_in_any_section(None, 0x10, {}, 0x1000) is None
 
     def test_whole_region_fits_true(self):
         analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x1000}]}
@@ -214,20 +251,28 @@ class TestRegionInAnySection:
         assert region_in_any_section(0x1080, 0x100, analysis) is False
 
     def test_fallback_within_size_of_image_true(self):
-        assert region_in_any_section(0x100, 0x10,
-                                     {"size_of_image": 0x1000}) is True
+        assert region_in_any_section(0x100, 0x10, {}, 0x1000) is True
 
     def test_fallback_out_of_size_of_image_false(self):
-        assert region_in_any_section(0xFF0, 0x100,
-                                     {"size_of_image": 0x1000}) is False
+        assert region_in_any_section(0xFF0, 0x100, {}, 0x1000) is False
 
     def test_no_sections_and_no_size_of_image_none(self):
         assert region_in_any_section(0x100, 0x10, {}) is None
 
     def test_empty_sections_list_uses_fallback(self):
+        assert region_in_any_section(0x100, 0x10, {"sections": []},
+                                     0x1000) is True
+
+    def test_size_of_image_in_analysis_is_ignored(self):
+        """
+        REGRESSION GUARD - companion to the rva_in_any_section case above.
+        """
         assert region_in_any_section(0x100, 0x10,
-                                     {"sections": [],
-                                      "size_of_image": 0x1000}) is True
+                                     {"size_of_image": 0x1000}) is None
+
+    def test_sections_take_precedence_over_size_of_image(self):
+        analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x10}]}
+        assert region_in_any_section(0x9000, 0x10, analysis, 0x100000) is False
 
 
 # =================================================================
@@ -245,12 +290,33 @@ class TestContract:
         assert region_in_any_section(0x9000, 0x10, secs) is False
         assert region_in_any_section(None, 0x10, secs) is None
 
+    def test_tri_state_on_fallback_path(self):
+        """
+        The fallback path must express the same tri-state. Without this, the
+        None case is only ever exercised via the section path.
+        """
+        assert rva_in_any_section(0x500, {}, 0x1000) is True
+        assert rva_in_any_section(0x2000, {}, 0x1000) is False
+        assert rva_in_any_section(0x500, {}) is None
+        assert region_in_any_section(0x500, 0x10, {}, 0x1000) is True
+        assert region_in_any_section(0x2000, 0x10, {}, 0x1000) is False
+        assert region_in_any_section(0x500, 0x10, {}) is None
+
+    def test_size_of_image_defaults_preserve_two_arg_call(self):
+        """
+        Back-compat: the SizeOfImage parameter is optional, so pre-existing
+        two-/three-argument call sites keep working (degrading to None on the
+        fallback path rather than raising).
+        """
+        secs = {"sections": [{"rva": 0x1000, "virtual_size": 0x1000}]}
+        assert rva_in_any_section(0x1500, secs) is True
+        assert region_in_any_section(0x1000, 0x10, secs) is True
+
     def test_no_mutation_of_analysis(self):
-        analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x100}],
-                    "size_of_image": 0x1000}
+        analysis = {"sections": [{"rva": 0x1000, "virtual_size": 0x100}]}
         import copy
         snapshot = copy.deepcopy(analysis)
-        rva_in_any_section(0x1050, analysis)
-        region_in_any_section(0x1050, 0x10, analysis)
+        rva_in_any_section(0x1050, analysis, 0x1000)
+        region_in_any_section(0x1050, 0x10, analysis, 0x1000)
         region_within_image(0x100, 0x10, 0x1000)
         assert analysis == snapshot  # side-effect-free

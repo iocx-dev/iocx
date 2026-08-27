@@ -119,7 +119,7 @@ def validate_tls(internal: InternalMetadata,
     if header_errs:
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_DIRECTORY_TRUNCATED,
-            details={"reason": "header_decode", "errors": header_errs},
+            details={"sub_reason": "header_decode", "errors": header_errs},
         ))
         return issues
 
@@ -129,7 +129,7 @@ def validate_tls(internal: InternalMetadata,
     for tag in tls.get("truncations", []) or []:
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_DIRECTORY_TRUNCATED,
-            details={"reason": "callback_array", "region": tag},
+            details={"sub_reason": "callback_array", "region": tag},
         ))
 
     # ---------------------------------------------------------
@@ -262,7 +262,7 @@ def _validate_callback_targets(tls: Dict[str, Any],
     for tag in sorted(set(errors) & _CALLBACK_RESOLUTION_ERROR_TAGS):
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_CALLBACK_RVA_INVALID,
-            details={"reason": tag},
+            details={"sub_reason": tag},
         ))
 
     callbacks = tls.get("callbacks") or []
@@ -276,7 +276,7 @@ def _validate_callback_targets(tls: Dict[str, Any],
         # Cannot convert VA -> RVA; the parser records this too. One issue.
         issues.append(StructuralIssue(
             issue=ReasonCodes.TLS_CALLBACK_RVA_INVALID,
-            details={"reason": "image_base_unavailable",
+            details={"sub_reason": "image_base_unavailable",
                      "callback_count": len(callbacks)},
         ))
         return
@@ -287,11 +287,11 @@ def _validate_callback_targets(tls: Dict[str, Any],
             continue
         rva = va - image_base
         if rva < 0:
-            invalid.append({"callback_va": va, "reason": "below_image_base"})
+            invalid.append({"callback_va": va, "sub_reason": "below_image_base"})
             continue
         if _map_rva_to_section(sections, rva) is None:
             invalid.append({"callback_va": va, "callback_rva": rva,
-                            "reason": "not_mapped"})
+                            "sub_reason": "not_mapped"})
 
     if not invalid:
         return

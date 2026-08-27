@@ -176,6 +176,38 @@
           "rva": 6144,
           "raw_offset": 2560
         }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "exception_directory_size_not_multiple",
+          "size": 256,
+          "entry_size": 12,
+          "remainder": 4
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "exception_table_truncated",
+          "table": "exception_table_ragged_tail"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "reason": "exception_table_truncated",
+          "table": "exception_entry_truncated"
+        }
       }
     ]
   }
