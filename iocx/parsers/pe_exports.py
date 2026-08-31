@@ -37,6 +37,7 @@ Each FunctionEntry has:
         name                         - resolved name if a name pointer maps
                                        to this index, else None
         name_rva                     - RVA of the name string, if any
+        errors                       - per-entry decode errors
 
 Each NamePointerEntry has:
         index                        - position in name pointer array
@@ -60,8 +61,11 @@ _EXPORT_DIRECTORY_SIZE = 40  # IMAGE_EXPORT_DIRECTORY is 40 bytes
 
 # Forwarder string: ASCII printable, "DllName.SymbolName" or "DllName.#Ordinal"
 # Conservative bounds: name parts up to 255 chars, total up to 512.
+# The symbol branch excludes a leading '#' (0x23) so an over-long ordinal
+# such as "Dll.#99999999999" cannot fall through to it and be accepted as an
+# ordinary symbol name. Ordinals are 16-bit, hence at most five digits.
 _FORWARDER_RE = re.compile(
-    r"^[\x20-\x7E]{1,255}\.(?:#\d{1,10}|[\x20-\x7E]{1,255})$"
+    r"^[\x20-\x7E]{1,255}\.(?:#\d{1,5}|[\x20-\x22\x24-\x7E][\x20-\x7E]{0,254})$"
 )
 
 # Name string: PE spec allows ASCII; we accept any printable byte range
@@ -334,7 +338,7 @@ def _build_name_pointers(
     EAT-index -> name, used by _build_functions to enrich function entries.
     """
     entries: List[Dict[str, Any]] = []
-    name_by_index: Dict[int, str] = {}
+    name_by_index: Dict[int, tuple] = {}
 
     num_names = header["NumberOfNames"]
     num_funcs = header["NumberOfFunctions"]
@@ -367,7 +371,9 @@ def _build_name_pointers(
         elif name is not None and name_valid:
             # Record the resolved name against its EAT index for use by
             # _build_functions
-            name_by_index[ordinal_index] = name
+            if ordinal_index in name_by_index:
+                entry_errors.append("ordinal_index_duplicate")
+            name_by_index[ordinal_index] = (name, name_rva)
 
         entries.append({
             "index": i,
@@ -391,7 +397,7 @@ def _build_functions(
     header: Dict[str, int],
     dir_start: int,
     dir_end: int,
-    name_by_index: Dict[int, str],
+    name_by_index: Dict[int, tuple],
 ) -> List[Dict[str, Any]]:
     """
     Build the function entry list from the EAT, joining with name resolution
@@ -408,24 +414,25 @@ def _build_functions(
         is_forwarder = False
         forwarder: Optional[str] = None
         forwarder_valid = False
-        name_rva: Optional[int] = None
+        entry_errors: List[str] = []
 
         if address_rva is not None and address_rva != 0:
             # PE spec: an EAT entry RVA that points within the export
             # directory itself is a forwarder string pointer.
             if dir_start <= address_rva < dir_end:
                 is_forwarder = True
-                forwarder, _ = _read_asciiz(pe, address_rva, _FORWARDER_MAX_LEN)
+                forwarder, fwd_error = _read_asciiz(
+                    pe, address_rva, _FORWARDER_MAX_LEN
+                )
+                if fwd_error is not None:
+                    entry_errors.append(fwd_error)
                 if forwarder is not None:
                     forwarder_valid = bool(_FORWARDER_RE.match(forwarder))
 
+        resolved = name_by_index.get(i)
         # Look up resolved name from name pointer table cross-reference
-        name = name_by_index.get(i)
-        if name is not None:
-            # The name's RVA is recorded in name_pointers, not duplicated
-            # here — but we expose name_rva as None to keep the shape
-            # consistent.
-            name_rva = None
+        name = resolved[0] if resolved else None
+        name_rva = resolved[1] if resolved else None
 
         entries.append({
             "index": i,
@@ -436,6 +443,7 @@ def _build_functions(
             "forwarder_valid": forwarder_valid,
             "name": name,
             "name_rva": name_rva,
+            "errors": entry_errors,
         })
 
     return entries

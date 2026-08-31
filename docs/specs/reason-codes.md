@@ -419,7 +419,9 @@ Priority‑resolved; the first matching tag wins:
 |------------|---------|
 | name_rva_missing | Parser did not capture the entry's name RVA |
 | name_rva_zero | RVA was explicitly zero |
+| rva_zero | `_read_asciiz` was called with a zero RVA (defensive; currently unreachable, since the zero case is caught earlier) |
 | read_failed | pe.get_data raised when reading the name string |
+| empty_read | The read returned zero bytes |
 | unterminated | No NUL terminator found within the maximum scan length |
 
 ### EXPORT_NAME_NOT_ASCII
@@ -437,6 +439,7 @@ Priority‑resolved:
 |------------|---------|
 | missing | Parser could not read the EOT entry |
 | out_of_range | Ordinal index >= NumberOfFunctions |
+| duplicate | Two or more name pointers resolve to the same EAT index; only the last is reflected in the function view, so an export name is silently unreachable through the resolved-function list |
 
 ### EXPORT_ORDINAL_OUT_OF_RANGE
 
