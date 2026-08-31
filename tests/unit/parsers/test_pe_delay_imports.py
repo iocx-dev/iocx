@@ -788,6 +788,54 @@ class TestDecodeImportEntry:
         assert "name_read_failed" in entry["errors"]
 
 
+class TestNameValidation:
+
+    def test_long_printable_import_name_is_valid(self):
+        """A 600-char printable symbol (mangled C++) must NOT be flagged."""
+        pe = _FakePE(delay_rva=0x1000, delay_size=64, data_by_rva={
+        0x1000: _build_descriptor() + _zero_descriptor(),
+        0x2000: _asciiz("test.dll"),
+        0x4000: _build_int_iat_array_64([0x6000]),
+        0x5000: _build_int_iat_array_64([0x6000]),
+        0x6000: _build_import_by_name(0x10, "A" * 600)})
+        entry = build_delay_import_structure(pe)["descriptors"][0]["imports"][0]
+        assert entry["name_valid"] is True
+        assert entry["errors"] == []
+
+    def test_empty_import_name_flagged(self):
+        pe = _FakePE(delay_rva=0x1000, delay_size=64, data_by_rva={
+        0x1000: _build_descriptor() + _zero_descriptor(),
+        0x2000: _asciiz("test.dll"),
+        0x4000: _build_int_iat_array_64([0x6000]),
+        0x5000: _build_int_iat_array_64([0x6000]),
+        0x6000: struct.pack("<H", 0x10) + b"\x00"})
+        entry = build_delay_import_structure(pe)["descriptors"][0]["imports"][0]
+        assert "name_empty" in entry["errors"]
+        assert entry["name_valid"] is False
+
+    def test_dll_name_too_long_flagged(self):
+        """300 printable chars: exceeds the 255 filename limit, but IS printable."""
+        pe = _FakePE(delay_rva=0x1000, delay_size=64, data_by_rva={
+        0x1000: _build_descriptor(dll_name_rva=0x2000) + _zero_descriptor(),
+        0x2000: _asciiz("D" * 300),
+        0x4000: _build_int_iat_array_64([]),
+        0x5000: _build_int_iat_array_64([])})
+        d = build_delay_import_structure(pe)["descriptors"][0]
+        assert "dll_name_too_long" in d["errors"]
+        assert "dll_name_not_printable" not in d["errors"]
+        assert d["dll_name_valid"] is False
+
+    def test_dll_name_empty_flagged(self):
+        pe = _FakePE(delay_rva=0x1000, delay_size=64, data_by_rva={
+        0x1000: _build_descriptor(dll_name_rva=0x2000) + _zero_descriptor(),
+        0x2000: b"\x00",
+        0x4000: _build_int_iat_array_64([]),
+        0x5000: _build_int_iat_array_64([])})
+        d = build_delay_import_structure(pe)["descriptors"][0]
+        assert "dll_name_empty" in d["errors"]
+        assert "dll_name_not_printable" not in d["errors"]
+
+
 # =================================================================
 # build_delay_import_structure — full roundtrips
 # =================================================================

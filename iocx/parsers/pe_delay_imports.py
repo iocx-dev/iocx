@@ -46,10 +46,16 @@ _MAX_DESCRIPTORS = 4096
 # Hard limit on imports per descriptor for the same reason
 _MAX_IMPORTS_PER_DESCRIPTOR = 16384
 
-# DLL name structural check: ASCII printable, typical filename charset.
-# Conservative — accepts the common cases without trying to validate
-# filesystem semantics.
-_DLL_NAME_RE = re.compile(r"^[\x20-\x7E]{1,255}$")
+# Printable-ASCII structural check, applied to both DLL names and import
+# symbol names. Length is NOT constrained here - each caller applies its own
+# limit where one is structurally meaningful, so a too-long name is reported
+# distinctly from a non-printable one.
+_PRINTABLE_ASCII_RE = re.compile(r"^[\x20-\x7E]+$")
+
+# NTFS filename component limit. A delay-load DLL name is a filename, not a
+# path, so 255 is the correct structural bound (MAX_PATH 260 covers a full
+# path and does not apply).
+_DLL_NAME_MAX_CHARS = 255
 
 
 def build_delay_import_structure(pe) -> Optional[Dict[str, Any]]:
@@ -253,9 +259,18 @@ def _enrich_descriptor(
             descriptor["errors"].append(err)
         else:
             descriptor["dll_name"] = name
-            descriptor["dll_name_valid"] = bool(_DLL_NAME_RE.match(name))
-            if not descriptor["dll_name_valid"]:
+            # Three distinct structural faults, reported separately: an empty
+            # name, a non-printable one, and one exceeding the filename limit
+            # are different anomalies and a consumer triaging on
+            # "not_printable" should not be shown a length violation.
+            if name == "":
+                descriptor["errors"].append("dll_name_empty")
+            elif not _PRINTABLE_ASCII_RE.match(name):
                 descriptor["errors"].append("dll_name_not_printable")
+            elif len(name) > _DLL_NAME_MAX_CHARS:
+                descriptor["errors"].append("dll_name_too_long")
+            else:
+                descriptor["dll_name_valid"] = True
 
     # ---- INT (Import Name Table) ----
     int_rva = descriptor["int_rva"]
@@ -330,9 +345,16 @@ def _decode_import_entry(
         elif name is None:
             errors.append("name_read_failed")
         else:
-            name_valid = bool(re.match(r"^[\x20-\x7E]{1,512}$", name))
-            if not name_valid:
+            # No length cap: _IMPORT_NAME_MAX_LEN already bounds the read
+            # (effective max 1021 chars after the WORD hint), and MSVC-mangled
+            # C++ symbols legitimately exceed any smaller limit. Only
+            # printability is a structural question at this point.
+            if name == "":
+                errors.append("name_empty")
+            elif not _PRINTABLE_ASCII_RE.match(name):
                 errors.append("name_not_printable")
+            else:
+                name_valid = True
 
     return {
         "index": index,

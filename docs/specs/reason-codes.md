@@ -528,9 +528,12 @@ Priority‑resolved; the first matching tag wins:
 |------------|---------|
 | dll_name_rva_zero | DLL name RVA was explicitly zero |
 | read_failed | pe.get_data raised when reading the DLL name string |
+| empty_read | The read returned zero bytes |
 | unterminated | No NUL terminator found within the maximum scan length (512 bytes) |
-| dll_name_not_printable | Decoded successfully but contains bytes outside 0x20–0x7E |
 | non_ascii | Decode produced Unicode replacement characters |
+| dll_name_empty | The string terminated immediately — a zero-length DLL name |
+| dll_name_not_printable | Contains bytes outside 0x20–0x7E |
+| dll_name_too_long | Exceeds 255 characters, the NTFS filename component limit |
 
 ### DELAY_IMPORT_INT_IAT_MISMATCH
 
@@ -554,6 +557,7 @@ Priority‑resolved:
 | hint_unpack_failed | Could not unpack the WORD hint |
 | name_unterminated | Name string had no NUL terminator within the maximum scan length |
 | name_non_ascii | Name decode produced Unicode replacement characters |
+| name_empty | The symbol name terminated immediately — a zero-length import name |
 | name_not_printable | Name decoded successfully but contains non‑printable bytes |
 
 ---
