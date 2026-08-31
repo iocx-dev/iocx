@@ -538,7 +538,7 @@ Priority‑resolved:
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
 | **RELOCATION_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first block header was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
-| **RELOCATION_TABLE_TRUNCATED** | A block's declared `SizeOfBlock` extends past the directory's declared end, or the entry region could not be fully read | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
+| **RELOCATION_TABLE_TRUNCATED** | A block header, entry region, or the block walk itself could not be fully read within the declared directory | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
 | **RELOCATION_BLOCK_MALFORMED** | A block is structurally invalid: `SizeOfBlock` below the 8-byte header minimum, not aligned to the 2-byte entry stride, or a non-advancing size that would stall the walk | `SizeOfBlock = 0`, or `SizeOfBlock = 7` | Per‑block *(priority-resolved sub-reason)* |
 | **RELOCATION_ENTRY_RVA_INVALID** | A non-ABSOLUTE entry's target (`page_rva + offset`) does not map to any section | Entry target = 0x9000 with no covering section | Per‑entry *(count always reported in details even when emission is capped)* |
 
@@ -563,7 +563,40 @@ Priority‑resolved; the first matching tag wins:
 ### RELOCATION_TABLE_TRUNCATED
 
 The `region` field (not `table`, and not `sub_reason`) names the truncated
-region.
+region:
+
+| region value | Meaning |
+|---|---|
+| relocation_block_header_truncated | The 8-byte block header did not fit the declared directory window, or came back short |
+| relocation_block_read_failed | `pe.get_data` raised while reading a block header |
+| relocation_entries_exceed_directory | A block's declared entry region extends past the directory's declared end; the readable portion is clamped and the remainder is not decoded |
+| relocation_entries_truncated | The entry array was clamped to the directory end, or came back short |
+| relocation_entries_read_failed | `pe.get_data` raised while reading the entry array |
+| relocation_block_max_exceeded | The walk hit the 65536-block hard limit |
+
+*Note `relocation_entries_exceed_directory` and `relocation_entries_truncated`
+are distinct facts and may both fire for the same block: the former means the
+declared size was clamped to the directory window; the latter means the
+physical read then came back shorter than even that clamped window.*
+
+### Entry-level: HIGHADJ pairing
+
+`IMAGE_REL_BASED_HIGHADJ` (type 4) occupies two WORD slots per the PE spec —
+the type+offset word, followed by a raw 16-bit adjustment value. The parser
+threads a pairing state across the entry walk (reset per block, never shared
+across blocks) rather than decoding every word independently:
+
+| Entries field | Meaning |
+|----------------|---------|
+| `adjustment` | Present only on a HIGHADJ entry whose pairing succeeded; holds the raw 16-bit value from the following WORD, verbatim, not decoded as type+offset |
+
+If a HIGHADJ entry is the last word in a block's entry region (no adjustment
+word follows), the entry is still recorded, `adjustment` is absent, and the
+block carries:
+
+| Sub‑reason (block-level `errors`) | Meaning |
+|------------------------------------|---------|
+| highadj_missing_adjustment | A HIGHADJ entry had no following word to pair with — the block ended, or was truncated, mid-pair |
 
 ---
 

@@ -34,8 +34,9 @@ _ENTRY_SIZE = 2         # each relocation entry is a WORD
 # claiming arbitrarily many. Real binaries rarely exceed a few thousand.
 _MAX_BLOCKS = 65536
 
-# Hard limit on entries per block. A single 4 KiB page can hold at most
-# 2048 WORD entries after the 8-byte header, so this is generous.
+# Hard limit on entries per block. Offsets are 12-bit, so a page addresses
+# 4096 distinct offsets, and IMAGE_REL_BASED_HIGHADJ occupies two slots -
+# giving a true structural maximum of 4096 x 2 = 8192 WORD entries.
 _MAX_ENTRIES_PER_BLOCK = 8192
 
 # IMAGE_REL_BASED_* type names. Values not present here are reported by
@@ -50,9 +51,11 @@ _RELOC_TYPE_NAMES = {
     6: "RESERVED",
     7: "MACHINE_SPECIFIC_7",   # THUMB_MOV32 / RISCV_LOW12I
     8: "MACHINE_SPECIFIC_8",   # RISCV_LOW12S / LOONGARCH_MARK_LA
-    9: "MIPS_JMPADDR16",
+    9: "MACHINE_SPECIFIC_9",   # MIPS_JMPADDR16
     10: "DIR64",
 }
+
+_RELOC_TYPE_HIGHADJ = 4        # IMAGE_REL_BASED_HIGHADJ occupies two slots
 
 
 def build_relocation_structure(pe) -> Optional[Dict[str, Any]]:
@@ -211,7 +214,7 @@ def _decode_block(
     entries_start = block_rva + _BLOCK_HEADER_SIZE
     readable = max(0, min(entries_bytes, dir_end - entries_start))
     if readable < entries_bytes:
-        truncations.append("relocation_entries_truncated")
+        truncations.append("relocation_entries_exceed_directory")
 
     readable_entries = min(declared_entries, readable // _ENTRY_SIZE)
 
@@ -225,8 +228,18 @@ def _decode_block(
         truncations.append("relocation_entries_truncated")
         readable_entries = len(raw) // _ENTRY_SIZE
 
+    skip_next = False
     for i in range(readable_entries):
         (word,) = struct.unpack_from("<H", raw, i * _ENTRY_SIZE)
+
+        if skip_next:
+            # Second slot of a HIGHADJ pair: a raw 16-bit adjustment value,
+            # not a type+offset entry. Recorded on the owning entry rather
+            # than decoded as a relocation of its own.
+            block["entries"][-1]["adjustment"] = word
+            skip_next = False
+            continue
+
         reloc_type = (word >> 12) & 0xF
         offset = word & 0x0FFF
         block["entries"].append({
@@ -235,6 +248,11 @@ def _decode_block(
             "offset": offset,
             "rva": page_rva + offset,
         })
+        skip_next = (reloc_type == _RELOC_TYPE_HIGHADJ)
+
+    if skip_next:
+        # Trailing HIGHADJ with no adjustment word - the block ended mid-pair.
+        block["errors"].append("highadj_missing_adjustment")
 
     block["entry_count"] = len(block["entries"])
     return block
