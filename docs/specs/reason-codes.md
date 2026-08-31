@@ -665,10 +665,19 @@ Priority‑resolved; the first matching tag wins:
 | pdb_path_unterminated | The PDB path had no NUL terminator within the scan length |
 | pdb_path_non_ascii | The PDB path decoded but contains non-printable bytes |
 
+*On `pdb_path_unterminated`, pdb_path is still populated — with the region truncated at the 512-byte scan cap — rather than left None. Consumers must check errors before trusting the path.*
+
 ### DEBUG_TABLE_TRUNCATED
 
 The `region` field (not `table`, and not `sub_reason`) names the truncated
-region.
+region:
+
+| region value | Meaning |
+|--------------|---------|
+| debug_directory_size_not_entry_aligned | Declared directory size is not a whole multiple of the 28-byte entry stride |
+| debug_directory_entry_count_exceeds_max | Declared entry count exceeded the parser's hard limit (256) and was clamped |
+| debug_entry_read_failed | `pe.get_data` raised while reading an entry |
+| debug_entry_truncated | An entry read returned fewer than 28 bytes |
 
 ---
 
