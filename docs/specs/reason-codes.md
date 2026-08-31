@@ -145,7 +145,7 @@ They are separable by a discriminating key:
 |------------|------------------|-----------------|--------|
 | **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `(start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
 | **TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
-| **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible) | Start = `0x6000`, End = `0x6000` | Per‑file |
+| **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible). The parser independently records `tls_raw_data_end_before_start` in its errors list and sets `raw_data_size` to `None` for this case; the validator derives the finding from the VA fields directly rather than from that tag, so the two never double-count. | Start = `0x6000`, End = `0x6000` | Per‑file |
 | **TLS_ZERO_LENGTH_DIRECTORY** | TLS directory exists but `start == end` (zero‑length region) | Start = `0x7000`, End = `0x7000` | Per‑file |
 | **TLS_CALLBACKS_MISSING** | TLS directory is non‑empty but callback pointer is `0` | Start = `0x4000`, End = `0x4100`, Callbacks = `0` | Per‑file |
 | **TLS_CALLBACK_NOT_MAPPED_TO_SECTION** | Callback RVA does not fall inside any section’s VA range | Callback = `0x90000000` (no section covers it) | Per‑file |
@@ -162,8 +162,30 @@ They are separable by a discriminating key:
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| header_decode | The fixed IMAGE_TLS_DIRECTORY could not be read or unpacked; unrecoverable, all later checks are skipped |
+| header_decode | The fixed IMAGE_TLS_DIRECTORY could not be read or unpacked; unrecoverable, all later checks are skipped. The `errors` key lists the parser tags that triggered it |
 | callback_array | A parser truncation tag surfaced while walking the callback array (the `region` key names the tag) |
+
+#### `header_decode` — contributing parser tags
+
+Listed in the issue's `errors` key. Any one of these short-circuits every
+later TLS check:
+
+| Parser tag | Meaning |
+|------------|---------|
+| tls_directory_read_failed | `pe.get_data` raised when reading the fixed struct |
+| tls_directory_truncated | The read returned fewer than the full struct size (24 bytes PE32 / 40 bytes PE32+) |
+| tls_directory_unpack_failed | `struct.unpack` failed on the struct bytes (defensive; unreachable past the length guard) |
+
+#### `callback_array` — `region` values
+
+One issue is emitted per tag, so a single directory may raise several:
+
+| region value | Meaning |
+|--------------|---------|
+| tls_callbacks_read_failed | `pe.get_data` raised while reading a callback slot |
+| tls_callbacks_truncated | A callback slot returned fewer than the pointer width (4 bytes PE32 / 8 bytes PE32+) |
+| tls_callbacks_unpack_failed | `struct.unpack` failed on a slot (defensive; unreachable past the length guard) |
+| tls_callbacks_max_exceeded | The walk hit the parser's hard limit (4096 callbacks) without finding a NULL terminator |
 
 ### TLS_CALLBACK_RVA_INVALID
 
@@ -182,6 +204,11 @@ always in `invalid_callback_count`):
 | image_base_unavailable | Callbacks were resolved but ImageBase is not an int |
 | below_image_base | A callback VA lies below ImageBase, yielding a negative RVA |
 | not_mapped | A resolved callback RVA falls inside no section |
+
+Emission is capped at 16 per-target issues; `invalid_callback_count` always
+carries the true total. The two tombstone sub-reasons above are emitted at
+most once each and are mutually exclusive with the per-target list, since the
+parser returns `callbacks = []` in both cases.
 
 ---
 
