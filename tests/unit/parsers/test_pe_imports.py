@@ -48,6 +48,7 @@ from iocx.parsers.pe_imports import (
     _MAGIC_PE32,
     _MAGIC_PE32_PLUS,
     _MAX_IMPORTS_PER_DESCRIPTOR,
+    _MAX_DESCRIPTORS,
 )
 
 
@@ -63,6 +64,18 @@ def _descriptor(original_first_thunk: int = 0x3000,
     """A 20-byte IMAGE_IMPORT_DESCRIPTOR."""
     return struct.pack("<IIIII", original_first_thunk, timestamp,
                        forwarder_chain, name_rva, first_thunk)
+
+
+def _minimal_nonzero_descriptor() -> bytes:
+    """
+    The cheapest descriptor that is non-zero yet triggers no further reads:
+      name_rva = 0        -> dll_name_rva_zero, no string read
+      both thunk RVAs = 0 -> no_thunk_array, _enrich returns immediately
+      timestamp = 1       -> makes the descriptor non-zero
+    Keeps a 4096-iteration walk to one get_data call per descriptor.
+    """
+    return _descriptor(original_first_thunk=0, timestamp=1,
+                       forwarder_chain=0, name_rva=0, first_thunk=0)
 
 
 def _zero_descriptor() -> bytes:
@@ -601,6 +614,75 @@ class TestTruncations:
             {0x2000: _asciiz("A.dll"), 0x3000: blob}, size=60))
         assert len(out["descriptors"][0]["imports"]) == _MAX_IMPORTS_PER_DESCRIPTOR
         assert "int_max_exceeded" in out["truncations"]
+
+
+class TestDescriptorCountCap:
+    """
+    The `for ... else` fires only when the walk exhausts _MAX_DESCRIPTORS
+    without breaking - no zero terminator, no read failure, and the declared
+    directory large enough to hold every descriptor. Any single break
+    silences it, which is why the fixture has to be constructed rather than
+    stumbled into.
+    """
+
+    def test_cap_reached_emits_max_exceeded(self, monkeypatch):
+        """Patched cap: same branch, tractable fixture."""
+        import iocx.parsers.pe_imports as pei
+        cap = 4
+        monkeypatch.setattr(pei, "_MAX_DESCRIPTORS", cap)
+        table = _minimal_nonzero_descriptor() * (cap + 2)   # more than the cap
+        pe = _FakePE(0x1000, len(table), {0x1000: table})
+
+        out = build_import_structure(pe)
+
+        assert "import_descriptor_max_exceeded" in out["truncations"]
+        assert out["descriptor_count"] == cap
+
+    def test_cap_not_reached_when_terminator_found(self, monkeypatch):
+        """Control: a zero terminator breaks the loop, so `else` must NOT fire."""
+        import iocx.parsers.pe_imports as pei
+        cap = 4
+        monkeypatch.setattr(pei, "_MAX_DESCRIPTORS", cap)
+        table = _minimal_nonzero_descriptor() * 2 + b"\x00" * _DESCRIPTOR_SIZE
+        pe = _FakePE(0x1000, len(table), {0x1000: table})
+
+        out = build_import_structure(pe)
+
+        assert "import_descriptor_max_exceeded" not in out["truncations"]
+        assert out["truncations"] == []
+        assert out["descriptor_count"] == 2
+
+    def test_cap_not_reached_when_window_ends_first(self, monkeypatch):
+        """
+        Control: the declared size runs out before the cap, so the
+        unterminated branch breaks instead - the two are mutually exclusive.
+        """
+        import iocx.parsers.pe_imports as pei
+        cap = 8
+        monkeypatch.setattr(pei, "_MAX_DESCRIPTORS", cap)
+        table = _minimal_nonzero_descriptor() * 3
+        pe = _FakePE(0x1000, len(table), {0x1000: table})
+
+        out = build_import_structure(pe)
+
+        assert out["truncations"] == ["import_descriptor_unterminated"]
+        assert "import_descriptor_max_exceeded" not in out["truncations"]
+
+
+    def test_real_cap_is_reachable(self):
+        """
+        Unpatched: proves _MAX_DESCRIPTORS is genuinely attainable rather
+        than dead. Needs 4096 * 20 = 81920 bytes of descriptor data and a
+        declared directory at least that large.
+        """
+        table = _minimal_nonzero_descriptor() * _MAX_DESCRIPTORS
+        assert len(table) == _MAX_DESCRIPTORS * _DESCRIPTOR_SIZE
+        pe = _FakePE(0x1000, len(table), {0x1000: table})
+
+        out = build_import_structure(pe)
+
+        assert "import_descriptor_max_exceeded" in out["truncations"]
+        assert out["descriptor_count"] == _MAX_DESCRIPTORS
 
 
 # =================================================================
