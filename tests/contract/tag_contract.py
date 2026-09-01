@@ -187,7 +187,19 @@ def extract_parser_tags(
     out = ParserTags()
     scopes = _function_scopes(tree)
 
+    def _is_entry_point(fn: ast.AST) -> bool:
+        """
+        The function that builds the top-level struct. Every parser follows the
+        build_<subsystem>_structure convention, and that function owns the
+        struct's own `errors`/`truncations` lists - which it creates as locals
+        rather than receiving as parameters.
+        """
+        return (isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and fn.name.startswith("build_")
+        and fn.name.endswith("_structure"))
+
     for fn, params in scopes.items():
+        entry = _is_entry_point(fn)
         for node in ast.walk(fn):
             ref = _sink_ref(node)
             if ref is None or not node.args:
@@ -197,7 +209,7 @@ def extract_parser_tags(
             # name that is a parameter AND uses the canonical sink name.
             # `descriptor_errors` is a parameter too, but its distinct name
             # keeps it per-item.
-            is_top = is_bare and sink in _ALL_SINKS and sink in params
+            is_top = is_bare and (sink in params or entry)
             if sink in _TRUNCATION_SINKS:
                 bucket = out.top_truncations
             elif is_top:

@@ -216,7 +216,7 @@ def _read_certificates(
                 "<IHH", data, pos,
             )
         except struct.error:
-            errors.append(f"certificate_header_unpack_failed_at_{index}")
+            errors.append("certificate_header_unpack_failed")
             break
 
         cert = _decode_certificate(

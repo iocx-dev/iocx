@@ -21,9 +21,9 @@ import pytest
 from tag_contract import check_contract
 
 from iocx.parsers import (pe_imports, pe_relocations, pe_tls, pe_debug,
-                          pe_exports, pe_delay_imports)
+                          pe_exports, pe_delay_imports, pe_certificates)
 from iocx.validators import (imports, relocations, tls, debug,
-                             exports, delay_imports)
+                             exports, delay_imports, signature)
 
 _PAIRS = [
     # (label, parser module, validator module, template_vars)
@@ -41,6 +41,7 @@ _PAIRS = [
     ("pe_debug",         pe_debug,         debug,         {}),
     ("pe_exports",       pe_exports, exports, {"tag": ["eat", "enpt", "eot"]}),
     ("pe_delay_imports", pe_delay_imports, delay_imports, {"tag": ["int", "iat"]}),
+    ("pe_certificates",  pe_certificates,  signature,      {}),
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.
@@ -50,6 +51,11 @@ _KNOWN_DELIBERATE_DROPS = {
     # the start/end VA fields directly - more authoritative than a derived
     # tag. Redundant signalling, not a lost finding.
     "pe_tls": {"tls_raw_data_end_before_start"},
+    # validate_signature checks cert["revision"] and cert["cert_type"]
+    # against the known-value sets directly rather than consuming these
+    # tags. The facts reach output as SIGNATURE_INVALID_REVISION /
+    # SIGNATURE_INVALID_TYPE. Redundant signalling, not a lost finding.
+    "pe_certificates": {"unknown_revision", "unknown_cert_type", "length_too_small"},
 }
 
 @pytest.mark.contract

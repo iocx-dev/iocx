@@ -44,13 +44,6 @@ from iocx.schemas.internal_schema import InternalMetadata
 from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 
-# Parser per-certificate error tags that indicate a genuine structural decode
-# failure (as opposed to a bad field VALUE, which the SIGNATURE_INVALID_*
-# checks below already own). Kept deliberately narrow to avoid double-counting.
-_STRUCTURAL_CERT_ERROR_TAGS = {
-    "length_too_small",  # also covered by SIGNATURE_INVALID_LENGTH; see note
-}
-
 
 @depends_on("internal", "metadata", "analysis")
 def validate_signature(internal: InternalMetadata,

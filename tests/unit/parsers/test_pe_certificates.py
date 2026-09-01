@@ -316,7 +316,7 @@ class TestReadCertificates:
         errs: List[str] = []
         out = _read_certificates(data, 0x800, 0x18, len(data), [], errs)
         assert out == []
-        assert any(e.startswith("certificate_header_unpack_failed_at_")
+        assert any(e.startswith("certificate_header_unpack_failed")
                    for e in errs)
 
 
