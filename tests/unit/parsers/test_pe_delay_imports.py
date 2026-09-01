@@ -334,7 +334,7 @@ class TestDecodeDescriptor:
 
         # Defensive path: error appended to errors[], walk broken
         assert any(
-            e.startswith("descriptor_unpack_failed_at_") for e in result["errors"]
+            e.startswith("descriptor_unpack_failed") for e in result["errors"]
         )
         # Walk should have broken before producing any descriptors
         assert result["descriptors"] == []

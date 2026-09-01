@@ -165,7 +165,7 @@ def _read_descriptors(
 
         decoded = _decode_descriptor(raw, index)
         if decoded is None:
-            errors.append(f"descriptor_unpack_failed_at_{index}")
+            errors.append("descriptor_unpack_failed")
             break
 
         # Check for zero terminator BEFORE adding to results

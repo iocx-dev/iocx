@@ -153,7 +153,7 @@ def _read_blocks(
         try:
             page_rva, size_of_block = struct.unpack_from("<II", header, 0)
         except struct.error: # pragma: no cover
-            errors.append(f"block_header_unpack_failed_at_{index}")
+            errors.append("block_header_unpack_failed")
             break
 
         block = _decode_block(
