@@ -16,6 +16,7 @@ from .exception_table import validate_exception_table
 from .resources import validate_resources
 from .version_info import validate_version_info
 from .exports import validate_exports
+from .imports import validate_imports
 from .delay_imports import validate_delay_imports
 from .entropy import validate_entropy
 
@@ -54,6 +55,12 @@ STRUCTURAL_VALIDATORS = {
     "version_info": validate_version_info,
     # Exports
     "exports": validate_exports,
+     # Imports (dir 1): descriptor array, DLL names, INT/IAT thunk decode.
+    # Placement owned by rva_graph for both the import directory and the IAT
+    # (dir 12). Grouped with the other name-table validators rather than the
+    # ascending deep-parse cluster, since it shares their fixture shape and
+    # sub-reason vocabulary.
+    "imports": validate_imports,
     # Delay imports
     "delay_imports": validate_delay_imports,
     # Entropy metrics (high entropy sections, overlays, uniform patterns)

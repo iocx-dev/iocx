@@ -43,7 +43,7 @@ Some structural metadata extracted by parsers is **producer-facing**: it exists 
 > validator self-contained. Their codes are disjoint identifiers, so a directory
 > overrunning `SizeOfImage` surfaces under both the backbone's `DATA_DIRECTORY_OUT_OF_RANGE`
 > and the subsystem's own code — two distinct labels for one fact, not one code
-> emitted twice. Relocations, debug and the security directory defer entirely.
+> emitted twice. Relocations, debug and imports defer entirely, emitting no placement code of their own — though a directory placed outside the image will still surface in those subsystems as a truncation, since the parser cannot read it. The security directory defers for a different reason: its VirtualAddress is a file offset, not an RVA, so the backbone's checks do not apply at all.
 
 ---
 
@@ -384,6 +384,40 @@ The exception parser is implemented as a pure struct-level decoder over `pe.get_
 - On ARM/ARM64, the record's Flag bit selects packed unwind (`is_packed`, no `.xdata` pointer to bounds-check) versus an unpacked `.xdata` RVA; `end_rva` is left `None` because the record carries no `EndAddress`, so the validator's range/overlap checks naturally no-op for these entries while sortedness, bounds, and alignment still apply.
 
 The validator then maps these structural states to a well-defined set of reason codes (`EXCEPTION_DIRECTORY_INVALID_HEADER`, `EXCEPTION_DIRECTORY_OUT_OF_BOUNDS`, `EXCEPTION_DIRECTORY_UNALIGNED`, `EXCEPTION_DIRECTORY_SIZE_NOT_MULTIPLE`, `EXCEPTION_TABLE_TRUNCATED`, `EXCEPTION_UNSUPPORTED_MACHINE`, `EXCEPTION_ENTRY_INVALID`, `EXCEPTION_FUNCTION_RANGE_INVALID`, `EXCEPTION_FUNCTION_RVA_OUT_OF_BOUNDS`, `EXCEPTION_ENTRIES_NOT_SORTED`, `EXCEPTION_FUNCTION_OVERLAP`, `EXCEPTION_UNWIND_INFO_UNALIGNED`, `EXCEPTION_UNWIND_INFO_INVALID`, `EXCEPTION_UNWIND_CHAIN_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-entry and per-unwind malformations are priority-resolved so an entry carrying several defects emits one deterministic sub-reason. The sortedness check is a high-signal forensic surface: because the loader binary-searches the table, an out-of-order entry is a real evasion vector where a binary "loses" a function's unwind data by name-order alone while remaining structurally intact, so deterministic detection of the static ordering invariant is a prerequisite for treating it as a reliable triage signal.
+
+---
+
+# **2.16 Imports Validator**
+
+### Validates the structural integrity of the PE import table extracted by pe_imports.
+
+This validator performs:
+
+- Top-level decode failure detection and short-circuit for an unrecoverable descriptor array.
+- Directory placement is **not** re-checked here — `DATA_DIRECTORY_OUT_OF_RANGE` and `DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` from the RVA-graph backbone (§2.5) own it for both the import directory (index 1) and the IAT directory (index 12), so this validator emits no placement code of its own. Note that a badly placed directory still surfaces here as `IMPORT_TABLE_TRUNCATED` with `table: import_descriptor_read_failed`: the parser cannot read what the backbone has already declared out of range, and the resulting silence is itself a structural fact. The two codes are complementary rather than duplicative — the backbone reports that the declaration is wrong, this validator reports that nothing was recoverable as a consequence. Relocations (§2.13) and debug (§2.14) behave identically.
+- Truncation reporting across the descriptor array and per-descriptor thunk arrays, with the tag prefixed by the array actually read.
+- Per-descriptor name-source validation: a module identified but carrying no readable table of imported symbol names.
+- DLL name string validation: RVA presence, readability, NUL termination, emptiness, printable ASCII compliance, and the filename length bound.
+- Per-entry validation of thunks and `IMAGE_IMPORT_BY_NAME` structures, including ordinal validity, hint readability, and name structural correctness.
+
+Absence of an import directory is not treated as a structural defect — resource-only DLLs and some drivers legitimately import nothing. The bound-import directory (index 11) is a separate structure with its own descriptor and forwarder-reference arrays; descriptor-level bound *state* is interpreted here, but that table is not decoded and is out of scope for this release.
+
+The import table looks like the delay-load table and is not. Two properties make general-purpose import parsers prone to inconsistent output, and both are cases where a plausible implementation misreports rather than fails loudly:
+
+`OriginalFirstThunk` may legally be zero. The delay-load INT may not — a zero there is a genuine anomaly — but older linkers (Borland TLINK, some Microsoft toolchains) emit standard imports with only `FirstThunk`, which then holds INT-style thunks on disk that the loader overwrites with resolved addresses at load time. A parser that copies the delay-load treatment flags a large fraction of legitimate binaries; a parser that simply reads `OriginalFirstThunk` unconditionally reports those same binaries as importing nothing. Neither failure is visible without a fixture that exercises the zero case.
+
+`TimeDateStamp` silently changes what `FirstThunk` contains. Zero means unbound and `FirstThunk` mirrors the name table on disk. `0xFFFFFFFF` means "new-style" bound, with the real timestamps held in the bound-import directory — `FirstThunk` still holds thunks. Any other value means "old-style" bound, and `FirstThunk` holds resolved addresses. The three states are indistinguishable from the thunk bytes alone, so a parser that ignores the field will decode addresses as though they were ordinals-or-name-RVAs and emit fabricated import names.
+
+The imports parser is implemented as a pure `struct`-level decoder over `pe.get_data`-acquired byte buffers:
+
+- The 20-byte `IMAGE_IMPORT_DESCRIPTOR` is unpacked via a single `struct.unpack_from` call. No reliance on pefile's `DIRECTORY_ENTRY_IMPORT` interpretation.
+- The name source is selected explicitly rather than assumed: `OriginalFirstThunk` when present, otherwise `FirstThunk`, with the choice recorded in `thunk_source` so a consumer can see which array was read. The fallback is treated as normal, not as an anomaly.
+- Bound state is derived from `TimeDateStamp` at decode time. The one combination that genuinely defeats name recovery — old-style bound *with* a zero `OriginalFirstThunk` — is reported as a structural fact rather than parsed as garbage.
+- The descriptor array walk has both an explicit zero-descriptor terminator check and a hard count limit (4096), with distinct truncation tags for each termination cause.
+- Thunk arrays are walked with the same dual-bounded strategy: NULL-terminator detection plus a hard limit (16384 per descriptor). Truncation tags carry the `int` or `iat_fallback` prefix of the array actually read.
+- Ordinals are masked to the low 16 bits per the PE spec, matching the loader; the DLL name scan is bounded at 512 bytes and the `IMAGE_IMPORT_BY_NAME` scan at 1024. Name length is not otherwise constrained — mangled C++ symbols legitimately exceed any smaller limit — so printability and length are reported as distinct faults rather than conflated.
+
+The validator then maps these structural states to a small, well-defined set of reason codes (`IMPORT_DIRECTORY_INVALID_HEADER`, `IMPORT_TABLE_TRUNCATED`, `IMPORT_DESCRIPTOR_INVALID`, `IMPORT_DLL_NAME_INVALID`, `IMPORT_ENTRY_INVALID`), which downstream heuristics and IOC consumers can rely on as a stable contract. Per-descriptor and per-entry malformations are priority-resolved so a descriptor carrying several defects emits one deterministic sub-reason per pathology class, and the per-entry emission is capped at 32 issues per descriptor with the true count always present in the issue details — capped per descriptor rather than per file, so a heavily malformed first module cannot silence the ones after it. The import table is the highest-value forensic surface in the PE format for behavioural triage: the set of resolved DLL and symbol names is what most capability heuristics are built on, so a descriptor whose names cannot be recovered is a fact worth reporting explicitly rather than presenting as an empty import list.
 
 ---
 

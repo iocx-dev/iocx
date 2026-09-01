@@ -115,6 +115,7 @@ class ExportFunctionEntry(TypedDict):
     forwarder_valid: bool
     name: Optional[str]
     name_rva: Optional[int]
+    errors: List[str]
 
 
 class ExportNamePointerEntry(TypedDict):
@@ -148,6 +149,71 @@ class ExportStruct(TypedDict, total=False):
     name_pointers: List[ExportNamePointerEntry]
     truncations: List[str]
     errors: List[str]
+
+
+# -------------------------
+# Import table
+# -------------------------
+# Produced by parsers.pe_imports.build_import_structure and consumed by
+# validators.imports.validate_imports. Absence of the directory is signalled
+# by the parser returning None (hence InternalMetadata.import_struct is
+# Optional). Placement is NOT represented here beyond (rva, size): the
+# RVA-graph backbone owns it for both index 1 and index 12.
+
+class ImportEntry(TypedDict, total=False):
+    index: int
+    thunk_value: int # raw thunk as read from the name-source array
+    is_ordinal: bool # high bit set (0x80000000 / 0x8000000000000000)
+    ordinal: Optional[int] # low 16 bits when is_ordinal; None otherwise
+    hint: Optional[int] # IMAGE_IMPORT_BY_NAME hint; None for ordinals
+    name: Optional[str] # None for ordinals or on decode failure
+    name_rva: Optional[int] # RVA of IMAGE_IMPORT_BY_NAME; None for ordinals
+    name_valid: bool
+    errors: List[str] # ordinal_zero | name_rva_zero | name_read_failed |
+    # name_too_short | hint_unpack_failed |
+    # name_unterminated | name_non_ascii |
+    # name_empty | name_not_printable
+
+
+class ImportDescriptor(TypedDict, total=False):
+    index: int
+    original_first_thunk: int # RVA of the INT. MAY LEGALLY BE ZERO - see below.
+    timestamp: int # TimeDateStamp; selects bound_state
+    forwarder_chain: int
+    name_rva: int # RVA of the ASCIIZ DLL name
+    first_thunk: int # RVA of the IAT
+    bound_state: str # derived from timestamp:
+    # "unbound" (0)
+    # "bound_new_style" (0xFFFFFFFF)
+    # "bound_old_style" (any other value)
+    dll_name: Optional[str] # may be "" when the string terminated immediately
+    dll_name_valid: bool
+    thunk_source: Optional[str] # which array the imports were read from:
+    # "int" - OriginalFirstThunk (normal)
+    # "iat_fallback" - FirstThunk, because
+    # OriginalFirstThunk was zero.
+    # LEGAL, not an anomaly.
+    # None - no readable source; see errors
+    imports: List[ImportEntry]
+    errors: List[str] # dll_name_rva_zero | rva_zero | read_failed |
+    # empty_read | unterminated | non_ascii |
+    # dll_name_empty | dll_name_not_printable |
+    # dll_name_too_long |
+    # names_unrecoverable_bound_no_int | no_thunk_array
+
+
+class ImportStruct(TypedDict, total=False):
+    rva: int
+    size: int
+    is_64bit: bool # PE32+ selects 8-byte thunks
+    descriptors: List[ImportDescriptor]
+    descriptor_count: int # derived: len(descriptors)
+    truncations: List[str] # import_descriptor_{truncated,read_failed,
+    # unterminated,max_exceeded} |
+    # {int,iat_fallback}_{truncated,read_failed,
+    # unpack_failed,max_exceeded}
+    errors: List[str] # top-level; presence short-circuits to
+    # IMPORT_DIRECTORY_INVALID_HEADER
 
 
 # -------------------------
@@ -361,6 +427,7 @@ class InternalMetadata(TypedDict, total=False):
     version_info_struct: Optional[VersionInfoStruct]
     data_directories_raw: List[DataDirectoryRaw]
     export_struct: Optional[ExportStruct]
+    import_struct: Optional[ImportStruct]
     delay_import_struct: Optional[DelayImportStruct]
     exception_struct: Optional[ExceptionStruct]
     relocation_struct: Optional[RelocationStruct]

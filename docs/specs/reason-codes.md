@@ -133,7 +133,6 @@ They are separable by a discriminating key:
 | **DATA_DIRECTORY_NOT_MAPPED_TO_SECTION** | Directory is in range but does not fall inside any section | RVA = 0x9000, Size = 0x200, no section covers it | Per‑directory *(suppressed for empty, zero‑RVA, zero‑size, out‑of‑range and zero‑length‑section directories)* |
 | **DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS** | Directory range overlaps more than one section | RVA = 0x1800, Size = 0x1000 spans .text → .rdata | Per‑directory |
 | **DATA_DIRECTORY_OVERLAP** | Two directories’ RVA ranges overlap | Import and IAT overlap | Global |
-| **IMPORT_RVA_INVALID** *coming soon* | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
 
 > Prior to the `raw_offset` guard fix, `DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` was additionally suppressed for any directory in a file carrying an overlay, because the raw-mapping guard skipped the section-mapping checks entirely. Files analysed before that fix may under-report it.
 
@@ -562,6 +561,109 @@ Priority‑resolved:
 | name_non_ascii | Name decode produced Unicode replacement characters |
 | name_empty | The symbol name terminated immediately — a zero-length import name |
 | name_not_printable | Name decoded successfully but contains non‑printable bytes |
+
+---
+
+## **IMPORT ANOMALIES**
+
+*Added in v0.7.6.2 (validator §2.16). Backed by the `pe_imports` struct-level
+decoder over the 20-byte `IMAGE_IMPORT_DESCRIPTOR` array. Directory placement
+and bounds remain owned by the RVA-graph backbone — both the import directory
+(index 1) and the IAT directory (index 12) are plain RVAs, so this validator
+defers entirely rather than double-counting. The bound-import directory
+(index 11) is a separate structure and is not decoded. Absence of an import
+directory is not a defect.*
+
+> **`OriginalFirstThunk == 0` is legal here.** Unlike the delay-load INT, a
+> zero `OriginalFirstThunk` is common: older linkers emit only `FirstThunk`,
+> which then holds INT-style thunks on disk. The parser falls back to it and
+> records `thunk_source: "iat_fallback"` **without** raising an anomaly. Only
+> when the descriptor is *also* old-style bound — so `FirstThunk` holds
+> resolved addresses rather than thunks — are names genuinely unrecoverable.
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **IMPORT_DIRECTORY_INVALID_HEADER** | Top-level decode failure; short-circuits every later import check | Descriptor array unreadable at the declared RVA | Per‑file |
+| **IMPORT_TABLE_TRUNCATED** | A parser truncation tag surfaced while walking the descriptor array or a thunk array | Descriptor array reaches the declared end with no zero terminator | Per‑file *(one issue per tag; `table` names the cause)* |
+| **IMPORT_DESCRIPTOR_INVALID** | A descriptor identifies a module but has no readable source of imported symbol names | Old-style bound with `OriginalFirstThunk = 0`; or both thunk RVAs zero | Per‑descriptor *(priority-resolved sub-reason)* |
+| **IMPORT_DLL_NAME_INVALID** | A descriptor's DLL name RVA is zero, unreadable, unterminated, empty, non-printable, or exceeds the filename limit | Name RVA = 0x0, or name = `"kernel32\x01dll"` | Per‑descriptor *(priority-resolved sub-reason)* |
+| **IMPORT_ENTRY_INVALID** | A per-import entry is malformed: a zero ordinal, or an `IMAGE_IMPORT_BY_NAME` that is unreadable, too short, unterminated, empty or non-printable | Thunk with the high bit set but ordinal = 0 | Per‑entry *(priority-resolved; emission capped, see below)* |
+
+## IMPORT SUB‑REASONS
+
+### IMPORT_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top-level decoding; the `errors` key lists the contributing parser tags |
+
+### IMPORT_TABLE_TRUNCATED
+
+The `table` field (not `sub_reason`) identifies the truncation cause. Thunk
+tags are prefixed by the array actually read, so a consumer can tell whether
+the INT or the fallback IAT was short:
+
+| table value | Meaning |
+|-------------|---------|
+| import_descriptor_truncated | A descriptor's 20-byte structure came back short |
+| import_descriptor_read_failed | `pe.get_data` raised while reading a descriptor |
+| import_descriptor_unterminated | The declared directory size was reached with no zero descriptor |
+| import_descriptor_max_exceeded | Hit the hard descriptor limit (4096) without finding a terminator |
+| int_truncated / iat_fallback_truncated | A thunk read came back shorter than the pointer width |
+| int_read_failed / iat_fallback_read_failed | `pe.get_data` raised while reading a thunk |
+| int_unpack_failed / iat_fallback_unpack_failed | `struct.unpack` failed on a thunk (defensive; unreachable past the length guard) |
+| int_max_exceeded / iat_fallback_max_exceeded | Hit the imports-per-descriptor limit (16384) without a NULL thunk |
+
+### IMPORT_DESCRIPTOR_INVALID
+
+Priority‑resolved; the first matching tag wins. Mutually exclusive in
+practice — the parser returns immediately after recording either:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| names_unrecoverable_bound_no_int | The descriptor is old-style bound (`TimeDateStamp` neither 0 nor 0xFFFFFFFF) and `OriginalFirstThunk` is zero, so `FirstThunk` holds resolved addresses and no name table exists |
+| no_thunk_array | Both `OriginalFirstThunk` and `FirstThunk` are zero — the descriptor names no imports at all |
+
+Details carry `bound_state`, `original_first_thunk` and `first_thunk` so the
+reason a name source is unavailable is visible without re-reading the file.
+
+### IMPORT_DLL_NAME_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| dll_name_rva_zero | The descriptor's Name RVA was explicitly zero |
+| rva_zero | `_read_asciiz` was called with a zero RVA (defensive; the zero case is caught earlier) |
+| read_failed | `pe.get_data` raised when reading the name string |
+| empty_read | The read returned zero bytes |
+| unterminated | No NUL terminator within the maximum scan length (512 bytes) |
+| non_ascii | Decode produced Unicode replacement characters |
+| dll_name_empty | The string terminated immediately — a zero-length DLL name |
+| dll_name_not_printable | Contains bytes outside 0x20–0x7E |
+| dll_name_too_long | Exceeds 255 characters, the NTFS filename component limit |
+
+### IMPORT_ENTRY_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| ordinal_zero | High bit set on the thunk but the ordinal value is zero |
+| name_rva_zero | The thunk's `IMAGE_IMPORT_BY_NAME` RVA was zero |
+| name_read_failed | `pe.get_data` raised when reading the hint+name structure |
+| name_too_short | The buffer was fewer than 3 bytes (WORD hint plus at least one name byte) |
+| hint_unpack_failed | Could not unpack the WORD hint (defensive) |
+| name_unterminated | No NUL terminator within the maximum scan length (1024 bytes) |
+| name_non_ascii | Decode produced Unicode replacement characters |
+| name_empty | The symbol name terminated immediately — a zero-length import name |
+| name_not_printable | Contains bytes outside 0x20–0x7E. Length is not constrained: the 1024-byte read is the only bound, so mangled C++ symbols are accepted |
+
+Emission is capped at 32 issues **per descriptor**; `invalid_entry_count`
+always carries the true total for that descriptor. The cap is per-descriptor
+rather than per-file, so a heavily malformed first module does not silence
+later ones. Note the count is of *invalid* entries, not of the descriptor's
+whole import list.
 
 ---
 

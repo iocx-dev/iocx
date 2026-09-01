@@ -203,6 +203,13 @@ class ReasonCodes:
     EXCEPTION_UNWIND_INFO_INVALID = "exception_unwind_info_invalid"
     EXCEPTION_UNWIND_CHAIN_INVALID = "exception_unwind_chain_invalid"
 
+    # ---- Import table ----
+    IMPORT_DIRECTORY_INVALID_HEADER = "import_directory_invalid_header"
+    IMPORT_TABLE_TRUNCATED = "import_table_truncated"
+    IMPORT_DESCRIPTOR_INVALID = "import_descriptor_invalid"
+    IMPORT_DLL_NAME_INVALID = "import_dll_name_invalid"
+    IMPORT_ENTRY_INVALID = "import_entry_invalid"
+
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"
     PACKER_HIGH_ENTROPY_SECTION = "high_entropy_section"

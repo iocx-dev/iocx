@@ -205,6 +205,16 @@
           "size": 512,
           "size_of_image": 16384
         }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "table": "import_descriptor_read_failed",
+          "reason": "import_table_truncated"
+        }
       }
     ]
   }
