@@ -448,6 +448,21 @@ Heuristics include:
 > This separation is what makes structural findings machine-consumable: the
 > parent code is the stable contract, the sub-reason is diagnostic detail, and
 > neither can shadow the other.
+>
+> **The tag contract is statically verified.** Parsers record faults as
+> tombstone tags; validators consume them via priority lists or wholesale
+> forwarding. A tag with no consumer is silently dropped — `_first_matching`
+> returns `"unknown"` and the caller continues, so the finding never reaches
+> output at all. That failure mode is not visible in coverage, in snapshots,
+> or on inspection: the affected file simply reports clean. A contract check
+> therefore walks every parser's AST, enumerates the tags it can emit
+> (including f-string templates and tags returned from helper readers), and
+> asserts each has a consumer in its paired validator. It runs in CI across
+> every parser/validator pair. Deliberate exemptions — where a parser records
+> a tag the validator intentionally ignores in favour of a more authoritative
+> source — are declared per-tag rather than per-subsystem, so a second,
+> undeclared drop in the same parser still fails.
+
 
 Heuristics never contradict validators.
 They only interpret validated truth.

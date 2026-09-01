@@ -1,8 +1,8 @@
 # **PE Structural Reason Codes**
 
 > **Truncation detail keys are not uniform.** `EXPORT_TABLE_TRUNCATED`,
-> `DELAY_IMPORT_TABLE_TRUNCATED` and `EXCEPTION_TABLE_TRUNCATED` name the
-> affected sub-table in a **`table`** key. `DEBUG_TABLE_TRUNCATED`,
+> `DELAY_IMPORT_TABLE_TRUNCATED`, `IMPORT_TABLE_TRUNCATED` and `EXCEPTION_TABLE_TRUNCATED`
+> name the affected sub-table in a **`table`** key. `DEBUG_TABLE_TRUNCATED`,
 > `RELOCATION_TABLE_TRUNCATED` and `TLS_DIRECTORY_TRUNCATED` use **`region`**
 > instead. Both are stable; consumers handling truncation generically must
 > read either.
@@ -779,7 +779,7 @@ region:
 
 | region value | Meaning |
 |--------------|---------|
-| debug_directory_size_not_entry_aligned | Declared directory size is not a whole multiple of the 28-byte entry stride |
+| debug_directory_size_not_entry_aligned | Declared directory size is not a whole multiple of the 28-byte entry stride; the partial trailing entry is not decoded |
 | debug_directory_entry_count_exceeds_max | Declared entry count exceeded the parser's hard limit (256) and was clamped |
 | debug_entry_read_failed | `pe.get_data` raised while reading an entry |
 | debug_entry_truncated | An entry read returned fewer than 28 bytes |
