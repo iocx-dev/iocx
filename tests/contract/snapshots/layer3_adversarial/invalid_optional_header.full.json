@@ -158,7 +158,7 @@
         "metadata": {
           "reason": "optional_header_invalid_number_of_rva_and_sizes",
           "number_of_rva_and_sizes": 1,
-          "actual_directories": 4
+          "actual_directories": 3
         }
       },
       {
