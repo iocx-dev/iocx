@@ -36,6 +36,7 @@ from iocx.parsers.pe_version_info import (
     _VS_FFI_STRUCT_VERSION,
     _VS_VERSION_INFO_KEY,
     RT_VERSION,
+    _MAX_CHILDREN
 )
 
 
@@ -52,6 +53,24 @@ def _pad4(buf: bytes) -> bytes:
     """Pad a buffer to a 4-byte boundary."""
     pad = (-len(buf)) & 3
     return buf + b"\x00" * pad
+
+
+def _envelope(w_length: int = 0) -> bytes:
+    """VS_VERSIONINFO header with no FFI. w_length 0 leaves
+    length_consistent False, so the walk covers the whole buffer."""
+    return _pad4(struct.pack("<HHH", w_length, 0, 0)
+                 + _utf16_sz("VS_VERSION_INFO"))
+
+
+def _child(key: str) -> bytes:
+    """A minimal well-formed child whose wLength covers header + key + pad."""
+    key_bytes = _utf16_sz(key)
+    length = ((6 + len(key_bytes)) + 3) & ~3
+    return _pad4(struct.pack("<HHH", length, 0, 0) + key_bytes)
+
+
+def _blob(child_key: str, count: int) -> bytes:
+    return _envelope() + _child(child_key) * count
 
 
 def _build_ffi(
@@ -912,6 +931,81 @@ class TestBuildVersionInfo:
         # Sort by language id: 0x0409 < 0x0809, so leaf_b should win
         assert out["rva"] == 0x1000
         assert out["string_file_info"][0]["tables"][0]["strings"]["ProductName"] == "FromLeafB"
+
+
+# =================================================================
+# Child Cap Walk
+# =================================================================
+
+class TestChildWalkCap:
+
+    def test_below_cap_all_children_walked(self):
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN - 1))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN - 1
+        assert "child_max_exceeded" not in out["errors"]
+
+    def test_exactly_at_cap_not_flagged(self):
+        """The cap is a ceiling on children WALKED, so exactly N is fine."""
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert "child_max_exceeded" not in out["errors"]
+
+    def test_one_over_cap_flagged(self):
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN + 1))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert "child_max_exceeded" in out["errors"]
+
+    def test_far_over_cap_bounded(self):
+        """
+        Regression guard: before the cap this produced one tag per child,
+        with no ceiling.
+        """
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert len(out["errors"]) == _MAX_CHILDREN + 1
+
+    def test_cap_bounds_the_errors_list_size(self):
+        """The property that matters downstream: output size is bounded by
+        the cap, not by the input."""
+        small = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN + 10))
+        large = _decode_vs_versioninfo(_blob("Y", 20000))
+        assert len(small["errors"]) == len(large["errors"])
+
+    def test_cap_counts_well_formed_children_too(self):
+        """
+        The cap is on the WALK, not on the error count - a blob of
+        thousands of valid StringFileInfo children is bounded as well.
+        """
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", _MAX_CHILDREN + 10))
+        assert len(out["string_file_info"]) == _MAX_CHILDREN
+        assert "child_max_exceeded" in out["errors"]
+
+    def test_normal_blob_unaffected(self):
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", 1))
+        assert out["errors"] == []
+        assert len(out["string_file_info"]) == 1
+
+    def test_cap_tag_appears_once(self):
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["errors"].count("child_max_exceeded") == 1
+
+    def test_cap_terminates_before_decoding_the_next_child(self):
+        """
+        The check precedes the header read, so the child that would have
+        been number N+1 is not partially decoded.
+        """
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", _MAX_CHILDREN + 5))
+        assert len(out["string_file_info"]) == _MAX_CHILDREN
+
+    def test_decoded_flag_unaffected_by_the_cap(self):
+        """Hitting the cap is a truncation of the walk, not a decode
+        failure - the envelope itself parsed fine."""
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["decoded"] is True
+        assert out["header_ok"] is True
+
+    def test_cap_constant_is_bounded_and_positive(self):
+        assert 0 < _MAX_CHILDREN <= 4096
 
 
 # =================================================================

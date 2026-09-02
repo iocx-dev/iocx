@@ -29,6 +29,12 @@ _VS_VERSION_INFO_KEY = "VS_VERSION_INFO"
 _VS_FFI_SIGNATURE = 0xFEEF04BD
 _VS_FFI_STRUCT_VERSION = 0x00010000
 
+# Hard cap on children walked, matching the bound every other parser
+# applies. `unknown_child` does not terminate the walk, so without this the
+# errors list scales with the resource leaf size - which is attacker-
+# controlled and unbounded when length_consistent is False.
+_MAX_CHILDREN = 256
+
 
 def build_version_info_structure(pe) -> Optional[Dict[str, Any]]:
     """
@@ -199,7 +205,13 @@ def _decode_vs_versioninfo(buf: bytes) -> Dict[str, Any]:
     end = min(w_length, len(buf)) if out["length_consistent"] else len(buf)
 
     # ---- Children: StringFileInfo / VarFileInfo ----
+    child_count = 0
     while pos + 6 <= end:
+        if child_count >= _MAX_CHILDREN:
+            out["errors"].append("child_max_exceeded")
+            break
+        child_count += 1
+
         try:
             c_len = _u16(buf, pos)
             _c_vlen = _u16(buf, pos + 2)

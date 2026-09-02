@@ -46,6 +46,7 @@ from .decorators import depends_on
 # fundamental fact - it means the remaining children were never examined -
 # so both precede unknown_child.
 _CHILD_ERROR_PRIORITY = [
+    "child_max_exceeded",
     "child_header_unpack",
     "child_length_invalid",
     "unknown_child",

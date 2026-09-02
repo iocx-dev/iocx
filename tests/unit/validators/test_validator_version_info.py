@@ -660,6 +660,7 @@ class TestChildDispatch:
         order the list has.
         """
         assert _CHILD_ERROR_PRIORITY == [
+            "child_max_exceeded",
             "child_header_unpack",
             "child_length_invalid",
             "unknown_child",

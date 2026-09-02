@@ -294,15 +294,26 @@ Details carry `declared_size` and `decoded_entries`; their difference is the los
 
 ### RESOURCE_VERSIONINFO_INVALID_HEADER sub‑reasons
 
+The first four describe the VS_VERSIONINFO envelope itself. The last four
+describe the child-dispatch walk and are appended to the top-level `errors`
+list *after* `decoded` is set, so they are read by their own branch rather
+than by the `undecoded` forward.
+
 | Sub‑reason | Meaning |
 |------------|---------|
 | placement | The VS_VERSIONINFO blob does not lie wholly inside `.rsrc` |
-| undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks |
+| undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks. The `errors` key lists the contributing parser tags |
 | szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
 | length_inconsistent | `wLength` disagrees with the buffer size |
-| child_header_unpack | A child's 6-byte header could not be unpacked; the child walk stopped there |
-| child_length_invalid | A child's wLength was below the 6-byte minimum or ran past the envelope; the walk stopped |
-| unknown_child | A child whose szKey is neither StringFileInfo nor VarFileInfo. Does not stop the walk, so it may repeat — `errors` carries every occurrence |
+| child_max_exceeded | The child walk hit the parser's hard limit (256) and stopped. Children beyond that point were not examined |
+| child_header_unpack | A child's 6-byte header could not be unpacked; the walk stopped there |
+| child_length_invalid | A child's `wLength` was below the 6-byte minimum or extended past the envelope; the walk stopped there |
+| unknown_child | A child whose `szKey` is neither "StringFileInfo" nor "VarFileInfo". Does **not** stop the walk, so it may repeat — the issue's `errors` key carries every occurrence, bounded by the child cap |
+
+The four child sub-reasons are priority-resolved, in the order listed:
+a fault that terminated the walk outranks one that did not, because the
+remaining children were never examined. At most one issue is emitted per
+blob, with the full matching set carried in `errors`.
 
 ### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
 
