@@ -14,6 +14,20 @@ from .pe_constants import (
     MACHINE_NAMES
 )
 
+# Bounds on public output. `resources` and `resource_strings` are emitted
+# directly to CLI consumers, and both otherwise scale with attacker-
+# controlled input: the string list accumulates across every resource in
+# the tree, and the entry list appends one dict per name entry with no
+# ceiling. Each cap is reported via a truncation flag rather than applied
+# silently.
+_MAX_RESOURCE_STRINGS = 10_000
+_MAX_RESOURCE_ENTRIES = 1_024
+
+# A well-formed tree is Type -> Name -> Language, so three levels. Anything
+# deeper is malformed; the cap also prevents unbounded recursion, which
+# would raise RecursionError out of parse_pe rather than degrade.
+_MAX_RESOURCE_DEPTH = 8
+
 # ---------------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------------
@@ -73,7 +87,8 @@ def _safe_file_size(pe) -> int:
     return size_attr() if callable(size_attr) else size_attr
 
 
-def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
+def _walk_resources(pe, directory, resource_strings, max_allowed=None,
+                    visited=None, depth=0):
     if visited is None:
         visited = set()
 
@@ -82,15 +97,28 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
         # 10% of file, capped at 20 MB
         max_allowed = min(size // 10, 20_000_000) if size else 20_000_000
 
-    # Prevent infinite recursion on malformed resource trees
+    if depth > _MAX_RESOURCE_DEPTH:
+        return
+
+    # Identity is sufficient here: pefile has already materialised the tree,
+    # so what we walk is a finite object graph held alive for the duration
+    # of the call. The depth cap above covers the case identity does not -
+    # a legitimately deep chain of distinct directories.
     dir_id = id(directory)
     if dir_id in visited:
         return
     visited.add(dir_id)
 
     for entry in getattr(directory, "entries", []):
+        # Stop once the string budget is spent. Checked per entry so a tree
+        # of many small resources is bounded as well as one with a few
+        # large ones.
+        if len(resource_strings) >= _MAX_RESOURCE_STRINGS:
+            return
+
         if hasattr(entry, "directory"):
-            _walk_resources(pe, entry.directory, resource_strings, max_allowed, visited)
+            _walk_resources(pe, entry.directory, resource_strings,
+                            max_allowed, visited, depth + 1)
         elif hasattr(entry, "data"):
             data_rva = getattr(entry.data.struct, "OffsetToData", 0)
             size = getattr(entry.data.struct, "Size", 0)
@@ -101,10 +129,14 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
             try:
                 data = pe.get_data(data_rva, size)
             except Exception:
-                # Malformed resources (bad RVA/size) – skip safely
+                # Malformed resources (bad RVA/size) - skip safely
                 continue
 
-            resource_strings.extend(extract_strings_from_bytes(data))
+            # Slice the extension too: a single large blob would otherwise
+            # overshoot the budget in one call, before the loop-top check
+            # runs again.
+            budget = _MAX_RESOURCE_STRINGS - len(resource_strings)
+            resource_strings.extend(extract_strings_from_bytes(data)[:budget])
 
 
 def _entropy(data: bytes | None) -> float:
@@ -393,21 +425,28 @@ def _parse_header(pe, opt):
 def _parse_resources(pe):
     resources: list[dict[str, Any]] = []
     resource_strings: list[str] = []
+    truncated: list[str] = []
 
     root = getattr(pe, "DIRECTORY_ENTRY_RESOURCE", None)
     if not root:
-        return resources, resource_strings
+        return resources, resource_strings, truncated
 
     # Walk the tree and collect resource_strings
     _walk_resources(pe, root, resource_strings)
+    if len(resource_strings) >= _MAX_RESOURCE_STRINGS:
+        truncated.append("resource_strings")
 
     # Extract structured resource entries
     if not hasattr(pe, "get_memory_mapped_image"):
-        return resources, resource_strings
+        return resources, resource_strings, truncated
 
     mm = pe.get_memory_mapped_image() or b""
 
+    entries_capped = False
     for entry in getattr(pe.DIRECTORY_ENTRY_RESOURCE, "entries", []):
+        if entries_capped:
+            break
+
         type_id = getattr(entry, "id", None)
         type_name = pefile.RESOURCE_TYPE.get(type_id, f"RT_UNKNOWN_{type_id}")
 
@@ -415,6 +454,11 @@ def _parse_resources(pe):
             continue
 
         for res in getattr(entry.directory, "entries", []):
+            if len(resources) >= _MAX_RESOURCE_ENTRIES:
+                truncated.append("resources")
+                entries_capped = True
+                break
+
             # Capture the resource's named identifier if present
             res_name = str(res.name) if getattr(res, "name", None) is not None else None
             lang = getattr(res, "id", None)
@@ -471,7 +515,7 @@ def _parse_resources(pe):
         r["rva"] if r["rva"] is not None else -1,
     ))
 
-    return resources, resource_strings
+    return resources, resource_strings, truncated
 
 def _parse_data_directories(pe):
     dirs: list[dict[str, Any]] = []
@@ -566,7 +610,7 @@ def parse_pe(path):
         signatures = _parse_signatures(pe)
         opt, optional_header = _parse_optional_header(pe)
         header = _parse_header(pe, opt)
-        resources, resource_strings = _parse_resources(pe)
+        resources, resource_strings, resource_truncated = _parse_resources(pe)
 
         # Rich header
         try:
@@ -582,6 +626,10 @@ def parse_pe(path):
             "sections": sections_list,
             "resources": resources,
             "resource_strings": resource_strings,
+            # Empty when nothing was capped. Names the lists that were
+            # truncated so a consumer can distinguish a capped result from
+            # a complete one. Comment out for now to preserve public contract
+            # "resource_truncated": resource_truncated,
             "import_details": import_details,
             "delayed_imports": delayed_imports,
             "bound_imports": bound_imports,
