@@ -9,6 +9,18 @@ Add a (parser, validator, template_vars) row to _PAIRS for each subsystem.
 The `template_vars` mapping supplies the call-site values for f-string tag
 templates - a parser that builds f"{tag}_truncated" needs its `tag` values
 listed, or the check fails loudly rather than silently skipping them.
+
+Two registries record deliberate gaps, and they cover different things:
+
+  _PARSERLESS_VALIDATORS  validators with no struct-level decoder at all.
+                          They cannot appear in _PAIRS - there is no parser
+                          module to pass - so the contract is inapplicable
+                          rather than exempted.
+
+  _TAGLESS_PARSERS        parsers that ARE in _PAIRS but emit no tags, which
+                          makes the drop check vacuously true. Their drop /
+                          phantom / template checks still run; only the
+                          zero-tags assertion is skipped.
 """
 
 from __future__ import annotations
@@ -48,7 +60,11 @@ _PAIRS = [
     ("pe_exception",       pe_exception,       exception_table,      {}),
     ("pe_resources",       pe_resources,       resources,            {}),
     ("pe_version_info",    pe_version_info,    version_info,         {}),
-    # Ref. _TAGLESS_PARSERS
+    # The two below are registered pairs like any other - their drop,
+    # phantom and template checks all run. They appear in _TAGLESS_PARSERS
+    # only to skip the zero-tags assertion, which would otherwise fail
+    # because neither parser records tombstone tags. See that registry for
+    # the reasoning in each case.
     ("pe_load_config",     pe_load_config,     load_config_directory,{}),
     ("pe_optional_header", pe_optional_header, optional_header,      {}),
 ]
@@ -112,6 +128,18 @@ _TAGLESS_PARSERS: Set[str] = {
 
 # Modules under iocx/validators that are not validators.
 _NON_VALIDATOR_MODULES = {"schema", "decorators"}
+
+
+def _pair_ids() -> List[str]:
+    """
+    Parametrise labels for _PAIRS.
+
+    Copes with pytest.param rows: ParameterSet is a NamedTuple whose field 0
+    is `values` - the whole argument tuple - not the label. A bare
+    `p[0]` therefore yields the tuple and pytest rejects it at collection.
+    Used by every parametrised test here so the two shapes cannot diverge.
+    """
+    return [(p.values[0] if hasattr(p, "values") else p[0]) for p in _PAIRS]
 
 
 def _discover_validator_modules() -> Set[str]:
@@ -184,9 +212,7 @@ class TestContractCoverage:
 
 @pytest.mark.contract
 @pytest.mark.parametrize("name,parser_mod,validator_mod,templates",
-                         _PAIRS, ids=[
-                             (p.values[0] if hasattr(p, "values") else p[0])
-                             for p in _PAIRS])
+                         _PAIRS, ids=_pair_ids())
 def test_no_parser_emits_zero_tags(name, parser_mod, validator_mod, templates):
     """
     A parser with no tags passes the drop check vacuously - emitted is
@@ -199,7 +225,6 @@ def test_no_parser_emits_zero_tags(name, parser_mod, validator_mod, templates):
     if name in _TAGLESS_PARSERS:
         pytest.skip(f"{name} records no tombstone tags by design")
 
-    import inspect
     result = check_contract(
         inspect.getsource(parser_mod),
         inspect.getsource(validator_mod),
@@ -216,7 +241,7 @@ def test_no_parser_emits_zero_tags(name, parser_mod, validator_mod, templates):
 
 @pytest.mark.contract
 @pytest.mark.parametrize("name,parser_mod,validator_mod,templates",
-                         _PAIRS, ids=[p[0] for p in _PAIRS] or None)
+                         _PAIRS, ids=_pair_ids())
 def test_no_tag_is_silently_dropped(name, parser_mod, validator_mod, templates):
     """
     A tag with no consumer vanishes: _first_matching returns "unknown" and
@@ -239,7 +264,7 @@ def test_no_tag_is_silently_dropped(name, parser_mod, validator_mod, templates):
 
 @pytest.mark.contract
 @pytest.mark.parametrize("name,parser_mod,validator_mod,templates",
-                         _PAIRS, ids=[p[0] for p in _PAIRS] or None)
+                         _PAIRS, ids=_pair_ids())
 def test_no_unexpandable_tag_template(name, parser_mod, validator_mod, templates):
     """
     An f-string tag whose variable has no declared expansion cannot be
@@ -261,14 +286,17 @@ def test_no_unexpandable_tag_template(name, parser_mod, validator_mod, templates
 
 @pytest.mark.contract
 @pytest.mark.parametrize("name,parser_mod,validator_mod,templates",
-                         _PAIRS, ids=[p[0] for p in _PAIRS] or None)
+                         _PAIRS, ids=_pair_ids())
 def test_no_phantom_tags(name, parser_mod, validator_mod, templates):
     """
     A tag named in a priority list that no parser can produce is inert but
     misleading: it implies a routing that does not exist, and would produce
     a wrong sub_reason if the name were ever reused at another level.
 
-    Mark xfail rather than fail if you keep deliberate defensive entries.
+    If you keep deliberate defensive entries - a tag listed against a guard
+    that cannot currently fire - add a _KNOWN_PHANTOMS mapping scoped
+    per-tag, mirroring _KNOWN_DELIBERATE_DROPS. Do not xfail the whole
+    pair: that would also silence a genuine phantom.
     """
     result = check_contract(
         inspect.getsource(parser_mod),
