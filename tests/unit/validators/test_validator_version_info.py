@@ -35,8 +35,9 @@ from typing import Any, Dict, List, Optional
 import pytest
 
 from iocx.reason_codes import ReasonCodes
-from iocx.validators.version_info import validate_version_info
+from iocx.validators.version_info import validate_version_info, _CHILD_ERROR_PRIORITY
 
+_HEADER = ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER
 
 # =================================================================
 # Input builders
@@ -137,6 +138,15 @@ def _placement_details(issues) -> List[Dict[str, Any]]:
         d for d in _details_for(issues, ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER)
         if d.get("sub_reason") == "placement"
     ]
+
+
+def _sub_reasons(issues):
+    return [d.get("sub_reason") for d in _details_for(issues, _HEADER)]
+
+
+def _run(vi, analysis=None):
+    return validate_version_info({"version_info_struct": vi},
+                                 analysis or _make_analysis())
 
 
 # =================================================================
@@ -593,6 +603,152 @@ class TestCombinedAnomalies:
         assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER in codes
         assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO in codes
         assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_VARFILEINFO in codes
+
+
+# =================================================================
+# Child dispatch
+# =================================================================
+
+class TestChildDispatch:
+
+    @pytest.mark.parametrize("tag", _CHILD_ERROR_PRIORITY)
+    def test_every_child_tag_emits(self, tag):
+        """
+        Regression guard: each of these previously produced NO issue at all,
+        because they are appended after decoded=True.
+        """
+        issues = _run(_make_vi(errors=[tag]))
+        assert _sub_reasons(issues) == [tag]
+
+    def test_details_carry_all_matching_tags(self):
+        """
+        unknown_child can repeat, and the count is the signal - a blob with
+        five unrecognised children is more suspicious than one.
+        """
+        issues = _run(_make_vi(errors=["unknown_child"] * 3))
+        details = _details_for(issues, _HEADER)
+        assert len(details) == 1
+        assert details[0]["errors"] == ["unknown_child"] * 3
+
+    def test_one_issue_per_blob(self):
+        issues = _run(_make_vi(errors=["unknown_child", "child_length_invalid"]))
+        assert len(_details_for(issues, _HEADER)) == 1
+
+    @pytest.mark.parametrize("errors,expected", [
+        (["unknown_child", "child_length_invalid"], "child_length_invalid"),
+        (["child_length_invalid", "unknown_child"], "child_length_invalid"),
+        (["unknown_child", "child_header_unpack"], "child_header_unpack"),
+        (["child_header_unpack", "child_length_invalid"], "child_header_unpack"),
+    ])
+    def test_walk_terminating_faults_win(self, errors, expected):
+        """
+        A fault that stopped the walk outranks one that did not: the
+        remaining children were never examined.
+        """
+        assert _sub_reasons(_run(_make_vi(errors=errors))) == [expected]
+
+    @pytest.mark.parametrize("higher,lower", list(
+        zip(_CHILD_ERROR_PRIORITY, _CHILD_ERROR_PRIORITY[1:])))
+    def test_priority_order_adjacent_pairs(self, higher, lower):
+        for errors in ([higher, lower], [lower, higher]):
+            assert _sub_reasons(_run(_make_vi(errors=errors))) == [higher]
+
+    def test_priority_list_content(self):
+        """
+        Order is a contract; a behavioural test cannot catch a reorder,
+        since _first_matching is definitionally consistent with whatever
+        order the list has.
+        """
+        assert _CHILD_ERROR_PRIORITY == [
+            "child_header_unpack",
+            "child_length_invalid",
+            "unknown_child",
+        ]
+
+    def test_clean_blob_emits_nothing(self):
+        assert _run(_make_vi()) == []
+
+    def test_unrelated_tags_ignored(self):
+        issues = _run(_make_vi(errors=["some_future_tag"]))
+        assert _codes(issues) == []
+
+    def test_ffi_tag_does_not_trigger_the_child_branch(self):
+        """
+        The two branches read the same list with different filters and must
+        not overlap: fixed_file_info_* belongs to the FFI branch alone.
+        """
+        issues = _run(_make_vi(errors=["fixed_file_info_truncated"],
+                               fixed_file_info=None))
+        assert _sub_reasons(issues) == []
+        assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO in _codes(issues)
+
+    def test_child_and_ffi_tags_both_reported(self):
+        issues = _run(_make_vi(
+            errors=["unknown_child", "fixed_file_info_truncated"],
+            fixed_file_info=None))
+        assert "unknown_child" in _sub_reasons(issues)
+        assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO in _codes(issues)
+
+    def test_child_details_exclude_non_child_tags(self):
+        issues = _run(_make_vi(
+            errors=["unknown_child", "fixed_file_info_truncated"],
+            fixed_file_info=None))
+        child = [d for d in _details_for(issues, _HEADER)
+                 if d.get("sub_reason") == "unknown_child"][0]
+        assert child["errors"] == ["unknown_child"]
+
+
+class TestChildDispatchInteraction:
+
+    def test_undecoded_short_circuits_the_child_branch(self):
+        """
+        When decoded is False the undecoded branch forwards the whole list
+        and returns, so the child branch must not also fire.
+        """
+        issues = _run(_make_vi(decoded=False,
+                               errors=["unknown_child", "too_short"]))
+        assert _sub_reasons(issues) == ["undecoded"]
+        assert _details_for(issues, _HEADER)[0]["errors"] == [
+            "unknown_child", "too_short"]
+
+    def test_child_branch_coexists_with_header_checks(self):
+        issues = _run(_make_vi(header_ok=False, length_consistent=False,
+                               errors=["unknown_child"]))
+        assert _sub_reasons(issues) == [
+            "szkey_mismatch", "length_inconsistent", "unknown_child"]
+
+    def test_child_branch_follows_placement(self):
+        """Emission order: placement, header checks, then child dispatch."""
+        issues = _run(_make_vi(rva=0x5000, errors=["unknown_child"]))
+        assert _sub_reasons(issues) == ["placement", "unknown_child"]
+
+    def test_child_branch_does_not_suppress_sfi_or_vfi(self):
+        issues = _run(_make_vi(
+            errors=["unknown_child"],
+            string_file_info=[{"tables": [], "errors": ["string_table_header"]}],
+            var_file_info=[{"vars": [], "errors": ["var_header"]}]))
+        codes = _codes(issues)
+        assert _HEADER in codes
+        assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO in codes
+        assert ReasonCodes.RESOURCE_VERSIONINFO_INVALID_VARFILEINFO in codes
+
+    def test_missing_errors_key_tolerated(self):
+        vi = _make_vi()
+        del vi["errors"]
+        assert _run(vi) == []
+
+    def test_no_reserved_reason_key(self):
+        issues = _run(_make_vi(errors=["unknown_child"]))
+        assert issues
+        assert all("reason" not in i["details"] for i in issues)
+
+    def test_deterministic(self):
+        import json
+        vi = _make_vi(errors=["unknown_child", "child_length_invalid"],
+                      header_ok=False)
+        first = json.dumps(_run(vi), sort_keys=True)
+        for _ in range(20):
+            assert json.dumps(_run(vi), sort_keys=True) == first
 
 
 # =================================================================

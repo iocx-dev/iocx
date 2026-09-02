@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 
 from iocx.parsers.pe_version_info import (
-    build_version_info,
+    build_version_info_structure,
     _align4,
     _decode_string_file_info,
     _decode_var_file_info,
@@ -126,17 +126,6 @@ def _build_var(key: str, translations: List[Tuple[int, int]]) -> bytes:
     header_and_key = struct.pack("<HHH", 0, len(payload), 0) + key_bytes
     header_and_key = _pad4(header_and_key)
     full = header_and_key + payload
-    full = _pad4(full)
-    return struct.pack("<H", len(full)) + full[2:]
-
-
-def build_var_file_info(vars: List[Tuple[str, List[Tuple[int, int]]]]) -> bytes:
-    """Build a VarFileInfo child containing the given Vars."""
-    key_bytes = _utf16_sz("VarFileInfo")
-    header_and_key = struct.pack("<HHH", 0, 0, 1) + key_bytes
-    header_and_key = _pad4(header_and_key)
-    body = b"".join(build_var(k, t) for k, t in vars)
-    full = header_and_key + body
     full = _pad4(full)
     return struct.pack("<H", len(full)) + full[2:]
 
@@ -824,18 +813,18 @@ class TestLocator:
 
 
 # =================================================================
-# build_version_info entry point tests
+# build_version_info_structure entry point tests
 # =================================================================
 
 class TestBuildVersionInfo:
     def test_returns_none_when_no_resource_directory_attr(self):
         # PE object lacking DIRECTORY_ENTRY_RESOURCE entirely
         pe = type("FakePE", (), {})()
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_returns_none_when_no_rt_version_leaf(self):
         pe = _FakePE(root_entries=[], raw_data_by_rva={})
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_full_roundtrip_with_valid_blob(self):
         ffi = _build_ffi()
@@ -852,7 +841,7 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["rva"] == 0x1000
         assert out["size"] == len(blob)
@@ -872,7 +861,7 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={}, raise_on_get_data=True)
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["decoded"] is False
         assert "read_failed" in out["errors"]
@@ -890,7 +879,7 @@ class TestBuildVersionInfo:
         ]
         # The locator filters out leaves without .data, so this should return None
         pe = _FakePE(root_entries, raw_data_by_rva={})
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_deterministic_leaf_selection_with_multiple_leaves(self):
         blob_a = _build_vs_versioninfo(
@@ -919,7 +908,7 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob_b, 0x2000: blob_a})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         # Sort by language id: 0x0409 < 0x0809, so leaf_b should win
         assert out["rva"] == 0x1000
         assert out["string_file_info"][0]["tables"][0]["strings"]["ProductName"] == "FromLeafB"
@@ -999,7 +988,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert self.REQUIRED_KEYS.issubset(out.keys())
 
     def test_string_file_info_is_list(self):
@@ -1012,7 +1001,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert isinstance(out["string_file_info"], list)
         assert isinstance(out["var_file_info"], list)
         assert isinstance(out["errors"], list)
@@ -1027,7 +1016,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out["errors"] == []
 
 
@@ -1073,7 +1062,7 @@ class TestDefensiveCodePaths:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["decoded"] is False
         assert out["rva"] is None

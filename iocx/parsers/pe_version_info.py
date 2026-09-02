@@ -30,7 +30,7 @@ _VS_FFI_SIGNATURE = 0xFEEF04BD
 _VS_FFI_STRUCT_VERSION = 0x00010000
 
 
-def build_version_info(pe) -> Optional[Dict[str, Any]]:
+def build_version_info_structure(pe) -> Optional[Dict[str, Any]]:
     """
     Locate and decode the first RT_VERSION leaf in the resource tree.
 

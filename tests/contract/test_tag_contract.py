@@ -22,10 +22,10 @@ from tag_contract import check_contract
 
 from iocx.parsers import (pe_imports, pe_relocations, pe_tls, pe_debug,
                           pe_exports, pe_delay_imports, pe_certificates, pe_exception,
-                          pe_resources)
+                          pe_resources, pe_version_info)
 from iocx.validators import (imports, relocations, tls, debug,
                              exports, delay_imports, signature, exception_table,
-                             resources)
+                             resources, version_info)
 
 _PAIRS = [
     # (label, parser module, validator module, template_vars)
@@ -46,6 +46,7 @@ _PAIRS = [
     ("pe_certificates",    pe_certificates,    signature,            {}),
     ("pe_exception",       pe_exception,       exception_table,      {}),
     ("pe_resources",       pe_resources,       resources,            {}),
+    ("pe_version_info",    pe_version_info,    version_info,         {}),
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.

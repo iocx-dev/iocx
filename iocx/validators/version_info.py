@@ -8,9 +8,30 @@ Absence of RT_VERSION is NOT a structural defect — kernel drivers, MSI
 custom-action DLLs and many cross-compiled binaries legitimately omit it.
 We only emit structural codes when an RT_VERSION resource is present and
 malformed.
+
+Parser tombstone tags and where each is consumed
+------------------------------------------------
+The parser records faults in several lists at different levels, and the
+level determines which branch here reads them:
+
+  decoded is False -> the whole top-level `errors` list is forwarded by the
+      "undecoded" branch:  leaf_struct_unpack, read_failed, too_short,
+      header_unpack.
+
+  decoded is True  -> the "undecoded" branch is skipped, so tags appended to
+      the top-level list AFTER that point need their own consumers:
+        * fixed_file_info_unpack / fixed_file_info_truncated, read by the
+          FFI parse_failed branch via its startswith filter;
+        * child_header_unpack / child_length_invalid / unknown_child, read
+          by the child-dispatch branch below. Without it a blob carrying an
+          unrecognised child, or a child whose wLength runs past the
+          envelope, reports entirely clean.
+
+  per-item lists   -> string_file_info[].errors, its tables[].errors, and
+      var_file_info[].errors are each forwarded wholesale by their loops.
 """
 
-from typing import List
+from typing import Any, Dict, List
 
 from iocx.reason_codes import ReasonCodes
 from iocx.validators.schema import StructuralIssue
@@ -19,8 +40,21 @@ from iocx.schemas.analysis import AnalysisDict
 from .decorators import depends_on
 
 
+# Child-dispatch faults, priority-resolved. The first two each `break` the
+# parser's walk, so at most one of them occurs and never both; the third
+# does not break and may repeat. A walk-terminating fault is the more
+# fundamental fact - it means the remaining children were never examined -
+# so both precede unknown_child.
+_CHILD_ERROR_PRIORITY = [
+    "child_header_unpack",
+    "child_length_invalid",
+    "unknown_child",
+]
+
+
 @depends_on("internal", "analysis")
-def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) -> List[StructuralIssue]:
+def validate_version_info(metadata: InternalMetadata,
+                          analysis: AnalysisDict) -> List[StructuralIssue]:
     issues: List[StructuralIssue] = []
 
     vi = metadata.get("version_info_struct")
@@ -64,16 +98,32 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
             details={"sub_reason": "length_inconsistent"},
         ))
 
+    # ---- Child dispatch ----
+    # These tags are appended to the top-level errors list AFTER `decoded`
+    # is set, so the undecoded branch above has already been skipped and no
+    # other branch reads them. Priority-resolved to one issue per blob; the
+    # full matching set is carried in details, since unknown_child can
+    # repeat and its count is the signal.
+    vi_errors = vi.get("errors") or []
+    child_reason = _first_matching(vi_errors, _CHILD_ERROR_PRIORITY)
+    if child_reason != "unknown":
+        issues.append(StructuralIssue(
+            issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_HEADER,
+            details={"sub_reason": child_reason,
+                     "errors": [e for e in vi_errors
+                                if e in _CHILD_ERROR_PRIORITY]},
+        ))
+
     # ---- VS_FIXEDFILEINFO ----
     ffi = vi.get("fixed_file_info")
     if ffi is None:
         # Only flag if there were parse errors; some binaries legitimately
         # omit VS_FIXEDFILEINFO with wValueLength == 0.
-        if any(e.startswith("fixed_file_info") for e in vi.get("errors", [])):
+        if any(e.startswith("fixed_file_info") for e in vi_errors):
             issues.append(StructuralIssue(
                 issue=ReasonCodes.RESOURCE_VERSIONINFO_INVALID_FIXEDINFO,
                 details={"sub_reason": "parse_failed",
-                         "errors": [e for e in vi["errors"]
+                         "errors": [e for e in vi_errors
                                     if e.startswith("fixed_file_info")]},
             ))
     else:
@@ -117,3 +167,11 @@ def validate_version_info(metadata: InternalMetadata, analysis: AnalysisDict) ->
             ))
 
     return issues
+
+
+def _first_matching(errors: List[str], candidates: List[str]) -> str:
+    """Return the first tag from `candidates` present in `errors`."""
+    for c in candidates:
+        if c in errors:
+            return c
+    return "unknown"

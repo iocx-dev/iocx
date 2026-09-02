@@ -300,6 +300,9 @@ Details carry `declared_size` and `decoded_entries`; their difference is the los
 | undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks |
 | szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
 | length_inconsistent | `wLength` disagrees with the buffer size |
+| child_header_unpack | A child's 6-byte header could not be unpacked; the child walk stopped there |
+| child_length_invalid | A child's wLength was below the 6-byte minimum or ran past the envelope; the walk stopped |
+| unknown_child | A child whose szKey is neither StringFileInfo nor VarFileInfo. Does not stop the walk, so it may repeat — `errors` carries every occurrence |
 
 ### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
 

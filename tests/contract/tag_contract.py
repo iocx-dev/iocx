@@ -35,10 +35,11 @@ class ValidatorConsumption:
     matched: Set[str] = field(default_factory=set)
     iterated_sinks: Set[str] = field(default_factory=set)
     forwarded_sinks: Set[str] = field(default_factory=set)
+    item_forwarded_sinks: Set[str] = field(default_factory=set)
 
     @property
     def wholesale_sinks(self) -> Set[str]:
-        return self.iterated_sinks | self.forwarded_sinks
+        return (self.iterated_sinks | self.forwarded_sinks | self.item_forwarded_sinks)
 
 
 @dataclass
@@ -224,6 +225,37 @@ def _forwarded_sinks_in_dict(node):
     return found
 
 
+def _item_forwarded_sinks(tree: ast.AST) -> Set[str]:
+    """
+    Sinks forwarded wholesale from a LOOP VARIABLE, e.g.
+
+        for sfi in vi.get("string_file_info", []):
+            emit(details={"errors": sfi["errors"]})
+
+    That copies a PER-ITEM list in full, so its tags cannot drop - distinct
+    from `details={"errors": list(imp["errors"])}`, which forwards the
+    struct's own top-level list. Only the loop-variable reference tells the
+    two apart.
+    """
+    found: Set[str] = set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.For) and isinstance(node.target, ast.Name)):
+            continue
+        loop_var = node.target.id
+        for sub in ast.walk(node):
+            if not isinstance(sub, ast.Dict):
+                continue
+            for k, v in zip(sub.keys, sub.values):
+                if not (isinstance(k, ast.Constant) and k.value in _ALL_SINKS):
+                    continue
+                if isinstance(v, ast.List):
+                    continue          # literal payload, not a forward
+                if any(isinstance(x, ast.Name) and x.id == loop_var
+                       for x in ast.walk(v)):
+                    found.add(k.value)
+    return found
+
+
 def extract_validator_consumption(source) -> ValidatorConsumption:
     tree = ast.parse(source)
     out = ValidatorConsumption()
@@ -246,6 +278,8 @@ def extract_validator_consumption(source) -> ValidatorConsumption:
                 out.iterated_sinks.add(sink)
         if isinstance(node, ast.Dict):
             out.forwarded_sinks |= _forwarded_sinks_in_dict(node)
+
+    out.item_forwarded_sinks = _item_forwarded_sinks(tree)
     return out
 
 
@@ -260,6 +294,8 @@ def check_contract(parser_source, validator_source, parser_name="parser",
         unchecked |= tags.top_errors
     if _ERROR_SINKS & consumption.iterated_sinks:
         unchecked |= tags.errors
+    if _ERROR_SINKS & consumption.item_forwarded_sinks:
+        unchecked |= tags.item_errors
     checkable = (tags.errors | tags.truncations) - unchecked
     return ContractResult(
         parser=parser_name, validator=validator_name,
