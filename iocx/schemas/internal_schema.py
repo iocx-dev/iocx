@@ -21,6 +21,7 @@ class ResourceDirectoryNode(TypedDict):
     rva: int
     size: int
     entries: List[ResourceEntry]
+    errors: List[str]
 
 
 class ResourceStringTable(TypedDict):

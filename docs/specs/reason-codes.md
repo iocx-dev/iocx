@@ -267,6 +267,19 @@ parser returns `callbacks = []` in both cases.
 | **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource directory entry points to a **subdirectory** whose RVA lies outside the `.rsrc` section. Out-of-bounds *data* entries are reported as `RESOURCE_DATA_OUT_OF_BOUNDS`, not here. The target's own size is not considered at this point — a subdirectory that starts inside `.rsrc` but overflows the end is caught by `RESOURCE_DIRECTORY_OUT_OF_BOUNDS` when it is descended into | Type directory entry points to a Name directory at RVA `0x80000000` | Per‑file |
 | **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
 | **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | A resource data blob spans the overlay start, or its raw or virtual extent intersects a section other than `.rsrc`. Blob-versus-blob comparison is **not** performed | Data at raw `0x2000–0x2400` intersects `.text` raw range | Per-file *(one issue per check; the raw-overlap and VA-overlap loops each stop at the first intersecting section, so a blob crossing several sections reports once per check, not once per section)* |
+ **RESOURCE_DIRECTORY_ENTRY_UNREADABLE** | A directory's entry list, or one entry within it, could not be decoded. The entry is skipped rather than aborting the walk, so the directory reports fewer entries than its declared size implies | An entry that is neither a subdirectory nor a data leaf | Per‑directory *(priority-resolved sub-reason)* |
+
+#### RESOURCE_DIRECTORY_ENTRY_UNREADABLE
+
+Priority‑resolved; an unreadable entry *list* subsumes any per-entry failure,
+since no entry was reached at all:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| directory_entries_unavailable | The directory's `.entries` was missing or raised; no entry was decoded |
+| entry_decode_failed | One or more individual entries were unreadable and skipped; `failed_entry_count` gives the total |
+
+Details carry `declared_size` and `decoded_entries`; their difference is the loss, and neither conveys it alone.
 
 ### Resource Version‑Info Anomalies
 
@@ -306,6 +319,12 @@ tags are passed through verbatim in an `errors` list.
 |------------|------------------|-----------------|--------|
 | **RESOURCE_STRING_TABLE_CORRUPT** | String table length, offsets, or UTF‑16 entries are malformed or out of bounds | String count = 32 but table only contains 10 entries | Per‑file |
 | **RESOURCE_STRING_TABLE_UNREADABLE** | The RT_STRING traversal raised before completing, so the string-table list is empty or partial and its absence carries no meaning | Malformed Name or Language directory beneath RT_STRING | Per‑file |
+
+#### RESOURCE_STRING_TABLE_UNREADABLE
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| walk_failed | The RT_STRING walk raised; `string_tables` may be empty or partial. Distinct from a binary that genuinely carries no string resources, which produces no issue at all |
 
 ---
 

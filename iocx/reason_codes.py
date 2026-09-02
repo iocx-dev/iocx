@@ -105,6 +105,7 @@ class ReasonCodes:
     RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
     RESOURCE_DIRECTORY_ZERO_LENGTH = "resource_directory_zero_length"
     RESOURCE_DIRECTORY_LANGUAGE_NOT_ID = "resource_directory_language_not_id"
+    RESOURCE_DIRECTORY_ENTRY_UNREADABLE = "resource_directory_entry_unreadable"
 
     # --- Resource data anomalies ---
     RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"

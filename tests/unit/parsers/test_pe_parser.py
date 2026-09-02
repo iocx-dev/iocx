@@ -1,11 +1,13 @@
 # Copyright (c) 2026 MalX Labs and contributors
 # SPDX-License-Identifier: MPL-2.0
 
-import pytest
+import pytest, pefile
 from types import SimpleNamespace
+from typing import Dict, Any, Optional, List
 
 from iocx.parsers.pe_parser import parse_pe, _walk_resources, analyse_pe_sections, _parse_data_directories, _parse_data_directories_raw
 from iocx.parsers.string_extractor import extract_strings_from_bytes
+from iocx.parsers.pe_resources import build_resource_structure
 
 
 # ------------------------------------------------------------
@@ -83,6 +85,28 @@ def patch_pefile(monkeypatch):
     import pefile
     monkeypatch.setattr(pefile, "PE", fake_loader)
     yield
+
+
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
+
+def _walk(node: Dict[str, Any], acc: Optional[List] = None) -> List[Dict[str, Any]]:
+    """Every directory node in the tree, root first."""
+    acc = acc if acc is not None else []
+    acc.append(node)
+    for e in node["entries"]:
+        if e["directory"] is not None:
+            _walk(e["directory"], acc)
+    return acc
+
+
+def _data_leaves(root: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return [e for d in _walk(root) for e in d["entries"] if not e["is_directory"]]
+
+
+def _all_directory_errors(root: Dict[str, Any]) -> List:
+    return [tag for d in _walk(root) for tag in d["errors"]]
 
 
 # ------------------------------------------------------------
@@ -202,7 +226,6 @@ def test_parse_pe_large_resource(monkeypatch):
 
 
 def test_parse_pe_handles_peformaterror(monkeypatch):
-    import pefile
     # Override the autouse patch for this test only
     def raise_peformaterror(path, fast_load=True):
         raise pefile.PEFormatError("bad file")
@@ -472,17 +495,46 @@ class TestGuardedRvaToOffset:
         assert leaf["data_rva"] == 0x1100
         assert leaf["data_size"] == 100
 
-    def test_non_caught_exception_propagates(self):
+    @pytest.mark.parametrize("exc", [
+        pefile.PEFormatError("unmapped rva"),
+        AttributeError("no such attribute"),
+    ])
+    def test_caught_types_yield_sentinel_and_keep_the_entry(self, exc):
         """
-        Sanity check that the except clause is narrow — a RuntimeError
-        (not in the tuple) should still propagate. This protects against
-        someone widening the except to `Exception` without thinking.
+        Assertions walk the tree rather than indexing root["entries"]the helper nests the leaf under Type -> Name -> Language, so the
+        root's first entry is a directory, not the data leaf.
         """
-        import pytest as _pytest
-        from iocx.parsers.pe_resources import build_resource_structure
+        pe = self._make_pe_with_data_leaf_raising(exc)
+        out = build_resource_structure(pe)
+        leaves = _data_leaves(out["root"])
+        assert len(leaves) == 1
+        assert leaves[0]["raw_offset"] == -1
+        assert _all_directory_errors(out["root"]) == []
 
-        pe = self._make_pe_with_data_leaf_raising(
-            RuntimeError("not a caught exception type")
-        )
-        with _pytest.raises(RuntimeError):
-            build_resource_structure(pe)
+    def test_uncaught_type_falls_through_to_the_per_entry_guard(self):
+        """
+        The inner except is narrow: a RuntimeError is NOT handled there, so
+        it reaches the per-entry guard and the leaf is dropped from its
+        containing directory.
+
+        Widening the inner except to `Exception` would keep the leaf with
+        raw_offset = -1 instead. Before the never-raises patch this was
+        asserted as propagation; the per-entry guard now catches everything,
+        so the observable difference moved from "does it raise" to "is the
+        entry kept".
+        """
+        pe = self._make_pe_with_data_leaf_raising(RuntimeError("not caught"))
+        out = build_resource_structure(pe)
+        assert _data_leaves(out["root"]) == []
+        assert _all_directory_errors(out["root"]) == ["entry_decode_failed"]
+
+    def test_declared_size_survives_the_drop(self):
+        """
+        The containing directory still reports the size its header implies,
+        so the gap between `size` and len(entries) remains interpretable.
+        """
+        pe = self._make_pe_with_data_leaf_raising(RuntimeError("not caught"))
+        out = build_resource_structure(pe)
+        dropped = [d for d in _walk(out["root"]) if d["errors"]][0]
+        assert dropped["size"] == 24
+        assert dropped["entries"] == []

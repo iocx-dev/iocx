@@ -8,7 +8,8 @@ Layer note: @depends_on("internal", "analysis"), TWO positional arguments.
 The resource tree comes from internal["resources_struct"]; sections, file_size
 and overlay_offset from analysis. Note the validator reads those three with
 DIRECT SUBSCRIPTS (`analysis["sections"]`), so a missing key raises KeyError
-rather than degrading - pinned below.
+rather than degrading - pinned below. Errors on a node drives
+RESOURCE_DIRECTORY_ENTRY_UNREADABLE.
 
 Fixture note: a data leaf is only well-formed at depth 2 (the Language layer).
 Any leaf hung directly off the root is at depth 0 and therefore ALSO trips
@@ -26,7 +27,7 @@ from typing import Any, Dict, List, Optional
 
 import pytest
 
-from iocx.validators.resources import validate_resources
+from iocx.validators.resources import validate_resources, _DIRECTORY_ERROR_PRIORITY
 from iocx.reason_codes import ReasonCodes
 
 
@@ -37,6 +38,10 @@ RSRC_RAW = 0x400
 RSRC_RAW_SIZE = 0x2000
 FILE_SIZE = 0x10000
 OVERLAY = 0xF000
+
+UNREADABLE = ReasonCodes.RESOURCE_DIRECTORY_ENTRY_UNREADABLE
+UNREADABLE_ST = ReasonCodes.RESOURCE_STRING_TABLE_UNREADABLE
+CORRUPT_ST = ReasonCodes.RESOURCE_STRING_TABLE_CORRUPT
 
 
 # =================================================================
@@ -71,9 +76,10 @@ def _leaf(data_rva: Any = 0x1100, data_size: Any = 0x50,
 
 
 def _node(rva: int, size: int = 24,
-          entries: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+          entries: Optional[List[Dict[str, Any]]] = None,
+          errors: Optional[List[str]] = None) -> Dict[str, Any]:
     """A directory NODE (the thing `directory` points at)."""
-    return {"rva": rva, "size": size, "entries": entries or []}
+    return {"rva": rva, "size": size, "entries": entries or [], "errors": errors or []}
 
 
 def _subdir(target: Dict[str, Any], name: Any = None,
@@ -85,13 +91,13 @@ def _subdir(target: Dict[str, Any], name: Any = None,
 
 
 def _tree(leaves: List[Dict[str, Any]],
-          lang_rva: int = 0x1080) -> Dict[str, Any]:
+          lang_rva: int = 0x1080, lang_errors: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     A correctly-shaped Type -> Name -> Language tree whose Language directory
     (depth 2) holds `leaves`. Lets data-entry checks be tested without also
     tripping RESOURCE_DATA_AT_INVALID_DEPTH.
     """
-    lang = _node(lang_rva, 24, leaves)
+    lang = _node(lang_rva, 24, leaves, errors=lang_errors)
     name = _node(0x1040, 24, [_subdir(lang)])
     return _node(0x1000, 24, [_subdir(name)])
 
@@ -108,12 +114,64 @@ def _run(root: Dict[str, Any],
                               analysis or _analysis())
 
 
+def _run_struct(root: Dict[str, Any],
+    errors: Optional[List[str]] = None,
+    string_tables: Optional[List[Dict[str, Any]]] = None,
+    analysis: Optional[Dict[str, Any]] = None):
+    """
+    _run for tests needing a struct-level `errors` list - the sink
+    `string_table_walk_failed` lands in, distinct from a directory node's
+    own errors.
+    """
+    resources = {"root": root, "errors": errors or []}
+    if string_tables is not None:
+        resources["string_tables"] = string_tables
+    return _run(root, analysis, resources=resources)
+
+
 def make_issue_list(result) -> List[str]:
     return [i["issue"] for i in result]
 
 
 def _details_for(issues, code) -> List[Dict[str, Any]]:
     return [i["details"] for i in issues if i["issue"] == code]
+
+
+def _directory(entries: Optional[List[Dict[str, Any]]] = None,
+               rva: int = 0x1000, size: Optional[int] = None,
+               errors: Optional[List[str]] = None) -> Dict[str, Any]:
+    entries = entries or []
+    return {"rva": rva, "size": size if size is not None else 16 + 8 * len(entries),
+            "entries": entries, "errors": errors or []}
+
+
+def _dir_entry(directory: Dict[str, Any], entry_id: Optional[int] = 1,
+               name: Optional[str] = None) -> Dict[str, Any]:
+    return {"name": name, "id": entry_id, "is_directory": True,
+            "directory": directory, "data_rva": None, "data_size": None,
+            "raw_offset": None}
+
+
+def _data_entry(data_rva: int = 0x1100, data_size: int = 0x40,
+                raw_offset: int = 0x500, entry_id: Optional[int] = 0x409,
+                name: Optional[str] = None) -> Dict[str, Any]:
+    return {"name": name, "id": entry_id, "is_directory": False,
+            "directory": None, "data_rva": data_rva, "data_size": data_size,
+            "raw_offset": raw_offset}
+
+
+def _internal(root: Optional[Dict[str, Any]] = None,
+              string_tables: Optional[List[Dict[str, Any]]] = None,
+              errors: Optional[List[str]] = None) -> Dict[str, Any]:
+    return {"resources_struct": {
+        "root": root if root is not None else _directory(),
+        "string_tables": string_tables or [],
+        "errors": errors or [],
+    }}
+
+
+def _codes(issues) -> List[str]:
+    return [i["issue"] for i in issues]
 
 
 # =================================================================
@@ -269,6 +327,145 @@ class TestDirectoryChecks:
         ])
         assert _run(root) == []
 
+
+class TestDirectoryEntryUnreadable:
+    """
+    The parser skips an entry it cannot decode rather than aborting. Without
+    these checks the skip is invisible: the directory reports fewer entries
+    than its declared size implies and nothing says why.
+    """
+
+    def test_entry_decode_failed_emits(self):
+        issues = _run(_node(0x1000, 24, [], errors=["entry_decode_failed"]))
+        assert make_issue_list(issues) == [UNREADABLE]
+
+    def test_directory_entries_unavailable_emits(self):
+        issues = _run(_node(0x1000, 16, [],
+                            errors=["directory_entries_unavailable"]))
+        assert make_issue_list(issues) == [UNREADABLE]
+
+    def test_details_expose_the_declared_decoded_gap(self):
+        """
+        `size` reflects the DECLARED entry count and `decoded_entries` the
+        number actually built, so their difference is the loss. Neither alone
+        conveys it.
+        """
+        issues = _run(_node(0x1000, 32, [], errors=["entry_decode_failed"]))
+        assert _details_for(issues, UNREADABLE)[0] == {
+            "rva": 0x1000, "depth": 0, "sub_reason": "entry_decode_failed",
+            "failed_entry_count": 1, "declared_size": 32,
+            "decoded_entries": 0}
+
+    def test_failed_entry_count_counts_repeats(self):
+        issues = _run(_node(0x1000, 40, [],
+                            errors=["entry_decode_failed"] * 3))
+        assert _details_for(issues, UNREADABLE)[0]["failed_entry_count"] == 3
+
+    def test_one_issue_per_directory(self):
+        """Priority-resolved: several tags still produce a single issue."""
+        issues = _run(_node(0x1000, 16, [],
+                            errors=["entry_decode_failed",
+                                    "directory_entries_unavailable"]))
+        assert len(_details_for(issues, UNREADABLE)) == 1
+
+    def test_priority_unavailable_beats_decode_failed(self):
+        """
+        An unreadable entry LIST subsumes any per-entry failure - no entry
+        was reached at all.
+        """
+        issues = _run(_node(0x1000, 16, [],
+                            errors=["entry_decode_failed",
+                                    "directory_entries_unavailable"]))
+        assert _details_for(issues, UNREADABLE)[0]["sub_reason"] == (
+            "directory_entries_unavailable")
+
+    @pytest.mark.parametrize("higher,lower", list(
+        zip(_DIRECTORY_ERROR_PRIORITY, _DIRECTORY_ERROR_PRIORITY[1:])))
+    def test_priority_order_adjacent_pairs(self, higher, lower):
+        """
+        Adjacent pairs in both presentation orders. Pairing distant tags
+        would only prove that some ordering exists.
+        """
+        for errors in ([higher, lower], [lower, higher]):
+            issues = _run(_node(0x1000, 16, [], errors=errors))
+            assert _details_for(issues, UNREADABLE)[0]["sub_reason"] == higher
+
+    def test_priority_list_content(self):
+        """
+        Order is a contract, and a behavioural test cannot catch a reorder:
+        _first_matching is definitionally consistent with whatever order the
+        list happens to have, so fixtures derived from it move with it.
+        """
+        assert _DIRECTORY_ERROR_PRIORITY == [
+            "directory_entries_unavailable",
+            "entry_decode_failed",
+        ]
+
+    def test_unknown_tag_is_ignored(self):
+        assert _run(_node(0x1000, 24, [], errors=["some_future_tag"])) == []
+
+    def test_missing_errors_key_tolerated(self):
+        """A struct predating the schema change must not raise."""
+        node = _node(0x1000, 24, [])
+        del node["errors"]
+        assert _run(node) == []
+
+    def test_nested_directory_errors_reported_at_depth(self):
+        root = _tree([_leaf()], lang_errors=["entry_decode_failed"])
+        details = _details_for(_run(root), UNREADABLE)[0]
+        assert details["depth"] == 2
+        assert details["rva"] == 0x1080
+
+    def test_each_failing_directory_reports_separately(self):
+        lang = _node(0x1080, 24, [_leaf()], errors=["entry_decode_failed"])
+        name = _node(0x1040, 24, [_subdir(lang)],
+                     errors=["entry_decode_failed"])
+        root = _node(0x1000, 24, [_subdir(name)])
+        assert [d["depth"] for d in _details_for(_run(root), UNREADABLE)] == [
+            1, 2]
+
+
+class TestDirectoryErrorSuppression:
+    """
+    The errors report sits after the placement and loop checks, so a
+    directory the validator declines to process does not also report its
+    contents.
+    """
+
+    def test_out_of_bounds_directory_does_not_report_errors(self):
+        issues = _run(_node(0x9999, 16, [], errors=["entry_decode_failed"]))
+        assert make_issue_list(issues) == [
+            ReasonCodes.RESOURCE_DIRECTORY_OUT_OF_BOUNDS]
+
+    def test_looping_directory_does_not_report_errors_twice(self):
+        """
+        A directory reached twice reports the loop on the second visit, not
+        a duplicate decode failure.
+        """
+        shared = _node(0x1080, 24, [], errors=["entry_decode_failed"])
+        root = _node(0x1000, 24, [_subdir(shared), _subdir(shared)])
+        issues = _run(root)
+        assert len(_details_for(issues, UNREADABLE)) == 1
+        assert ReasonCodes.RESOURCE_DIRECTORY_LOOP in make_issue_list(issues)
+
+    def test_errors_do_not_suppress_the_entry_walk(self):
+        """
+        A directory with a decode failure still has its SURVIVING entries
+        validated - the tag reports what was lost, not a reason to stop.
+        """
+        root = _tree([_leaf(0x9999, 0x50)],
+                     lang_errors=["entry_decode_failed"])
+        codes = make_issue_list(_run(root))
+        assert UNREADABLE in codes
+        assert ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS in codes
+
+    def test_directory_errors_precede_entry_findings(self):
+        """Emission order: the directory's own fault before its contents'."""
+        root = _tree([_leaf(0x9999, 0x50)],
+                     lang_errors=["entry_decode_failed"])
+        codes = make_issue_list(_run(root))
+        assert codes.index(UNREADABLE) < codes.index(
+            ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS)
 
 
 # =================================================================
@@ -636,6 +833,89 @@ class TestStringTables:
             ReasonCodes.RESOURCE_STRING_TABLE_CORRUPT]
 
 
+class TestStringTableUnreadable:
+
+    def test_walk_failure_emits(self):
+        """
+        Regression guard: without the membership test the tag is dropped and
+        a malformed RT_STRING subtree reports clean.
+        """
+        issues = _run_struct(_node(0x1000, 24, []),
+                             errors=["string_table_walk_failed"])
+        assert make_issue_list(issues) == [UNREADABLE_ST]
+
+    def test_details_carry_the_collected_count(self):
+        """
+        A non-empty list is not proof the walk finished, so the count is
+        reported alongside the failure.
+        """
+        issues = _run_struct(_node(0x1000, 24, []),
+                             errors=["string_table_walk_failed"],
+                             string_tables=[{"rva": 0x1100, "size": 0x40}])
+        assert _details_for(issues, UNREADABLE_ST)[0] == {
+            "sub_reason": "walk_failed", "collected_tables": 1}
+
+    def test_clean_errors_emit_nothing(self):
+        assert _run_struct(_node(0x1000, 24, [])) == []
+
+    def test_empty_string_tables_without_the_tag_is_silent(self):
+        """
+        The distinction the tag exists for: a binary with no string
+        resources must stay silent.
+        """
+        assert _run_struct(_node(0x1000, 24, []), string_tables=[]) == []
+
+    def test_unrelated_tag_does_not_emit(self):
+        assert _run_struct(_node(0x1000, 24, []),
+                           errors=["some_other_tag"]) == []
+
+    def test_missing_struct_errors_key_tolerated(self):
+        """`resources.get("errors") or []` - unlike the analysis keys."""
+        assert _run(_node(0x1000, 24, [])) == []
+
+
+class TestStringTableIndependence:
+    """
+    UNREADABLE (could not enumerate) and CORRUPT (a table is misplaced) are
+    different facts and must co-fire on a partial walk.
+    """
+
+    def test_both_fire_together(self):
+        issues = _run_struct(_node(0x1000, 24, []),
+                             errors=["string_table_walk_failed"],
+                             string_tables=[{"rva": 0x9999, "size": 0x40}])
+        assert set(make_issue_list(issues)) == {UNREADABLE_ST, CORRUPT_ST}
+
+    def test_unreadable_does_not_return_early(self):
+        """
+        The tag check must not suppress the table bounds loop. Note the
+        in-bounds fixture here would pass either way; test_both_fire_together
+        above is what actually catches an early return.
+        """
+        issues = _run_struct(_node(0x1000, 24, []),
+                             errors=["string_table_walk_failed"],
+                             string_tables=[{"rva": 0x1100, "size": 0x40}])
+        assert make_issue_list(issues) == [UNREADABLE_ST]
+
+    def test_unreadable_emitted_before_corrupt(self):
+        issues = _run_struct(_node(0x1000, 24, []),
+                             errors=["string_table_walk_failed"],
+                             string_tables=[{"rva": 0x9999, "size": 0x40}])
+        assert make_issue_list(issues)[0] == UNREADABLE_ST
+
+    def test_corrupt_alone_without_walk_failure(self):
+        issues = _run(_node(0x1000, 24, []),
+                      string_tables=[{"rva": 0x9999, "size": 0x40}])
+        assert make_issue_list(issues) == [CORRUPT_ST]
+
+    def test_corrupt_breaks_after_the_first(self):
+        """One issue per file, not per table."""
+        issues = _run(_node(0x1000, 24, []),
+                      string_tables=[{"rva": 0x9999, "size": 0x40},
+                                     {"rva": 0x8888, "size": 0x40}])
+        assert len(_details_for(issues, CORRUPT_ST)) == 1
+
+
 # =================================================================
 # Output contract
 # =================================================================
@@ -737,3 +1017,13 @@ class TestDeterminism:
         rvas = [d["data_rva"] for d in _details_for(
             issues, ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS)]
         assert rvas == [0x9991, 0x9992]
+
+    def test_directory_errors_precede_entry_findings(self):
+        lang = _node(0x1080, 24, [_leaf(0x9999, 0x50)])
+        lang["errors"] = ["entry_decode_failed"]
+        name = _node(0x1040, 24, [_subdir(lang)])
+        root = _node(0x1000, 24, [_subdir(name)])
+        codes = make_issue_list(_run(root))
+        assert codes.index(
+            ReasonCodes.RESOURCE_DIRECTORY_ENTRY_UNREADABLE) < codes.index(
+            ReasonCodes.RESOURCE_DATA_OUT_OF_BOUNDS)

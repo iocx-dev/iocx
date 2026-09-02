@@ -37,15 +37,15 @@ _PAIRS = [
     # "int" - OriginalFirstThunk present (normal)
     # "iat_fallback" - OriginalFirstThunk zero, fell back to FirstThunk
     # Both must be listed, or those eight tags are silently unchecked.
-    ("pe_imports", pe_imports, imports, {"tag": ["int", "iat_fallback"]}),
-    ("pe_relocations",   pe_relocations,   relocations,   {}),
-    ("pe_tls",           pe_tls,           tls,           {}),
-    ("pe_debug",         pe_debug,         debug,         {}),
-    ("pe_exports",       pe_exports, exports, {"tag": ["eat", "enpt", "eot"]}),
-    ("pe_delay_imports", pe_delay_imports, delay_imports, {"tag": ["int", "iat"]}),
-    ("pe_certificates",  pe_certificates,  signature,      {}),
-    ("pe_exception",     pe_exception,     exception_table,      {}),
-    ("pe_resources",     pe_resources,     resources,      {}),
+    ("pe_imports",         pe_imports,         imports,              {"tag": ["int", "iat_fallback"]}),
+    ("pe_relocations",     pe_relocations,     relocations,          {}),
+    ("pe_tls",             pe_tls,             tls,                  {}),
+    ("pe_debug",           pe_debug,           debug,                {}),
+    ("pe_exports",         pe_exports,         exports,              {"tag": ["eat", "enpt", "eot"]}),
+    ("pe_delay_imports",   pe_delay_imports,   delay_imports,        {"tag": ["int", "iat"]}),
+    ("pe_certificates",    pe_certificates,    signature,            {}),
+    ("pe_exception",       pe_exception,       exception_table,      {}),
+    ("pe_resources",       pe_resources,       resources,            {}),
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.
