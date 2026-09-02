@@ -3,10 +3,8 @@
 
 import pefile
 import math
-import base64
 import struct
 from .string_extractor import extract_strings_from_bytes
-from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any, Optional
 from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 from .pe_constants import (
@@ -225,8 +223,8 @@ def _parse_bound_imports(pe):
         dll_raw = getattr(entry, "name", None) or getattr(entry, "dll", None)
         dll = _decode_dll_name(dll_raw)
 
-        struct = getattr(entry, "struct", None)
-        ts = getattr(struct, "TimeDateStamp", 0) if struct else 0
+        entry_struct = getattr(entry, "struct", None)
+        ts = getattr(entry_struct, "TimeDateStamp", 0) if entry_struct else 0
 
         bound_imports.append({"dll": dll, "timestamp": ts})
 
@@ -315,14 +313,14 @@ def _parse_signatures(pe):
         return signatures
 
     for sec in pe.DIRECTORY_ENTRY_SECURITY:
-        struct = getattr(sec, "struct", None)
-        if not struct:
+        cert_struct = getattr(sec, "struct", None)
+        if not cert_struct:
             continue
 
         signatures.append(
             {
-                "address": getattr(struct, "VirtualAddress", 0),
-                "size": getattr(struct, "Size", 0),
+                "address": getattr(cert_struct, "VirtualAddress", 0),
+                "size": getattr(cert_struct, "Size", 0),
             }
         )
 
@@ -510,22 +508,33 @@ def _parse_data_directories_raw(pe) -> list[dict[str, int]]:
     if not opt:
         return dirs
 
-    # Raw file bytes
-    raw = pe.__data__
+    # Raw file bytes.
+    # `If not raw` also catches an empty buffer, whereas the other parsers
+    # use `is None`. `Not raw` is arguably better here since a zero-length
+    # file genuinely has no optional header.
+    raw = getattr(pe, "__data__", None)
+    if not raw:
+        return dirs
 
     # File offset of Optional Header
     opt_offset = opt.get_file_offset()
 
-    # For PE32, DataDirectory starts 96 bytes into Optional Header
-    # (Magic..LoaderFlags = 96 bytes)
-    DATA_DIR_OFFSET = 96
+    # DataDirectory offset within the optional header: 96 for PE32,
+    # 112 for PE32+. PE32+ widens ImageBase and the four stack/heap
+    # fields to QWORD (+20) and drops BaseOfData (-4).
+    magic = getattr(opt, "Magic", 0x10B)
+    data_dir_offset = 112 if magic == 0x20B else 96
 
     # Each entry is 8 bytes: (DWORD RVA, DWORD Size)
-    entry_offset = opt_offset + DATA_DIR_OFFSET
+    entry_offset = opt_offset + data_dir_offset
 
     for i in range(16):
-        rva = struct.unpack_from("<I", raw, entry_offset + i * 8)[0]
-        size = struct.unpack_from("<I", raw, entry_offset + i * 8 + 4)[0]
+        try:
+            rva, size = struct.unpack_from("<II", raw, entry_offset + i * 8)
+        except struct.error:
+            # Optional header truncated before all 16 entries. Return what
+            # was readable rather than aborting the whole parse.
+            break
 
         dirs.append({
             "index": i,
