@@ -386,6 +386,21 @@ def test_parse_data_directories_raw_no_optional_header():
     assert result == [] # early return path
 
 
+def test_analysis_sections_retain_placement_fields():
+    """
+    sanitize_sections strips raw_address and virtual_address for CLI
+    output. The analysis layer needs both - rva_graph, sections and
+    resources all key off them - so sanitisation must never be applied
+    on that path.
+    """
+    pe = FakePE()
+    sections = analyse_pe_sections(pe)
+    assert sections
+    for sec in sections:
+        assert "raw_address" in sec
+        assert "virtual_address" in sec
+
+
 # =================================================================
 # Defensive: guarded get_offset_from_rva
 # =================================================================
