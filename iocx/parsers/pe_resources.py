@@ -91,6 +91,7 @@ def build_resource_structure(pe) -> Dict[str, Any]:
 
     # Collect string table entries (RT_STRING = 6)
     string_tables = []
+    errors: List[str] = []
     try:
         RT_STRING = 6
         for type_entry in root_dir.entries:
@@ -107,9 +108,10 @@ def build_resource_structure(pe) -> Dict[str, Any]:
                                     }
                                 )
     except Exception: # pragma: no cover
-        pass
+        errors.append("string_table_walk_failed")
 
     return {
         "root": root,
         "string_tables": string_tables,
+        "errors": errors,
     }

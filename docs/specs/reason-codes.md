@@ -252,7 +252,7 @@ parser returns `callbacks = []` in both cases.
 |------------|------------------|-----------------|--------|
 | **RESOURCE_DIRECTORY_OUT_OF_BOUNDS** | A resource directory's `rva + size` does not lie wholly inside the `.rsrc` section. Two cases reach this: the **root** directory lies outside `.rsrc` (`depth` = 0), or a **subdirectory** starts inside `.rsrc` but its extent overflows the end (`depth` ≥ 1). A subdirectory lying wholly outside is reported by the parent as `RESOURCE_ENTRY_OUT_OF_BOUNDS` instead, so the two never double-count. `SizeOfImage` is not consulted — `.rsrc` bounds are authoritative here | Root directory RVA = `0x90000000` while `.rsrc` spans `0x1000–0x3000`; or a Name directory at `0x2FF8` with size 24 | Per‑directory |
 | **RESOURCE_DIRECTORY_LOOP** | Recursive directory traversal detects a cycle (malformed or malicious resource tree) | Directory A → B → A | Per‑file |
-| **RESOURCE_DIRECTORY_ZERO_LENGTH** | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
+| **RESOURCE_DIRECTORY_ZERO_LENGTH** (*reserved, not emitted*) | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
 
 ### Resource Hierarchy Anomalies
 | Reason Code |	What Triggers It | Example Pattern | Scope |
@@ -305,6 +305,7 @@ tags are passed through verbatim in an `errors` list.
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
 | **RESOURCE_STRING_TABLE_CORRUPT** | String table length, offsets, or UTF‑16 entries are malformed or out of bounds | String count = 32 but table only contains 10 entries | Per‑file |
+| **RESOURCE_STRING_TABLE_UNREADABLE** | The RT_STRING traversal raised before completing, so the string-table list is empty or partial and its absence carries no meaning | Malformed Name or Language directory beneath RT_STRING | Per‑file |
 
 ---
 

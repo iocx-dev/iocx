@@ -206,6 +206,16 @@ def validate_resources(metadata: InternalMetadata, analysis: AnalysisDict) -> Li
     # ---------------------------------------------------------
     # String table validation
     # ---------------------------------------------------------
+    # A walk failure and an absence of RT_STRING resources both leave
+    # string_tables empty, so the parser records the failure explicitly.
+    # Without this the two are indistinguishable and a malformed tree is
+    # reported as clean.
+    if "string_table_walk_failed" in (resources.get("errors") or []):
+        issues.append(StructuralIssue(
+            issue=ReasonCodes.RESOURCE_STRING_TABLE_UNREADABLE,
+            details={"sub_reason": "walk_failed"},
+        ))
+
     for st in resources.get("string_tables", []):
         rva = st["rva"]
         size = st["size"]

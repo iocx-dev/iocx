@@ -31,6 +31,7 @@ class ResourceStringTable(TypedDict):
 class ResourcesStruct(TypedDict):
     root: ResourceDirectoryNode
     string_tables: List[ResourceStringTable]
+    errors: List[str]
 
 
 # -------------------------

@@ -119,6 +119,7 @@ class ReasonCodes:
 
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
+    RESOURCE_STRING_TABLE_UNREADABLE = "resource_string_table_unreadable"
 
     # --- Load Config Directory structural issues ---
     LOAD_CONFIG_TOO_SMALL = "load_config_too_small"
