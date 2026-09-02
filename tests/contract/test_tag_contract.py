@@ -22,10 +22,10 @@ from tag_contract import check_contract
 
 from iocx.parsers import (pe_imports, pe_relocations, pe_tls, pe_debug,
                           pe_exports, pe_delay_imports, pe_certificates, pe_exception,
-                          pe_resources, pe_version_info)
+                          pe_resources, pe_version_info, pe_load_config, pe_optional_header)
 from iocx.validators import (imports, relocations, tls, debug,
                              exports, delay_imports, signature, exception_table,
-                             resources, version_info)
+                             resources, version_info, load_config_directory, optional_header)
 
 _PAIRS = [
     # (label, parser module, validator module, template_vars)
@@ -47,6 +47,17 @@ _PAIRS = [
     ("pe_exception",       pe_exception,       exception_table,      {}),
     ("pe_resources",       pe_resources,       resources,            {}),
     ("pe_version_info",    pe_version_info,    version_info,         {}),
+    ("pe_load_config",     pe_load_config,     load_config_directory,{}),
+    ("pe_optional_header", pe_optional_header, optional_header,      {}),
+
+    # Remaining:
+    # pe_load_config - analyse_load_config becomes part of analysis_dict.load_config which the load_config_directory validator keys off
+    # pe_optional_header = extract_optional_header_metadata is added to the end of internalMetadata. the optional_header validator only uses number_of_rva_and_sizes from this metadata
+    # pe_parser - builds a metadata structure of most, if not all directories for public CLI consumption
+    # This just leaves the validators without dedicated parsers:
+    # 1. entropy - keys off AnalysisDict
+    # 2. rva_graph - keys off PublicMetadata and AnalysisDict
+    # 3. sections - keys off PublicMetadata and AnalysisDict
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.
