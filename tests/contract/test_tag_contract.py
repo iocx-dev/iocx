@@ -47,17 +47,13 @@ _PAIRS = [
     ("pe_exception",       pe_exception,       exception_table,      {}),
     ("pe_resources",       pe_resources,       resources,            {}),
     ("pe_version_info",    pe_version_info,    version_info,         {}),
+    # pe_load_config + pe_optional_header: can slot into _PAIRS normally as the checker doesn't care that their output lands in analysis or metadata rather than internal, only how tags flow.
     ("pe_load_config",     pe_load_config,     load_config_directory,{}),
     ("pe_optional_header", pe_optional_header, optional_header,      {}),
-
-    # Remaining:
-    # pe_load_config - analyse_load_config becomes part of analysis_dict.load_config which the load_config_directory validator keys off
-    # pe_optional_header = extract_optional_header_metadata is added to the end of internalMetadata. the optional_header validator only uses number_of_rva_and_sizes from this metadata
-    # pe_parser - builds a metadata structure of most, if not all directories for public CLI consumption
-    # This just leaves the validators without dedicated parsers:
-    # 1. entropy - keys off AnalysisDict
-    # 2. rva_graph - keys off PublicMetadata and AnalysisDict
-    # 3. sections - keys off PublicMetadata and AnalysisDict
+    # Notes on the remaining:-
+    # pe_parser - has no validator, so the tag-contract check can't help. As of v0.7.6.2, the pe_parser was hardened, especially around bounds checks.
+    # entropy/rva_graph/sections validators - these consume the analysis and metadata layers rather than a struct-level decoder, so the tag contract genuinely doesn't apply
+    # — there are no tombstone tags to drop.
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.
