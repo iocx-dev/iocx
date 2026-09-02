@@ -846,8 +846,6 @@ Priority‑resolved; the first matching tag wins:
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| entry_truncated | The entry's fixed-size structure was short |
-| entry_read_failed | pe.get_data raised when reading the entry |
 | entry_unpack_failed | struct.unpack failed on the entry bytes |
 | begin_rva_zero | BeginAddress was zero |
 | end_rva_zero | EndAddress was zero (amd64) |

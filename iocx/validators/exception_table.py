@@ -127,8 +127,6 @@ _MAX_CHAIN_DEPTH = 32
 # Priority-resolved sub-reasons for per-entry table pathologies.
 # First-matching wins for deterministic emission.
 _ENTRY_ERROR_PRIORITY = [
-    "entry_truncated",
-    "entry_read_failed",
     "entry_unpack_failed",
     "begin_rva_zero",
     "end_rva_zero",

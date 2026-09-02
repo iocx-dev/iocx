@@ -118,6 +118,31 @@ class ContractResult:
         return "\n".join(lines)
 
 
+def _is_entry_point(fn: ast.AST) -> bool:
+        """
+        The function that builds the top-level struct. Every parser follows the
+        build_<subsystem>_structure convention, and that function owns the
+        struct's own errors/truncations lists - which it creates as locals
+        rather than receiving as parameters.
+        """
+        return (isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and fn.name.startswith("build_")
+            and fn.name.endswith("_structure"))
+
+
+def _is_tag_collection(name: str) -> bool:
+        """
+        A module-level collection holds tombstone tags only if its name says so.
+        Structurally, a tag priority list and an architecture set are identical,
+        so the distinction has to come from the naming convention:
+        *_ERROR_*, *_TAGS or *_PRIORITY.
+        """
+        upper = name.upper()
+        return ("ERROR" in upper
+            or upper.endswith("_TAGS")
+            or upper.endswith("_PRIORITY"))
+
+
 # =================================================================
 # Parser side
 # =================================================================
@@ -182,66 +207,88 @@ def extract_parser_tags(
     source: str,
     template_vars: Optional[Dict[str, List[str]]] = None,
 ) -> ParserTags:
+    """
+    Extract every tombstone tag a parser can emit.
+
+    Five shapes are recognised, all of which occur in this codebase:
+    1. sink.append("tag")
+    2. sink.append(f"{var}_suffix") - expanded via template_vars
+    3. return <...>, "tag" - helper readers whose tag the caller
+    appends verbatim
+    4. {"errors": ["tag", ...]} - literal list in a returned dict
+    5. f(errors=["tag"]) - kwarg list literal passed to a
+    result-builder helper
+
+    Sinks are classified top-level vs per-item by SCOPE: a bare-name append
+    is top-level when the name is a function parameter (a caller-owned list)
+    or when it occurs inside the module entry point, which creates the
+    struct's own lists as locals. Anything else - a local elsewhere, a
+    subscript, or a differently-named parameter such as descriptor_errors -
+    is per-item.
+    """
     template_vars = {**_DEFAULT_TEMPLATE_VARS, **(template_vars or {})}
     tree = ast.parse(source)
     out = ParserTags()
     scopes = _function_scopes(tree)
 
-    def _is_entry_point(fn: ast.AST) -> bool:
-        """
-        The function that builds the top-level struct. Every parser follows the
-        build_<subsystem>_structure convention, and that function owns the
-        struct's own `errors`/`truncations` lists - which it creates as locals
-        rather than receiving as parameters.
-        """
-        return (isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and fn.name.startswith("build_")
-        and fn.name.endswith("_structure"))
+    def _bucket_for(sink: str, is_top: bool) -> Set:
+        if sink in _TRUNCATION_SINKS:
+            return out.top_truncations
+        return out.top_errors if is_top else out.item_errors
 
-    for fn, params in scopes.items():
-        entry = _is_entry_point(fn)
-        for node in ast.walk(fn):
-            ref = _sink_ref(node)
-            if ref is None or not node.args:
-                continue
-            sink, is_bare = ref
-            # Top-level only when appending to a caller-owned list: a bare
-            # name that is a parameter AND uses the canonical sink name.
-            # `descriptor_errors` is a parameter too, but its distinct name
-            # keeps it per-item.
-            is_top = is_bare and (sink in params or entry)
-            if sink in _TRUNCATION_SINKS:
-                bucket = out.top_truncations
-            elif is_top:
-                bucket = out.top_errors
+    def _add(bucket: Set[str], arg: ast.AST) -> None:
+        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            bucket.add(arg.value)
+        elif isinstance(arg, ast.JoinedStr):
+            expansions, unexpanded = _expand_fstring(arg, template_vars)
+            if unexpanded is not None:
+                out.unexpanded.add(unexpanded)
             else:
-                bucket = out.item_errors
-            arg = node.args[0]
-            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                bucket.add(arg.value)
-            elif isinstance(arg, ast.JoinedStr):
-                expansions, unexpanded = _expand_fstring(arg, template_vars)
-                if unexpanded is not None:
-                    out.unexpanded.add(unexpanded)
-                else:
-                    bucket.update(expansions)
+                bucket.update(expansions)
 
+    # --- Shapes 1, 2 and 5: scope-sensitive, so walked per function ---
+    for fn, params in scopes.items():
+        entry_point = _is_entry_point(fn)
+        for node in ast.walk(fn):
+            # 1 & 2 - direct appends
+            ref = _sink_ref(node)
+            if ref is not None and node.args:
+                sink, is_bare = ref
+                is_top = is_bare and (sink in params or entry_point)
+                _add(_bucket_for(sink, is_top), node.args[0])
+
+            # 5 - kwarg list literal passed to a result-builder helper.
+            # The SAME entry-point rule applies as for bare-name appends:
+            # _empty_result(errors=[...]) inside build_*_structure fills the
+            # top-level struct, while _unwind_result(errors=[...]) in a
+            # decode helper fills a per-entry record. Identical syntax,
+            # opposite level.
+            if isinstance(node, ast.Call):
+                for kw in node.keywords:
+                    if kw.arg in _ALL_SINKS and isinstance(kw.value, ast.List):
+                        # A result-builder helper returns a per-item record.
+                        bucket = _bucket_for(kw.arg, is_top=entry_point)
+                        for el in kw.value.elts:
+                            _add(bucket, el)
+
+    # --- Shapes 3 and 4: scope-independent ---
     for node in ast.walk(tree):
-
+        # 3 - helper returns whose last element is an error tag
         if isinstance(node, ast.Return) and isinstance(node.value, ast.Tuple):
             last = node.value.elts[-1]
             if isinstance(last, ast.Constant) and isinstance(last.value, str):
-                # A helper's error tag is appended by its caller, which is
-                # always a per-item context in this codebase.
+                # A helper's tag is appended by its caller, always per-item
+                # in this codebase.
                 out.item_errors.add(last.value)
 
+        # 4 - literal tag lists inside a returned dict
         if isinstance(node, ast.Dict):
             for k, v in zip(node.keys, node.values):
                 if (isinstance(k, ast.Constant) and k.value in _ALL_SINKS
                         and isinstance(v, ast.List)):
                     bucket = (out.top_truncations
-                              if k.value in _TRUNCATION_SINKS
-                              else out.item_errors)
+                            if k.value in _TRUNCATION_SINKS
+                            else out.item_errors)
                     for el in v.elts:
                         if isinstance(el, ast.Constant) and isinstance(el.value, str):
                             bucket.add(el.value)
@@ -295,27 +342,46 @@ def _forwarded_sinks_in_dict(node: ast.Dict) -> Set[str]:
 
 
 def extract_validator_consumption(source: str) -> ValidatorConsumption:
+    """
+    Extract how a validator consumes tags.
+
+    Priority-matched: module-level collections of string literals whose NAME
+    marks them as tag lists, plus explicit "tag" in &lt;errors&gt; tests.
+
+    Wholesale: a sink forwarded in full, either by iterating it
+    (for tag in x["truncations"]: emit(... tag ...)) or by copying it into
+    a details payload (details={"errors": list(imp["errors"])}). Neither
+    can drop a tag, so neither needs a membership check.
+    """
     tree = ast.parse(source)
     out = ValidatorConsumption()
 
     for node in ast.walk(tree):
+        # Priority lists - name-filtered. Without this, any module-level
+        # tuple of strings is read as a tag list: _TABLE_ARCHS =
+        # ("amd64", "arm64", "arm") produced three spurious phantoms.
         if isinstance(node, ast.Assign) and isinstance(
-                node.value, (ast.List, ast.Set, ast.Tuple)):
-            for el in node.value.elts:
-                if isinstance(el, ast.Constant) and isinstance(el.value, str):
-                    out.matched.add(el.value)
+            node.value, (ast.List, ast.Set, ast.Tuple)):
+            names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            if any(_is_tag_collection(n) for n in names):
+                for el in node.value.elts:
+                    if isinstance(el, ast.Constant) and isinstance(el.value, str):
+                        out.matched.add(el.value)
 
+        # Explicit membership test: "tag" in entry_errors
         if (isinstance(node, ast.Compare) and len(node.ops) == 1
-                and isinstance(node.ops[0], ast.In)
-                and isinstance(node.left, ast.Constant)
-                and isinstance(node.left.value, str)):
+            and isinstance(node.ops[0], ast.In)
+            and isinstance(node.left, ast.Constant)
+            and isinstance(node.left.value, str)):
             out.matched.add(node.left.value)
 
+        # Wholesale by iteration
         if isinstance(node, ast.For):
             sink = _iterated_sink(node)
             if sink is not None and _loop_var_reaches_emission(node):
                 out.iterated_sinks.add(sink)
 
+        # Wholesale by forwarding into a details payload
         if isinstance(node, ast.Dict):
             out.forwarded_sinks |= _forwarded_sinks_in_dict(node)
 

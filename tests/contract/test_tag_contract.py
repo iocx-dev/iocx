@@ -21,9 +21,9 @@ import pytest
 from tag_contract import check_contract
 
 from iocx.parsers import (pe_imports, pe_relocations, pe_tls, pe_debug,
-                          pe_exports, pe_delay_imports, pe_certificates)
+                          pe_exports, pe_delay_imports, pe_certificates, pe_exception)
 from iocx.validators import (imports, relocations, tls, debug,
-                             exports, delay_imports, signature)
+                             exports, delay_imports, signature, exception_table)
 
 _PAIRS = [
     # (label, parser module, validator module, template_vars)
@@ -42,6 +42,7 @@ _PAIRS = [
     ("pe_exports",       pe_exports, exports, {"tag": ["eat", "enpt", "eot"]}),
     ("pe_delay_imports", pe_delay_imports, delay_imports, {"tag": ["int", "iat"]}),
     ("pe_certificates",  pe_certificates,  signature,      {}),
+    ("pe_exception",     pe_exception,     exception_table,      {}),
 ]
 
 # Tags a parser emits that no validator consumes, deliberately.
