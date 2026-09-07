@@ -364,7 +364,7 @@ def test_parse_resources_missing_memory_map():
 
     assert resources == []
     assert strings == []
-    assert truncated == []
+    assert truncated == ["resources_unavailable"]
 
     assert hasattr(FakePE(), "DIRECTORY_ENTRY_RESOURCE")
     assert not hasattr(FakePE(), "get_memory_mapped_image")

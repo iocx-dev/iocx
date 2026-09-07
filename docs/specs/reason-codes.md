@@ -333,12 +333,24 @@ tags are passed through verbatim in an `errors` list.
 |------------|------------------|-----------------|--------|
 | **RESOURCE_STRING_TABLE_CORRUPT** | String table length, offsets, or UTF‑16 entries are malformed or out of bounds | String count = 32 but table only contains 10 entries | Per‑file |
 | **RESOURCE_STRING_TABLE_UNREADABLE** | The RT_STRING traversal raised before completing, so the string-table list is empty or partial and its absence carries no meaning | Malformed Name or Language directory beneath RT_STRING | Per‑file |
+| **RESOURCE_TABLE_UNAVAILABLE** | The resource entry table could not be built at all: `pe.get_memory_mapped_image` was absent, or raised when called. No entry was decoded, so an empty `resources` list carries no meaning. Distinct from a binary with no resource directory, which produces no issue | A pe object lacking `get_memory_mapped_image`; or a memory-map read raising on a malformed image | Per‑file |
 
 #### RESOURCE_STRING_TABLE_UNREADABLE
 
 | Sub‑reason | Meaning |
 |------------|---------|
 | walk_failed | The RT_STRING walk raised; `string_tables` may be empty or partial. Distinct from a binary that genuinely carries no string resources, which produces no issue at all |
+
+#### RESOURCE_TABLE_UNAVAILABLE
+
+Mutually exclusive — the capability check precedes the call, so a missing method never reaches the raising branch:
+
+| Parser tag | Meaning |
+|------------|---------|
+| resources_unavailable | `get_memory_mapped_image` was not present on the pe object |
+| resources_map_read_failed | The method was present but raised; the exception is swallowed and the walk abandoned |
+
+Both appear in the resource truncation list. Unlike `resources` and `resource_strings` in that same list, this is a capability tombstone rather than a cap: no entry was truncated because none was decoded. A tombstone and `resources` are mutually exclusive by construction, since both branches return before the entry loop.
 
 ---
 

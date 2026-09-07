@@ -436,11 +436,18 @@ def _parse_resources(pe):
     if len(resource_strings) >= _MAX_RESOURCE_STRINGS:
         truncated.append("resource_strings")
 
-    # Extract structured resource entries
+    # Extract structured resource entries. A pe object without this method
+    # cannot yield entries at all, which is materially different from a
+    # binary that has none - record it rather than returning silently
     if not hasattr(pe, "get_memory_mapped_image"):
+        truncated.append("resources_unavailable")
         return resources, resource_strings, truncated
 
-    mm = pe.get_memory_mapped_image() or b""
+    try:
+        mm = pe.get_memory_mapped_image() or b""
+    except Exception:
+        truncated.append("resources_map_read_failed")
+        return resources, resource_strings, truncated
 
     entries_capped = False
     for entry in getattr(pe.DIRECTORY_ENTRY_RESOURCE, "entries", []):
