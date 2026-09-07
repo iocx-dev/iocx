@@ -152,11 +152,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_guard_cf_inconsistent",
           "check": 13824,
           "dispatch": 0,
           "table": 14080,
-          "count": 0
+          "count": 0,
+          "reason": "load_config_guard_cf_inconsistent"
         }
       },
       {
@@ -165,11 +165,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_invalid",
           "cookie_rva": 13568,
           "section": ".rdata",
           "characteristics": 1073741888,
-          "sub_reason": "non_writable_section"
+          "sub_reason": "non_writable_section",
+          "reason": "load_config_cookie_invalid"
         }
       },
       {
@@ -178,10 +178,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_in_overlay",
           "cookie_rva": 13568,
           "cookie_raw": 2816,
-          "overlay_offset": 1684
+          "overlay_offset": 1684,
+          "reason": "load_config_cookie_in_overlay"
         }
       }
     ]

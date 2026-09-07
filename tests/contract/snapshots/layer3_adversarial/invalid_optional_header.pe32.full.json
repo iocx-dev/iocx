@@ -144,10 +144,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
           "entry_point": 2415919104,
           "size_of_image": 512,
-          "position": "beyond_size_of_image"
+          "position": "beyond_size_of_image",
+          "reason": "entrypoint_out_of_bounds"
         }
       },
       {
@@ -156,11 +156,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_misaligned",
           "section": ".text",
           "raw_address": 512,
           "raw_size": 512,
-          "file_alignment": 16384
+          "file_alignment": 16384,
+          "reason": "section_raw_misaligned"
         }
       },
       {
@@ -169,32 +169,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlaps_headers",
           "section": ".text",
           "raw_address": 512,
-          "size_of_headers": 2048
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "optional_header_inconsistent_size",
-          "size_of_image": 512,
-          "max_section_end": 8192
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "optional_header_invalid_size_of_headers",
           "size_of_headers": 2048,
-          "file_alignment": 16384
+          "reason": "section_overlaps_headers"
         }
       },
       {
@@ -203,31 +181,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_invalid_section_alignment",
-          "section_alignment": 4096,
-          "file_alignment": 16384
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "optional_header_invalid_number_of_rva_and_sizes",
-          "number_of_rva_and_sizes": 1,
-          "actual_directories": 3
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "optional_header_size_of_image_misaligned",
           "size_of_image": 512,
-          "section_alignment": 4096
+          "max_section_end": 8192,
+          "reason": "optional_header_inconsistent_size"
         }
       },
       {
@@ -236,11 +192,55 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
+          "size_of_headers": 2048,
+          "file_alignment": 16384,
+          "reason": "optional_header_invalid_size_of_headers"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "section_alignment": 4096,
+          "file_alignment": 16384,
+          "reason": "optional_header_invalid_section_alignment"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "number_of_rva_and_sizes": 1,
+          "actual_directories": 3,
+          "reason": "optional_header_invalid_number_of_rva_and_sizes"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "size_of_image": 512,
+          "section_alignment": 4096,
+          "reason": "optional_header_size_of_image_misaligned"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "directory": "IMAGE_DIRECTORY_ENTRY_EXPORT",
           "rva": 4096,
           "size": 512,
-          "size_of_image": 512
+          "size_of_image": 512,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -249,10 +249,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "export_directory_out_of_bounds",
           "rva": 4096,
           "size": 512,
-          "size_of_image": 512
+          "size_of_image": 512,
+          "reason": "export_directory_out_of_bounds"
         }
       },
       {
@@ -261,8 +261,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "export_table_truncated",
-          "table": "export_directory_header"
+          "table": "export_directory_header",
+          "reason": "export_table_truncated"
         }
       }
     ]

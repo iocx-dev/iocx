@@ -171,9 +171,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "rwx_section",
           "section": ".text",
-          "characteristics": 3791650848
+          "characteristics": 3791650848,
+          "reason": "rwx_section"
         }
       },
       {
@@ -182,19 +182,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_zero_or_negative",
-          "entry_point": 0
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "entrypoint_in_headers",
           "entry_point": 0,
-          "size_of_headers": 1024
+          "reason": "entrypoint_zero_or_negative"
         }
       },
       {
@@ -203,10 +192,21 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
+          "entry_point": 0,
+          "size_of_headers": 1024,
+          "reason": "entrypoint_in_headers"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "entry_point": 0,
           "size_of_image": 16384,
-          "position": "within_size_of_image_but_no_section"
+          "position": "within_size_of_image_but_no_section",
+          "reason": "entrypoint_out_of_bounds"
         }
       },
       {
@@ -215,9 +215,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_rwx",
           "section": ".text",
-          "characteristics": 3791650848
+          "characteristics": 3791650848,
+          "reason": "section_rwx"
         }
       },
       {
@@ -226,9 +226,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_impossible_flags",
           "section": ".text",
-          "characteristics": 3791650848
+          "characteristics": 3791650848,
+          "reason": "section_impossible_flags"
         }
       },
       {
@@ -237,9 +237,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_discardable_code",
           "section": ".text",
-          "characteristics": 3791650848
+          "characteristics": 3791650848,
+          "reason": "section_discardable_code"
         }
       }
     ]

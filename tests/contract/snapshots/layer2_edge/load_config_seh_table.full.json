@@ -152,10 +152,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_too_small",
           "rva": 12288,
           "size": 44,
-          "min_size": 112
+          "min_size": 112,
+          "reason": "load_config_too_small"
         }
       }
     ]

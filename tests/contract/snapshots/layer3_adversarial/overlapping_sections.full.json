@@ -171,10 +171,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_in_overlay",
           "entry_point": 4096,
           "entry_point_file_offset": 512,
-          "overlay_offset": 392
+          "overlay_offset": 392,
+          "reason": "entrypoint_in_overlay"
         }
       },
       {
@@ -183,9 +183,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_overlap",
           "section_a": ".text",
-          "section_b": ".data"
+          "section_b": ".data",
+          "reason": "section_raw_overlap"
         }
       },
       {
@@ -194,9 +194,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlap",
           "section_a": ".text",
-          "section_b": ".data"
+          "section_b": ".data",
+          "reason": "section_overlap"
         }
       },
       {
@@ -205,9 +205,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_inconsistent_size",
           "size_of_image": 12288,
-          "max_section_end": 14336
+          "max_section_end": 14336,
+          "reason": "optional_header_inconsistent_size"
         }
       }
     ]

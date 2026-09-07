@@ -144,10 +144,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_in_overlay",
           "entry_point": 4096,
           "entry_point_file_offset": 512,
-          "overlay_offset": 392
+          "overlay_offset": 392,
+          "reason": "entrypoint_in_overlay"
         }
       },
       {
@@ -156,11 +156,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
           "rva": 8192,
           "size": 12288,
-          "size_of_image": 12288
+          "size_of_image": 12288,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -169,11 +169,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_EXCEPTION",
           "rva": 12032,
           "size": 8192,
-          "size_of_image": 12288
+          "size_of_image": 12288,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -182,9 +182,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_overlap",
           "directory_a": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
-          "directory_b": "IMAGE_DIRECTORY_ENTRY_EXCEPTION"
+          "directory_b": "IMAGE_DIRECTORY_ENTRY_EXCEPTION",
+          "reason": "data_directory_overlap"
         }
       },
       {
@@ -193,11 +193,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "certificate_table_malformed",
+          "sub_reason": "top_level_decode",
           "errors": [
             "certificate_offset_past_eof"
           ],
-          "sub_reason": "top_level_decode"
+          "reason": "certificate_table_malformed"
         }
       },
       {
@@ -206,10 +206,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_directory_out_of_bounds",
           "rva": 12032,
           "size": 8192,
-          "size_of_image": 12288
+          "size_of_image": 12288,
+          "reason": "exception_directory_out_of_bounds"
         }
       },
       {
@@ -218,10 +218,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_directory_size_not_multiple",
           "size": 8192,
           "entry_size": 12,
-          "remainder": 8
+          "remainder": 8,
+          "reason": "exception_directory_size_not_multiple"
         }
       },
       {
@@ -230,8 +230,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_table_truncated",
-          "table": "exception_table_ragged_tail"
+          "table": "exception_table_ragged_tail",
+          "reason": "exception_table_truncated"
         }
       },
       {
@@ -240,8 +240,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_table_truncated",
-          "table": "exception_entry_read_failed"
+          "table": "exception_entry_read_failed",
+          "reason": "exception_table_truncated"
         }
       }
     ]

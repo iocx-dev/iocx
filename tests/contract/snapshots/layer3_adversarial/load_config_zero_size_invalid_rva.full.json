@@ -152,10 +152,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_zero_size_nonzero_rva",
           "directory": "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG",
           "rva": 2415919104,
-          "size": 0
+          "size": 0,
+          "reason": "data_directory_zero_size_nonzero_rva"
         }
       }
     ]
