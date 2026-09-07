@@ -285,10 +285,10 @@ Details carry `declared_size` and `decoded_entries`; their difference is the los
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |-------------|------------------|-----------------|-------|
-| **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry	StringTable | key = "ENGLISHX" instead of 8‑hex‑char <langID><codepage> form | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple	Var. | wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file
+| **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry | StringTable key = "ENGLISHX" instead of 8‑hex‑char `<langID><codepage>` form | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple | Var wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file |
 
 *Note: absence of an RT_VERSION resource is not treated as a structural anomaly — many legitimate binary types (kernel drivers, MSI helpers, cross‑compiled artefacts) omit version‑info entirely.*
 
@@ -301,7 +301,7 @@ than by the `undecoded` forward.
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| placement | The VS_VERSIONINFO blob does not lie wholly inside `.rsrc` |
+| placement | The VS_VERSIONINFO blob was read and decoded, but does not lie wholly inside `.rsrc`. A validator-side comparison of the blob's extent against section bounds — distinct from `leaf_placement_implausible` below, which is a parser-side refusal to read at all |
 | undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks. The `errors` key lists the contributing parser tags |
 | szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
 | length_inconsistent | `wLength` disagrees with the buffer size |
@@ -314,6 +314,33 @@ The four child sub-reasons are priority-resolved, in the order listed:
 a fault that terminated the walk outranks one that did not, because the
 remaining children were never examined. At most one issue is emitted per
 blob, with the full matching set carried in `errors`.
+
+#### `undecoded` — contributing parser tags
+
+Listed in the issue's `errors` key. Any one of these means no VS_VERSIONINFO
+envelope was decoded, so the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks
+are skipped:
+
+| Parser tag | Meaning |
+|------------|---------|
+| leaf_struct_unpack | The RT_VERSION leaf's `OffsetToData` / `Size` could not be read from the resource entry |
+| leaf_placement_implausible | The leaf's declared placement is structurally impossible: a negative RVA, a size of zero or less, or a size exceeding the 1 MB blob cap. The blob is **not** read — the guard precedes `pe.get_data` — so an attacker-controlled `Size` is bounded before any allocation occurs |
+| read_failed | `pe.get_data` raised when reading the blob at a placement that passed the guard |
+| too_short | The blob was read but is under the 6-byte VS_VERSIONINFO header minimum |
+| header_unpack | `struct.unpack` failed on the 6-byte header (defensive; unreachable past the length guard) |
+
+*Placement is reported verbatim in `rva` and `size` even when the guard
+refuses the read, so the declared values remain diagnosable. A tombstoned
+structure is returned rather than `None`: absence of an RT_VERSION resource
+is not a defect and produces no issue at all, whereas a resource that exists
+but cannot be trusted must stay visible.*
+
+> **Zero-size leaves moved tag.** A leaf declaring `Size = 0` previously
+> reached `pe.get_data`, returned an empty buffer and surfaced as
+> `too_short`. It is now refused by the placement guard and surfaces as
+> `leaf_placement_implausible`. Consumers keying on `too_short` for that
+> case must be updated; `too_short` now means only that a non-empty blob
+> was read and fell short of the 6-byte header.
 
 ### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
 

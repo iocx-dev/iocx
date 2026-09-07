@@ -36,9 +36,11 @@ from iocx.parsers.pe_version_info import (
     _VS_FFI_STRUCT_VERSION,
     _VS_VERSION_INFO_KEY,
     RT_VERSION,
-    _MAX_CHILDREN
+    _MAX_CHILDREN,
+    _MAX_VERSION_BLOB
 )
 
+_PLACEMENT_TAG = "leaf_placement_implausible"
 
 # =================================================================
 # Byte-level builders for VS_VERSIONINFO test fixtures
@@ -1438,3 +1440,78 @@ class TestDefensiveCodePaths:
         var = vfi_out["vars"][0]
         # Either the Var's parent or the translation array failed to populate
         assert "translation_unpack" in vfi_out["errors"] or var["translations"] == []
+
+def _version_pe(rva, size):
+    """Minimal pe exposing a single RT_VERSION leaf with the given placement."""
+    class _Struct:
+        OffsetToData = rva
+        Size = size
+
+    class _Leaf:
+        data = type("D", (), {"struct": _Struct()})()
+
+    class _LangDir:
+        entries = [_Leaf()]
+
+    class _NameEntry:
+        id = 1
+        directory = _LangDir()
+
+    class _NameDir:
+        entries = [_NameEntry()]
+
+    class _TypeEntry:
+        id = 16 # RT_VERSION
+        directory = _NameDir()
+
+    class _Root:
+        entries = [_TypeEntry()]
+
+    class _PE:
+        DIRECTORY_ENTRY_RESOURCE = _Root()
+
+    def get_data(self, rva, size):
+        raise AssertionError(
+            f"get_data called with size={size}; the guard must "
+            "short-circuit before any read"
+        )
+
+    return _PE()
+
+
+@pytest.mark.parametrize("rva, size, label", [
+    (-1, 0x40, "negative rva"),
+    (0x1000, 0, "zero size"),
+    (0x1000, -1, "negative size"),
+    (0x1000, _MAX_VERSION_BLOB + 1, "size over cap"),
+])
+def test_implausible_placement_is_tombstoned_without_reading(rva, size, label):
+    """
+    The guard exists to stop an attacker-controlled Size reaching
+    pe.get_data. A tombstoned dict - not None - keeps an untrustworthy
+    blob distinguishable from a binary with no RT_VERSION resource.
+    """
+    out = build_version_info_structure(_version_pe(rva, size))
+
+    assert out is not None, label
+    assert out["errors"] == [_PLACEMENT_TAG], label
+    assert out["decoded"] is False
+    assert out["header_ok"] is False
+    assert out["length_consistent"] is False
+    assert out["fixed_file_info"] is None
+    assert out["string_file_info"] == []
+    assert out["var_file_info"] == []
+    # Placement is reported verbatim so the fault is diagnosable
+    assert out["rva"] == rva
+    assert out["size"] == size
+
+
+    @pytest.mark.parametrize("size", [1, _MAX_VERSION_BLOB])
+    def test_boundary_sizes_are_not_rejected(size):
+        """The cap is inclusive; only size > _MAX_VERSION_BLOB is refused."""
+        pe = _version_pe(0x1000, size)
+        pe.get_data = lambda rva, size: b"\x00" * size # allow the read
+
+        out = build_version_info_structure(pe)
+        assert out["errors"] != [_PLACEMENT_TAG]
+

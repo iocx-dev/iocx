@@ -35,6 +35,9 @@ _VS_FFI_STRUCT_VERSION = 0x00010000
 # controlled and unbounded when length_consistent is False.
 _MAX_CHILDREN = 256
 
+# VS_VERSIONINFO blobs are a few KB in practice
+_MAX_VERSION_BLOB = 1_000_000
+
 
 def build_version_info_structure(pe) -> Optional[Dict[str, Any]]:
     """
@@ -61,6 +64,15 @@ def build_version_info_structure(pe) -> Optional[Dict[str, Any]]:
             "fixed_file_info": None,
             "string_file_info": [], "var_file_info": [],
             "errors": ["leaf_struct_unpack"],
+        }
+
+    if rva < 0 or size <= 0 or size > _MAX_VERSION_BLOB:
+        return {
+            "rva": rva, "size": size,
+            "decoded": False, "header_ok": False, "length_consistent": False,
+            "fixed_file_info": None,
+            "string_file_info": [], "var_file_info": [],
+            "errors": ["leaf_placement_implausible"],
         }
 
     try:
