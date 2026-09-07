@@ -344,10 +344,11 @@ def test_parse_resources_no_directory_entry():
         pass
 
     from iocx.parsers.pe_parser import _parse_resources
-    resources, strings = _parse_resources(FakePE())
+    resources, strings, truncated = _parse_resources(FakePE())
 
     assert resources == []
     assert strings == []
+    assert truncated == []
 
 
 def test_parse_resources_missing_memory_map():
@@ -359,10 +360,11 @@ def test_parse_resources_missing_memory_map():
         # Crucially: NO get_memory_mapped_image attribute
 
     from iocx.parsers.pe_parser import _parse_resources
-    resources, strings = _parse_resources(FakePE())
+    resources, strings, truncated = _parse_resources(FakePE())
 
     assert resources == []
     assert strings == []
+    assert truncated == []
 
     assert hasattr(FakePE(), "DIRECTORY_ENTRY_RESOURCE")
     assert not hasattr(FakePE(), "get_memory_mapped_image")
