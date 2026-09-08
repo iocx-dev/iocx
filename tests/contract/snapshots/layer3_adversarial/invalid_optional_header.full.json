@@ -55,6 +55,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [],
     "obfuscation": [],
