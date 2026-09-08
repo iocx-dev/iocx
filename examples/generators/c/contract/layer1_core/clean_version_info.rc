@@ -1,0 +1,46 @@
+// Copyright (c) 2026 MalX Labs and contributors
+// SPDX-License-Identifier: MPL-2.0
+//
+// Valid VS_VERSIONINFO baseline for IOCX end-to-end tests.
+//
+// This produces a WELL-FORMED resource by construction - a resource
+// compiler will not emit a malformed one, and that is precisely what
+// makes this fixture useful: it pins the clean path. Malformed cases
+// come from vs_versioninfo_builder.py instead.
+//
+// The string block deliberately contains exactly the eight keys in the
+// projection's _DEFAULT_KEYS shortlist, plus one extra ("Comments") to
+// exercise the keys_filtered truncation flag at default level.
+
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     10,0,0,1
+PRODUCTVERSION  10,0,0,1
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0x0L
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"          // US English, Unicode
+        BEGIN
+            VALUE "CompanyName",      "MalX Labs"
+            VALUE "FileDescription",  "IOCX test fixture"
+            VALUE "FileVersion",      "10.0.0.1"
+            VALUE "InternalName",     "fixture"
+            VALUE "LegalCopyright",   "\xA9 MalX Labs. All rights reserved."
+            VALUE "OriginalFilename", "FIXTURE.EXE"
+            VALUE "ProductName",      "IOCX"
+            VALUE "ProductVersion",   "10.0.0.1"
+            VALUE "Comments",         "Non-shortlist key: expect keys_filtered"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
