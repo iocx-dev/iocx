@@ -287,10 +287,27 @@ Details carry `declared_size` and `decoded_entries`; their difference is the los
 |-------------|------------------|-----------------|-------|
 | **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file |
 | **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file |
-| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry | StringTable key = "ENGLISHX" instead of 8‑hex‑char `<langID><codepage>` form | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry | StringTable key = "ENGLISHX" instead of 8‑hex‑char `<langID><codepage>` form | Per‑file / Per‑table |
 | **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple | Var wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file |
 
 *Note: absence of an RT_VERSION resource is not treated as a structural anomaly — many legitimate binary types (kernel drivers, MSI helpers, cross‑compiled artefacts) omit version‑info entirely.*
+
+> **Projection flags are not reason codes.** The public `version_info`
+> output carries its own `truncated` list — `tables`, `strings`,
+> `keys_filtered` — which shapes what is *emitted* rather than describing
+> what is *wrong* with the file. A blob that trips all three can still be
+> perfectly well-formed and produce no issue here. The two vocabularies
+> are disjoint and must not be conflated:
+>
+> | `truncated` flag | Meaning | Structural? |
+> |------------------|---------|-------------|
+> | tables | More string tables than the public cap (16); the remainder were not projected | No |
+> | strings | More keys in a table than the public cap (64) after key filtering; the remainder were not projected | No |
+> | keys_filtered | Keys outside the default closed key set were dropped. Expected on any binary carrying non-shortlist keys, and absent under `full` | No |
+>
+> Structural truth lives in `structural_error_count` and the
+> `RESOURCE_VERSIONINFO_*` codes above; `truncated` records only that the
+> public view is narrower than the parsed one.
 
 ### RESOURCE_VERSIONINFO_INVALID_HEADER sub‑reasons
 
@@ -353,6 +370,29 @@ but cannot be trusted must stay visible.*
 `RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO` and
 `RESOURCE_VERSIONINFO_INVALID_VARFILEINFO` carry no sub‑reason; the parser's
 tags are passed through verbatim in an `errors` list.
+
+#### RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO — parser tags
+
+Passed through verbatim in the issue's `errors` list. StringFileInfo-level
+and StringTable-level tags are emitted as separate issues: the first has a
+`tables` count in details, the second a `lang_codepage`.
+
+| Parser tag | Level | Meaning |
+|------------|-------|---------|
+| string_table_header | StringFileInfo | A StringTable's length field could not be unpacked; the walk stopped there |
+| string_table_length | StringFileInfo | A StringTable's `wLength` was below the 6-byte minimum or extended past the StringFileInfo; the walk stopped there |
+| lang_codepage_key | StringTable | The key is not 8 hex characters in `<langID><codepage>` form |
+| string_header | StringTable | A String entry's length field could not be unpacked; the walk stopped there |
+| string_length | StringTable | A String entry's `wLength` was below the 6-byte minimum or extended past the table; the walk stopped there |
+
+#### RESOURCE_VERSIONINFO_INVALID_VARFILEINFO — parser tags
+
+| Parser tag | Meaning |
+|------------|---------|
+| var_header | A Var child's length fields could not be unpacked; the walk stopped there |
+| var_length | A Var child's `wLength` was below the 6-byte minimum or extended past the VarFileInfo; the walk stopped there |
+| translation_not_dword_aligned | `wValueLength` is not a multiple of 4, so the Translation array cannot be a whole number of LANGID+codepage pairs |
+| translation_unpack | `struct.unpack` failed on a translation pair (defensive; the slot count is derived from the value extent) |
 
 ### **Resource String‑Table Anomalies**
 
