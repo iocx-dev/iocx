@@ -12,6 +12,7 @@ from .parsers.pe_parser import parse_pe, analyse_pe_sections, analyse_data_direc
 from .parsers.string_extractor import extract_strings
 from .parsers.pe_resources import build_resource_structure
 from .parsers.pe_version_info import build_version_info_structure
+from .parsers.version_info_projection import project_version_info
 from .parsers.pe_load_config import analyse_load_config
 from .parsers.pe_optional_header import extract_optional_header_metadata
 from .parsers.pe_exports import build_export_structure
@@ -139,6 +140,8 @@ class Engine:
         heuristics = []
         structural = []
 
+        version_info = build_version_info_structure(pe)
+
         # BASIC: section layout + entropy
         if analysis_level in ("basic", "deep", "full"):
             section_analysis = {
@@ -150,7 +153,7 @@ class Engine:
         if analysis_level in ("deep", "full"):
             obf = analyse_obfuscation(section_analysis["sections"], text)
 
-        # FULL: future expansion
+        # FULL
         if analysis_level == "full":
             extended = analyse_extended(pe, metadata, text)
 
@@ -171,7 +174,7 @@ class Engine:
             }
 
             self._internal_metadata["resources_struct"] = build_resource_structure(pe)
-            self._internal_metadata["version_info_struct"] = build_version_info_structure(pe)
+            self._internal_metadata["version_info_struct"] = version_info
             self._internal_metadata["export_struct"] = build_export_structure(pe)
             self._internal_metadata["import_struct"] = build_import_structure(pe)
             self._internal_metadata["delay_import_struct"] = build_delay_import_structure(pe)
@@ -203,6 +206,8 @@ class Engine:
         if analysis_level == "full" and extended is not None:
             analysis["extended"] = extended
             analysis["heuristics"] = [asdict(h) for h in heuristics]
+
+        result["version_info"] = project_version_info(version_info, full=(analysis_level == "full"))
 
         if analysis:
             result["analysis"] = analysis
