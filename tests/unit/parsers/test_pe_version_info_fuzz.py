@@ -11,7 +11,7 @@ expectations below were verified against the real decoder.
 import pytest
 
 from iocx.parsers.pe_version_info import _decode_vs_versioninfo
-from examples.generators.python.generate_vs_versioninfo_fixtures import CASES, baseline
+from _generate_vs_versioninfo_fixtures import CASES, baseline
 
 
 def _tables(out):
