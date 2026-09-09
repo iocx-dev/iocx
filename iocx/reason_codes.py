@@ -105,6 +105,7 @@ class ReasonCodes:
     RESOURCE_ENTRY_OUT_OF_BOUNDS = "resource_entry_out_of_bounds"
     RESOURCE_DIRECTORY_ZERO_LENGTH = "resource_directory_zero_length"
     RESOURCE_DIRECTORY_LANGUAGE_NOT_ID = "resource_directory_language_not_id"
+    RESOURCE_DIRECTORY_ENTRY_UNREADABLE = "resource_directory_entry_unreadable"
 
     # --- Resource data anomalies ---
     RESOURCE_DATA_OUT_OF_BOUNDS = "resource_data_out_of_bounds"
@@ -119,6 +120,7 @@ class ReasonCodes:
 
     # --- Resource string-table anomalies ---
     RESOURCE_STRING_TABLE_CORRUPT = "resource_string_table_corrupt"
+    RESOURCE_STRING_TABLE_UNREADABLE = "resource_string_table_unreadable"
 
     # --- Load Config Directory structural issues ---
     LOAD_CONFIG_TOO_SMALL = "load_config_too_small"
@@ -202,6 +204,13 @@ class ReasonCodes:
     EXCEPTION_UNWIND_INFO_UNALIGNED = "exception_unwind_info_unaligned"
     EXCEPTION_UNWIND_INFO_INVALID = "exception_unwind_info_invalid"
     EXCEPTION_UNWIND_CHAIN_INVALID = "exception_unwind_chain_invalid"
+
+    # ---- Import table ----
+    IMPORT_DIRECTORY_INVALID_HEADER = "import_directory_invalid_header"
+    IMPORT_TABLE_TRUNCATED = "import_table_truncated"
+    IMPORT_DESCRIPTOR_INVALID = "import_descriptor_invalid"
+    IMPORT_DLL_NAME_INVALID = "import_dll_name_invalid"
+    IMPORT_ENTRY_INVALID = "import_entry_invalid"
 
     # --- Packer heuristics (interpretation layer) ---
     PACKER_SECTION_NAME = "packer_section_name"

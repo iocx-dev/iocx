@@ -58,6 +58,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -152,10 +153,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_too_small",
           "rva": 12288,
           "size": 32,
-          "min_size": 112
+          "min_size": 112,
+          "reason": "load_config_too_small"
         }
       },
       {
@@ -164,11 +165,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_invalid",
           "cookie_rva": 13568,
           "section": ".rdata",
           "characteristics": 1073741888,
-          "sub_reason": "non_writable_section"
+          "sub_reason": "non_writable_section",
+          "reason": "load_config_cookie_invalid"
         }
       },
       {
@@ -177,10 +178,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_in_overlay",
           "cookie_rva": 13568,
           "cookie_raw": 2816,
-          "overlay_offset": 1664
+          "overlay_offset": 1664,
+          "reason": "load_config_cookie_in_overlay"
         }
       }
     ]

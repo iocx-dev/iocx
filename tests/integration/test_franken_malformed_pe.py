@@ -47,7 +47,8 @@ def test_franken_expected_heuristics(franken_result):
         "section_overlap",
         "section_raw_overlap",
         "exception_directory_size_not_multiple",
-        "exception_table_truncated"
+        "exception_table_truncated",
+        "import_table_truncated"
     }
 
     assert heur == expected

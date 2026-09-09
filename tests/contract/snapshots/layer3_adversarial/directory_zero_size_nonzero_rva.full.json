@@ -58,6 +58,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -152,10 +153,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_in_overlay",
           "entry_point": 4096,
           "entry_point_file_offset": 512,
-          "overlay_offset": 512
+          "overlay_offset": 512,
+          "reason": "entrypoint_in_overlay"
         }
       },
       {
@@ -164,10 +165,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlaps_headers",
           "section": ".zero",
           "raw_address": 0,
-          "size_of_headers": 512
+          "size_of_headers": 512,
+          "reason": "section_overlaps_headers"
         }
       },
       {
@@ -176,8 +177,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_zero_length",
-          "section": ".zero"
+          "section": ".zero",
+          "reason": "section_zero_length"
         }
       },
       {
@@ -186,11 +187,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_out_of_order_raw",
           "raw_addresses": [
             512,
             0
-          ]
+          ],
+          "reason": "section_out_of_order_raw"
         }
       },
       {
@@ -199,11 +200,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_IMPORT",
           "rva": 36864,
           "size": 512,
-          "size_of_image": 16384
+          "size_of_image": 16384,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -212,10 +213,20 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_zero_size_nonzero_rva",
           "directory": "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG",
           "rva": 4096,
-          "size": 0
+          "size": 0,
+          "reason": "data_directory_zero_size_nonzero_rva"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "table": "import_descriptor_read_failed",
+          "reason": "import_table_truncated"
         }
       }
     ]

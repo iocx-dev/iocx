@@ -27,7 +27,7 @@
       "~user/docs/readme.md",
       "%APPDATA%\\MyApp\\config.json",
       "$HOME/.config/tool/settings.ini",
-       "C:\\Users\\Pub",
+      "C:\\Users\\Pub",
       "/usr/loc",
       "C:\\Temp\\my",
       "/var/log/my",

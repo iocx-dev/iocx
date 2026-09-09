@@ -59,6 +59,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -160,10 +161,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
           "entry_point": 20480,
           "size_of_image": 16384,
-          "position": "beyond_size_of_image"
+          "position": "beyond_size_of_image",
+          "reason": "entrypoint_out_of_bounds"
         }
       }
     ]

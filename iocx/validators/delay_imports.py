@@ -34,14 +34,25 @@ from iocx.schemas.public_metadata import PublicMetadata
 from .decorators import depends_on
 
 
-# Priority-resolved sub-reasons for per-entry name/RVA pathologies.
+# Priority-resolved sub-reasons for DLL-name pathologies.
 # First-matching wins for deterministic emission.
+# Ordered so the earlier, more fundamental failures win: the RVA itself, then
+# read faults from _read_asciiz, then content faults from the three-way check.
+# The _read_asciiz tags and the content tags are mutually exclusive in
+# practice (a non-None err skips the content check entirely), so their
+# relative order is defensive rather than load-bearing.
 _DLL_NAME_ERROR_PRIORITY = [
+    # RVA-level
     "dll_name_rva_zero",
+    # _read_asciiz failures
     "read_failed",
+    "empty_read",
     "unterminated",
-    "dll_name_not_printable",
     "non_ascii",
+    # content checks (three-way split, mutually exclusive)
+    "dll_name_empty",
+    "dll_name_not_printable",
+    "dll_name_too_long",
 ]
 
 _INT_RVA_ERROR_PRIORITY = [
@@ -60,15 +71,24 @@ _IAT_RVA_ERROR_PRIORITY = [
     "iat_unpack_failed",
 ]
 
+# Priority-resolved sub-reasons for per-import-entry pathologies.
+# First-matching wins for deterministic emission.
+# Ordered by decode stage: INT thunk faults, then ordinal faults, then
+# IMAGE_IMPORT_BY_NAME read faults, then name content faults.
 _ENTRY_ERROR_PRIORITY = [
+    # INT thunk
     "int_entry_missing",
     "int_entry_zero",
+    # ordinal path
     "ordinal_zero",
+    # IMAGE_IMPORT_BY_NAME read faults
     "name_read_failed",
     "name_too_short",
     "hint_unpack_failed",
     "name_unterminated",
     "name_non_ascii",
+    # name content checks (mutually exclusive)
+    "name_empty",
     "name_not_printable",
 ]
 

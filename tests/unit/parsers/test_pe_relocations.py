@@ -30,6 +30,7 @@ from iocx.parsers.pe_relocations import (
     _MAX_ENTRIES_PER_BLOCK,
     _RELOC_DIRECTORY_INDEX,
     _RELOC_TYPE_NAMES,
+    _MAX_BLOCKS,
 )
 
 
@@ -223,7 +224,51 @@ class TestReadBlocks:
         pe = _pe_with_reloc(partial, dir_size=10)  # header + 1 entry
         trunc: List[str] = []
         _read_blocks(pe, 0x1000, 10, trunc, [])
-        assert "relocation_entries_truncated" in trunc
+        assert "relocation_entries_exceed_directory" in trunc
+
+    def test_short_header_read_is_tagged(self):
+        """get_data returns fewer than 8 bytes without raising."""
+        trunc = []
+        pe = _FakePE(bytes(0x1004), _FakeDataDir(0x1000, 0x40))
+        out = _read_blocks(pe, 0x1000, 0x40, trunc, [])
+        assert out == []
+        assert trunc == ["relocation_block_header_truncated"]
+
+    def test_entries_read_failure_is_tagged(self):
+        """get_data raises on the entry region but not the header."""
+        class _RaisingPE(_FakePE):
+            def get_data(self, rva, size):
+                if rva >= 0x1008:
+                    raise ValueError("unmapped")
+                return super().get_data(rva, size)
+        blocks = _build_block(0x2000, [(3, 0x10), (3, 0x20)])
+        image = bytearray(0x8000)
+        image[0x1000:0x1000 + len(blocks)] = blocks
+        pe = _RaisingPE(bytes(image), _FakeDataDir(0x1000, len(blocks)))
+        out = build_relocation_structure(pe)
+        assert "relocation_entries_read_failed" in out["truncations"]
+        assert out["blocks"][0]["entries"] == []
+
+    def test_entries_short_read_is_tagged(self):
+        """Header fits the window, but the image ends mid-entry-array."""
+        hdr = _build_block_raw(0x2000, _BLOCK_HEADER_SIZE + 0x10)
+        image = bytearray(0x1010)          # ends 8 bytes into the entries
+        image[0x1000:0x1008] = hdr
+        pe = _FakePE(bytes(image), _FakeDataDir(0x1000, _BLOCK_HEADER_SIZE + 0x10))
+        out = build_relocation_structure(pe)
+        assert "relocation_entries_truncated" in out["truncations"]
+        assert out["blocks"][0]["entry_count"] == 4   # only what was readable
+
+    def test_block_count_cap_is_tagged(self):
+        """65536 minimal blocks exhaust the walk limit."""
+        one = _build_block_raw(0x2000, _BLOCK_HEADER_SIZE)
+        many = one * _MAX_BLOCKS
+        image = bytearray(0x1000 + len(many) + 0x10)
+        image[0x1000:0x1000 + len(many)] = many
+        pe = _FakePE(bytes(image), _FakeDataDir(0x1000, len(many)))
+        out = build_relocation_structure(pe)
+        assert out["block_count"] == _MAX_BLOCKS
+        assert "relocation_block_max_exceeded" in out["truncations"]
 
 
 # =================================================================
@@ -260,7 +305,7 @@ class TestBuildRelocationStructure:
         pe = _FakePE(bytes(0x100), _FakeDataDir(0x2000, 0x40))
         out = build_relocation_structure(pe)
         assert out is not None
-        assert out["truncations"]  # read failure recorded
+        assert out["truncations"] == ["relocation_block_read_failed"]  # read failure recorded
 
 
 # =================================================================

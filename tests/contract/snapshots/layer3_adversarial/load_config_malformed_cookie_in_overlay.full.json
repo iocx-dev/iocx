@@ -58,6 +58,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -152,11 +153,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_invalid",
           "cookie_rva": 12800,
           "section": ".rdata",
           "characteristics": 1073741888,
-          "sub_reason": "non_writable_section"
+          "sub_reason": "non_writable_section",
+          "reason": "load_config_cookie_invalid"
         }
       },
       {
@@ -165,10 +166,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_cookie_in_overlay",
           "cookie_rva": 12800,
           "cookie_raw": 2048,
-          "overlay_offset": 2048
+          "overlay_offset": 2048,
+          "reason": "load_config_cookie_in_overlay"
         }
       }
     ]

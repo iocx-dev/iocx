@@ -41,6 +41,7 @@ _BLOCK_ERROR_PRIORITY = [
     "size_of_block_too_small",
     "size_of_block_not_word_aligned",
     "entry_count_exceeds_max",
+    "highadj_missing_adjustment",
 ]
 
 # Cap on how many invalid-entry issues a single block may raise, so a

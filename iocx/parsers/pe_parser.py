@@ -3,10 +3,8 @@
 
 import pefile
 import math
-import base64
 import struct
 from .string_extractor import extract_strings_from_bytes
-from ..analysis.obfuscation import _shannon_entropy
 from typing import List, Dict, Any, Optional
 from .language_map import PRIMARY_LANG, SUBLANG, DEFAULT_REGION
 from .pe_constants import (
@@ -15,6 +13,20 @@ from .pe_constants import (
     SUBSYSTEM_NAMES,
     MACHINE_NAMES
 )
+
+# Bounds on public output. `resources` and `resource_strings` are emitted
+# directly to CLI consumers, and both otherwise scale with attacker-
+# controlled input: the string list accumulates across every resource in
+# the tree, and the entry list appends one dict per name entry with no
+# ceiling. Each cap is reported via a truncation flag rather than applied
+# silently.
+_MAX_RESOURCE_STRINGS = 10_000
+_MAX_RESOURCE_ENTRIES = 1_024
+
+# A well-formed tree is Type -> Name -> Language, so three levels. Anything
+# deeper is malformed; the cap also prevents unbounded recursion, which
+# would raise RecursionError out of parse_pe rather than degrade.
+_MAX_RESOURCE_DEPTH = 8
 
 # ---------------------------------------------------------------------------
 # Low-level helpers
@@ -75,7 +87,8 @@ def _safe_file_size(pe) -> int:
     return size_attr() if callable(size_attr) else size_attr
 
 
-def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=None):
+def _walk_resources(pe, directory, resource_strings, max_allowed=None,
+                    visited=None, depth=0):
     if visited is None:
         visited = set()
 
@@ -84,15 +97,28 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
         # 10% of file, capped at 20 MB
         max_allowed = min(size // 10, 20_000_000) if size else 20_000_000
 
-    # Prevent infinite recursion on malformed resource trees
+    if depth > _MAX_RESOURCE_DEPTH:
+        return
+
+    # Identity is sufficient here: pefile has already materialised the tree,
+    # so what we walk is a finite object graph held alive for the duration
+    # of the call. The depth cap above covers the case identity does not -
+    # a legitimately deep chain of distinct directories.
     dir_id = id(directory)
     if dir_id in visited:
         return
     visited.add(dir_id)
 
     for entry in getattr(directory, "entries", []):
+        # Stop once the string budget is spent. Checked per entry so a tree
+        # of many small resources is bounded as well as one with a few
+        # large ones.
+        if len(resource_strings) >= _MAX_RESOURCE_STRINGS:
+            return
+
         if hasattr(entry, "directory"):
-            _walk_resources(pe, entry.directory, resource_strings, max_allowed, visited)
+            _walk_resources(pe, entry.directory, resource_strings,
+                            max_allowed, visited, depth + 1)
         elif hasattr(entry, "data"):
             data_rva = getattr(entry.data.struct, "OffsetToData", 0)
             size = getattr(entry.data.struct, "Size", 0)
@@ -103,10 +129,14 @@ def _walk_resources(pe, directory, resource_strings, max_allowed=None, visited=N
             try:
                 data = pe.get_data(data_rva, size)
             except Exception:
-                # Malformed resources (bad RVA/size) – skip safely
+                # Malformed resources (bad RVA/size) - skip safely
                 continue
 
-            resource_strings.extend(extract_strings_from_bytes(data))
+            # Slice the extension too: a single large blob would otherwise
+            # overshoot the budget in one call, before the loop-top check
+            # runs again.
+            budget = _MAX_RESOURCE_STRINGS - len(resource_strings)
+            resource_strings.extend(extract_strings_from_bytes(data)[:budget])
 
 
 def _entropy(data: bytes | None) -> float:
@@ -225,8 +255,8 @@ def _parse_bound_imports(pe):
         dll_raw = getattr(entry, "name", None) or getattr(entry, "dll", None)
         dll = _decode_dll_name(dll_raw)
 
-        struct = getattr(entry, "struct", None)
-        ts = getattr(struct, "TimeDateStamp", 0) if struct else 0
+        entry_struct = getattr(entry, "struct", None)
+        ts = getattr(entry_struct, "TimeDateStamp", 0) if entry_struct else 0
 
         bound_imports.append({"dll": dll, "timestamp": ts})
 
@@ -315,14 +345,14 @@ def _parse_signatures(pe):
         return signatures
 
     for sec in pe.DIRECTORY_ENTRY_SECURITY:
-        struct = getattr(sec, "struct", None)
-        if not struct:
+        cert_struct = getattr(sec, "struct", None)
+        if not cert_struct:
             continue
 
         signatures.append(
             {
-                "address": getattr(struct, "VirtualAddress", 0),
-                "size": getattr(struct, "Size", 0),
+                "address": getattr(cert_struct, "VirtualAddress", 0),
+                "size": getattr(cert_struct, "Size", 0),
             }
         )
 
@@ -395,21 +425,35 @@ def _parse_header(pe, opt):
 def _parse_resources(pe):
     resources: list[dict[str, Any]] = []
     resource_strings: list[str] = []
+    truncated: list[str] = []
 
     root = getattr(pe, "DIRECTORY_ENTRY_RESOURCE", None)
     if not root:
-        return resources, resource_strings
+        return resources, resource_strings, truncated
 
     # Walk the tree and collect resource_strings
     _walk_resources(pe, root, resource_strings)
+    if len(resource_strings) >= _MAX_RESOURCE_STRINGS:
+        truncated.append("resource_strings")
 
-    # Extract structured resource entries
+    # Extract structured resource entries. A pe object without this method
+    # cannot yield entries at all, which is materially different from a
+    # binary that has none - record it rather than returning silently
     if not hasattr(pe, "get_memory_mapped_image"):
-        return resources, resource_strings
+        truncated.append("resources_unavailable")
+        return resources, resource_strings, truncated
 
-    mm = pe.get_memory_mapped_image() or b""
+    try:
+        mm = pe.get_memory_mapped_image() or b""
+    except Exception:
+        truncated.append("resources_map_read_failed")
+        return resources, resource_strings, truncated
 
+    entries_capped = False
     for entry in getattr(pe.DIRECTORY_ENTRY_RESOURCE, "entries", []):
+        if entries_capped:
+            break
+
         type_id = getattr(entry, "id", None)
         type_name = pefile.RESOURCE_TYPE.get(type_id, f"RT_UNKNOWN_{type_id}")
 
@@ -417,6 +461,11 @@ def _parse_resources(pe):
             continue
 
         for res in getattr(entry.directory, "entries", []):
+            if len(resources) >= _MAX_RESOURCE_ENTRIES:
+                truncated.append("resources")
+                entries_capped = True
+                break
+
             # Capture the resource's named identifier if present
             res_name = str(res.name) if getattr(res, "name", None) is not None else None
             lang = getattr(res, "id", None)
@@ -473,7 +522,7 @@ def _parse_resources(pe):
         r["rva"] if r["rva"] is not None else -1,
     ))
 
-    return resources, resource_strings
+    return resources, resource_strings, truncated
 
 def _parse_data_directories(pe):
     dirs: list[dict[str, Any]] = []
@@ -510,22 +559,33 @@ def _parse_data_directories_raw(pe) -> list[dict[str, int]]:
     if not opt:
         return dirs
 
-    # Raw file bytes
-    raw = pe.__data__
+    # Raw file bytes.
+    # `If not raw` also catches an empty buffer, whereas the other parsers
+    # use `is None`. `Not raw` is arguably better here since a zero-length
+    # file genuinely has no optional header.
+    raw = getattr(pe, "__data__", None)
+    if not raw:
+        return dirs
 
     # File offset of Optional Header
     opt_offset = opt.get_file_offset()
 
-    # For PE32, DataDirectory starts 96 bytes into Optional Header
-    # (Magic..LoaderFlags = 96 bytes)
-    DATA_DIR_OFFSET = 96
+    # DataDirectory offset within the optional header: 96 for PE32,
+    # 112 for PE32+. PE32+ widens ImageBase and the four stack/heap
+    # fields to QWORD (+20) and drops BaseOfData (-4).
+    magic = getattr(opt, "Magic", 0x10B)
+    data_dir_offset = 112 if magic == 0x20B else 96
 
     # Each entry is 8 bytes: (DWORD RVA, DWORD Size)
-    entry_offset = opt_offset + DATA_DIR_OFFSET
+    entry_offset = opt_offset + data_dir_offset
 
     for i in range(16):
-        rva = struct.unpack_from("<I", raw, entry_offset + i * 8)[0]
-        size = struct.unpack_from("<I", raw, entry_offset + i * 8 + 4)[0]
+        try:
+            rva, size = struct.unpack_from("<II", raw, entry_offset + i * 8)
+        except struct.error:
+            # Optional header truncated before all 16 entries. Return what
+            # was readable rather than aborting the whole parse.
+            break
 
         dirs.append({
             "index": i,
@@ -557,7 +617,7 @@ def parse_pe(path):
         signatures = _parse_signatures(pe)
         opt, optional_header = _parse_optional_header(pe)
         header = _parse_header(pe, opt)
-        resources, resource_strings = _parse_resources(pe)
+        resources, resource_strings, resource_truncated = _parse_resources(pe)
 
         # Rich header
         try:
@@ -573,6 +633,10 @@ def parse_pe(path):
             "sections": sections_list,
             "resources": resources,
             "resource_strings": resource_strings,
+            # Empty when nothing was capped. Names the lists that were
+            # truncated so a consumer can distinguish a capped result from
+            # a complete one. Comment out for now to preserve public contract
+            # "resource_truncated": resource_truncated,
             "import_details": import_details,
             "delayed_imports": delayed_imports,
             "bound_imports": bound_imports,

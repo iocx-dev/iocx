@@ -1,8 +1,8 @@
 # **PE Structural Reason Codes**
 
 > **Truncation detail keys are not uniform.** `EXPORT_TABLE_TRUNCATED`,
-> `DELAY_IMPORT_TABLE_TRUNCATED` and `EXCEPTION_TABLE_TRUNCATED` name the
-> affected sub-table in a **`table`** key. `DEBUG_TABLE_TRUNCATED`,
+> `DELAY_IMPORT_TABLE_TRUNCATED`, `IMPORT_TABLE_TRUNCATED` and `EXCEPTION_TABLE_TRUNCATED`
+> name the affected sub-table in a **`table`** key. `DEBUG_TABLE_TRUNCATED`,
 > `RELOCATION_TABLE_TRUNCATED` and `TLS_DIRECTORY_TRUNCATED` use **`region`**
 > instead. Both are stable; consumers handling truncation generically must
 > read either.
@@ -133,7 +133,6 @@ They are separable by a discriminating key:
 | **DATA_DIRECTORY_NOT_MAPPED_TO_SECTION** | Directory is in range but does not fall inside any section | RVA = 0x9000, Size = 0x200, no section covers it | Per‑directory *(suppressed for empty, zero‑RVA, zero‑size, out‑of‑range and zero‑length‑section directories)* |
 | **DATA_DIRECTORY_SPANS_MULTIPLE_SECTIONS** | Directory range overlaps more than one section | RVA = 0x1800, Size = 0x1000 spans .text → .rdata | Per‑directory |
 | **DATA_DIRECTORY_OVERLAP** | Two directories’ RVA ranges overlap | Import and IAT overlap | Global |
-| **IMPORT_RVA_INVALID** *coming soon* | Import RVA does not map to a valid import table structure (import validator) | Import RVA = 0x9000 | Per‑directory |
 
 > Prior to the `raw_offset` guard fix, `DATA_DIRECTORY_NOT_MAPPED_TO_SECTION` was additionally suppressed for any directory in a file carrying an overlay, because the raw-mapping guard skipped the section-mapping checks entirely. Files analysed before that fix may under-report it.
 
@@ -145,7 +144,7 @@ They are separable by a discriminating key:
 |------------|------------------|-----------------|--------|
 | **TLS_CALLBACK_OUTSIDE_RANGE** | Callback RVA not within the TLS directory’s `(start, end)` range | Callback = `0x5000`, TLS range = `0x4000–0x4100` | Per‑file |
 | **TLS_MULTIPLE_DIRECTORIES** | More than one TLS directory is present in the PE | Two `tls_directory` entries in `extended` | Per‑file |
-| **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible) | Start = `0x6000`, End = `0x6000` | Per‑file |
+| **TLS_INVALID_RANGE** | TLS directory has `start >= end` (structurally impossible). The parser independently records `tls_raw_data_end_before_start` in its errors list and sets `raw_data_size` to `None` for this case; the validator derives the finding from the VA fields directly rather than from that tag, so the two never double-count. | Start = `0x6000`, End = `0x6000` | Per‑file |
 | **TLS_ZERO_LENGTH_DIRECTORY** | TLS directory exists but `start == end` (zero‑length region) | Start = `0x7000`, End = `0x7000` | Per‑file |
 | **TLS_CALLBACKS_MISSING** | TLS directory is non‑empty but callback pointer is `0` | Start = `0x4000`, End = `0x4100`, Callbacks = `0` | Per‑file |
 | **TLS_CALLBACK_NOT_MAPPED_TO_SECTION** | Callback RVA does not fall inside any section’s VA range | Callback = `0x90000000` (no section covers it) | Per‑file |
@@ -162,8 +161,30 @@ They are separable by a discriminating key:
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| header_decode | The fixed IMAGE_TLS_DIRECTORY could not be read or unpacked; unrecoverable, all later checks are skipped |
+| header_decode | The fixed IMAGE_TLS_DIRECTORY could not be read or unpacked; unrecoverable, all later checks are skipped. The `errors` key lists the parser tags that triggered it |
 | callback_array | A parser truncation tag surfaced while walking the callback array (the `region` key names the tag) |
+
+#### `header_decode` — contributing parser tags
+
+Listed in the issue's `errors` key. Any one of these short-circuits every
+later TLS check:
+
+| Parser tag | Meaning |
+|------------|---------|
+| tls_directory_read_failed | `pe.get_data` raised when reading the fixed struct |
+| tls_directory_truncated | The read returned fewer than the full struct size (24 bytes PE32 / 40 bytes PE32+) |
+| tls_directory_unpack_failed | `struct.unpack` failed on the struct bytes (defensive; unreachable past the length guard) |
+
+#### `callback_array` — `region` values
+
+One issue is emitted per tag, so a single directory may raise several:
+
+| region value | Meaning |
+|--------------|---------|
+| tls_callbacks_read_failed | `pe.get_data` raised while reading a callback slot |
+| tls_callbacks_truncated | A callback slot returned fewer than the pointer width (4 bytes PE32 / 8 bytes PE32+) |
+| tls_callbacks_unpack_failed | `struct.unpack` failed on a slot (defensive; unreachable past the length guard) |
+| tls_callbacks_max_exceeded | The walk hit the parser's hard limit (4096 callbacks) without finding a NULL terminator |
 
 ### TLS_CALLBACK_RVA_INVALID
 
@@ -182,6 +203,11 @@ always in `invalid_callback_count`):
 | image_base_unavailable | Callbacks were resolved but ImageBase is not an int |
 | below_image_base | A callback VA lies below ImageBase, yielding a negative RVA |
 | not_mapped | A resolved callback RVA falls inside no section |
+
+Emission is capped at 16 per-target issues; `invalid_callback_count` always
+carries the true total. The two tombstone sub-reasons above are emitted at
+most once each and are mutually exclusive with the per-target list, since the
+parser returns `callbacks = []` in both cases.
 
 ---
 
@@ -226,7 +252,7 @@ always in `invalid_callback_count`):
 |------------|------------------|-----------------|--------|
 | **RESOURCE_DIRECTORY_OUT_OF_BOUNDS** | A resource directory's `rva + size` does not lie wholly inside the `.rsrc` section. Two cases reach this: the **root** directory lies outside `.rsrc` (`depth` = 0), or a **subdirectory** starts inside `.rsrc` but its extent overflows the end (`depth` ≥ 1). A subdirectory lying wholly outside is reported by the parent as `RESOURCE_ENTRY_OUT_OF_BOUNDS` instead, so the two never double-count. `SizeOfImage` is not consulted — `.rsrc` bounds are authoritative here | Root directory RVA = `0x90000000` while `.rsrc` spans `0x1000–0x3000`; or a Name directory at `0x2FF8` with size 24 | Per‑directory |
 | **RESOURCE_DIRECTORY_LOOP** | Recursive directory traversal detects a cycle (malformed or malicious resource tree) | Directory A → B → A | Per‑file |
-| **RESOURCE_DIRECTORY_ZERO_LENGTH** | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
+| **RESOURCE_DIRECTORY_ZERO_LENGTH** (*reserved, not emitted*) | A resource directory exists but has zero length or no valid entries | RVA = `0x3000`, size = `0` | Per‑file |
 
 ### Resource Hierarchy Anomalies
 | Reason Code |	What Triggers It | Example Pattern | Scope |
@@ -241,26 +267,97 @@ always in `invalid_callback_count`):
 | **RESOURCE_ENTRY_OUT_OF_BOUNDS** | A resource directory entry points to a **subdirectory** whose RVA lies outside the `.rsrc` section. Out-of-bounds *data* entries are reported as `RESOURCE_DATA_OUT_OF_BOUNDS`, not here. The target's own size is not considered at this point — a subdirectory that starts inside `.rsrc` but overflows the end is caught by `RESOURCE_DIRECTORY_OUT_OF_BOUNDS` when it is descended into | Type directory entry points to a Name directory at RVA `0x80000000` | Per‑file |
 | **RESOURCE_DATA_OUT_OF_BOUNDS** | Resource data block lies outside the file or outside the `.rsrc` section | Data offset = `0x1F0000`, file size = `0x1E0000` | Per‑file |
 | **RESOURCE_DATA_OVERLAPS_OTHER_DATA** | A resource data blob spans the overlay start, or its raw or virtual extent intersects a section other than `.rsrc`. Blob-versus-blob comparison is **not** performed | Data at raw `0x2000–0x2400` intersects `.text` raw range | Per-file *(one issue per check; the raw-overlap and VA-overlap loops each stop at the first intersecting section, so a blob crossing several sections reports once per check, not once per section)* |
+ **RESOURCE_DIRECTORY_ENTRY_UNREADABLE** | A directory's entry list, or one entry within it, could not be decoded. The entry is skipped rather than aborting the walk, so the directory reports fewer entries than its declared size implies | An entry that is neither a subdirectory nor a data leaf | Per‑directory *(priority-resolved sub-reason)* |
+
+#### RESOURCE_DIRECTORY_ENTRY_UNREADABLE
+
+Priority‑resolved; an unreadable entry *list* subsumes any per-entry failure,
+since no entry was reached at all:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| directory_entries_unavailable | The directory's `.entries` was missing or raised; no entry was decoded |
+| entry_decode_failed | One or more individual entries were unreadable and skipped; `failed_entry_count` gives the total |
+
+Details carry `declared_size` and `decoded_entries`; their difference is the loss, and neither conveys it alone.
 
 ### Resource Version‑Info Anomalies
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |-------------|------------------|-----------------|-------|
-| **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry	StringTable | key = "ENGLISHX" instead of 8‑hex‑char <langID><codepage> form | Per‑file
-| **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple	Var. | wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file
+| **RESOURCE_VERSIONINFO_INVALID_HEADER** | The VS_VERSIONINFO envelope is malformed: placement outside `.rsrc`, `szKey` not equal to "VS_VERSION_INFO", or `wLength` inconsistent with the buffer size | szKey = "VS_VERSION_BAD" instead of "VS_VERSION_INFO" | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_FIXEDINFO** | The embedded VS_FIXEDFILEINFO has an incorrect `dwSignature` (expected `0xFEEF04BD`) or `dwStrucVersion` (expected `0x00010000`), or fails to parse | dwSignature = `0xDEADBEEF` instead of `0xFEEF04BD` | Per‑file |
+| **RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO** | A StringFileInfo, StringTable, or String child is malformed: invalid length field, non‑hex lang_codepage key, or truncated string entry | StringTable key = "ENGLISHX" instead of 8‑hex‑char `<langID><codepage>` form | Per‑file / Per‑table |
+| **RESOURCE_VERSIONINFO_INVALID_VARFILEINFO** | A VarFileInfo or Var child is malformed, or the Translation array's length is not a DWORD multiple | Var wValueLength = 6 (not divisible by 4) for a Translation array | Per‑file |
 
 *Note: absence of an RT_VERSION resource is not treated as a structural anomaly — many legitimate binary types (kernel drivers, MSI helpers, cross‑compiled artefacts) omit version‑info entirely.*
 
+> **Projection flags are not reason codes.** The public `version_info`
+> output carries its own `truncated` list — `tables`, `strings`,
+> `keys_filtered` — which shapes what is *emitted* rather than describing
+> what is *wrong* with the file. A blob that trips all three can still be
+> perfectly well-formed and produce no issue here. The two vocabularies
+> are disjoint and must not be conflated:
+>
+> | `truncated` flag | Meaning | Structural? |
+> |------------------|---------|-------------|
+> | tables | More string tables than the public cap (16); the remainder were not projected | No |
+> | strings | More keys in a table than the public cap (64) after key filtering; the remainder were not projected | No |
+> | keys_filtered | Keys outside the default closed key set were dropped. Expected on any binary carrying non-shortlist keys, and absent under `full` | No |
+>
+> Structural truth lives in `structural_error_count` and the
+> `RESOURCE_VERSIONINFO_*` codes above; `truncated` records only that the
+> public view is narrower than the parsed one.
+
 ### RESOURCE_VERSIONINFO_INVALID_HEADER sub‑reasons
+
+The first four describe the VS_VERSIONINFO envelope itself. The last four
+describe the child-dispatch walk and are appended to the top-level `errors`
+list *after* `decoded` is set, so they are read by their own branch rather
+than by the `undecoded` forward.
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| placement | The VS_VERSIONINFO blob does not lie wholly inside `.rsrc` |
-| undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks |
+| placement | The VS_VERSIONINFO blob was read and decoded, but does not lie wholly inside `.rsrc`. A validator-side comparison of the blob's extent against section bounds — distinct from `leaf_placement_implausible` below, which is a parser-side refusal to read at all |
+| undecoded | The parser could not decode the envelope; short-circuits the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks. The `errors` key lists the contributing parser tags |
 | szkey_mismatch | `szKey` is not "VS_VERSION_INFO" |
 | length_inconsistent | `wLength` disagrees with the buffer size |
+| child_max_exceeded | The child walk hit the parser's hard limit (256) and stopped. Children beyond that point were not examined |
+| child_header_unpack | A child's 6-byte header could not be unpacked; the walk stopped there |
+| child_length_invalid | A child's `wLength` was below the 6-byte minimum or extended past the envelope; the walk stopped there |
+| unknown_child | A child whose `szKey` is neither "StringFileInfo" nor "VarFileInfo". Does **not** stop the walk, so it may repeat — the issue's `errors` key carries every occurrence, bounded by the child cap |
+
+The four child sub-reasons are priority-resolved, in the order listed:
+a fault that terminated the walk outranks one that did not, because the
+remaining children were never examined. At most one issue is emitted per
+blob, with the full matching set carried in `errors`.
+
+#### `undecoded` — contributing parser tags
+
+Listed in the issue's `errors` key. Any one of these means no VS_VERSIONINFO
+envelope was decoded, so the FIXEDINFO / STRINGFILEINFO / VARFILEINFO checks
+are skipped:
+
+| Parser tag | Meaning |
+|------------|---------|
+| leaf_struct_unpack | The RT_VERSION leaf's `OffsetToData` / `Size` could not be read from the resource entry |
+| leaf_placement_implausible | The leaf's declared placement is structurally impossible: a negative RVA, a size of zero or less, or a size exceeding the 1 MB blob cap. The blob is **not** read — the guard precedes `pe.get_data` — so an attacker-controlled `Size` is bounded before any allocation occurs |
+| read_failed | `pe.get_data` raised when reading the blob at a placement that passed the guard |
+| too_short | The blob was read but is under the 6-byte VS_VERSIONINFO header minimum |
+| header_unpack | `struct.unpack` failed on the 6-byte header (defensive; unreachable past the length guard) |
+
+*Placement is reported verbatim in `rva` and `size` even when the guard
+refuses the read, so the declared values remain diagnosable. A tombstoned
+structure is returned rather than `None`: absence of an RT_VERSION resource
+is not a defect and produces no issue at all, whereas a resource that exists
+but cannot be trusted must stay visible.*
+
+> **Zero-size leaves moved tag.** A leaf declaring `Size = 0` previously
+> reached `pe.get_data`, returned an empty buffer and surfaced as
+> `too_short`. It is now refused by the placement guard and surfaces as
+> `leaf_placement_implausible`. Consumers keying on `too_short` for that
+> case must be updated; `too_short` now means only that a non-empty blob
+> was read and fell short of the 6-byte header.
 
 ### RESOURCE_VERSIONINFO_INVALID_FIXEDINFO sub‑reasons
 
@@ -274,11 +371,53 @@ always in `invalid_callback_count`):
 `RESOURCE_VERSIONINFO_INVALID_VARFILEINFO` carry no sub‑reason; the parser's
 tags are passed through verbatim in an `errors` list.
 
+#### RESOURCE_VERSIONINFO_INVALID_STRINGFILEINFO — parser tags
+
+Passed through verbatim in the issue's `errors` list. StringFileInfo-level
+and StringTable-level tags are emitted as separate issues: the first has a
+`tables` count in details, the second a `lang_codepage`.
+
+| Parser tag | Level | Meaning |
+|------------|-------|---------|
+| string_table_header | StringFileInfo | A StringTable's length field could not be unpacked; the walk stopped there |
+| string_table_length | StringFileInfo | A StringTable's `wLength` was below the 6-byte minimum or extended past the StringFileInfo; the walk stopped there |
+| lang_codepage_key | StringTable | The key is not 8 hex characters in `<langID><codepage>` form |
+| string_header | StringTable | A String entry's length field could not be unpacked; the walk stopped there |
+| string_length | StringTable | A String entry's `wLength` was below the 6-byte minimum or extended past the table; the walk stopped there |
+
+#### RESOURCE_VERSIONINFO_INVALID_VARFILEINFO — parser tags
+
+| Parser tag | Meaning |
+|------------|---------|
+| var_header | A Var child's length fields could not be unpacked; the walk stopped there |
+| var_length | A Var child's `wLength` was below the 6-byte minimum or extended past the VarFileInfo; the walk stopped there |
+| translation_not_dword_aligned | `wValueLength` is not a multiple of 4, so the Translation array cannot be a whole number of LANGID+codepage pairs |
+| translation_unpack | `struct.unpack` failed on a translation pair (defensive; the slot count is derived from the value extent) |
+
 ### **Resource String‑Table Anomalies**
 
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
 | **RESOURCE_STRING_TABLE_CORRUPT** | String table length, offsets, or UTF‑16 entries are malformed or out of bounds | String count = 32 but table only contains 10 entries | Per‑file |
+| **RESOURCE_STRING_TABLE_UNREADABLE** | The RT_STRING traversal raised before completing, so the string-table list is empty or partial and its absence carries no meaning | Malformed Name or Language directory beneath RT_STRING | Per‑file |
+| **RESOURCE_TABLE_UNAVAILABLE** | The resource entry table could not be built at all: `pe.get_memory_mapped_image` was absent, or raised when called. No entry was decoded, so an empty `resources` list carries no meaning. Distinct from a binary with no resource directory, which produces no issue | A pe object lacking `get_memory_mapped_image`; or a memory-map read raising on a malformed image | Per‑file |
+
+#### RESOURCE_STRING_TABLE_UNREADABLE
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| walk_failed | The RT_STRING walk raised; `string_tables` may be empty or partial. Distinct from a binary that genuinely carries no string resources, which produces no issue at all |
+
+#### RESOURCE_TABLE_UNAVAILABLE
+
+Mutually exclusive — the capability check precedes the call, so a missing method never reaches the raising branch:
+
+| Parser tag | Meaning |
+|------------|---------|
+| resources_unavailable | `get_memory_mapped_image` was not present on the pe object |
+| resources_map_read_failed | The method was present but raised; the exception is swallowed and the walk abandoned |
+
+Both appear in the resource truncation list. Unlike `resources` and `resource_strings` in that same list, this is a capability tombstone rather than a cap: no entry was truncated because none was decoded. A tombstone and `resources` are mutually exclusive by construction, since both branches return before the entry loop.
 
 ---
 
@@ -392,7 +531,9 @@ Priority‑resolved; the first matching tag wins:
 |------------|---------|
 | name_rva_missing | Parser did not capture the entry's name RVA |
 | name_rva_zero | RVA was explicitly zero |
+| rva_zero | `_read_asciiz` was called with a zero RVA (defensive; currently unreachable, since the zero case is caught earlier) |
 | read_failed | pe.get_data raised when reading the name string |
+| empty_read | The read returned zero bytes |
 | unterminated | No NUL terminator found within the maximum scan length |
 
 ### EXPORT_NAME_NOT_ASCII
@@ -410,6 +551,7 @@ Priority‑resolved:
 |------------|---------|
 | missing | Parser could not read the EOT entry |
 | out_of_range | Ordinal index >= NumberOfFunctions |
+| duplicate | Two or more name pointers resolve to the same EAT index; only the last is reflected in the function view, so an export name is silently unreachable through the resolved-function list |
 
 ### EXPORT_ORDINAL_OUT_OF_RANGE
 
@@ -501,9 +643,12 @@ Priority‑resolved; the first matching tag wins:
 |------------|---------|
 | dll_name_rva_zero | DLL name RVA was explicitly zero |
 | read_failed | pe.get_data raised when reading the DLL name string |
+| empty_read | The read returned zero bytes |
 | unterminated | No NUL terminator found within the maximum scan length (512 bytes) |
-| dll_name_not_printable | Decoded successfully but contains bytes outside 0x20–0x7E |
 | non_ascii | Decode produced Unicode replacement characters |
+| dll_name_empty | The string terminated immediately — a zero-length DLL name |
+| dll_name_not_printable | Contains bytes outside 0x20–0x7E |
+| dll_name_too_long | Exceeds 255 characters, the NTFS filename component limit |
 
 ### DELAY_IMPORT_INT_IAT_MISMATCH
 
@@ -527,7 +672,111 @@ Priority‑resolved:
 | hint_unpack_failed | Could not unpack the WORD hint |
 | name_unterminated | Name string had no NUL terminator within the maximum scan length |
 | name_non_ascii | Name decode produced Unicode replacement characters |
+| name_empty | The symbol name terminated immediately — a zero-length import name |
 | name_not_printable | Name decoded successfully but contains non‑printable bytes |
+
+---
+
+## **IMPORT ANOMALIES**
+
+*Added in v0.7.6.2 (validator §2.16). Backed by the `pe_imports` struct-level
+decoder over the 20-byte `IMAGE_IMPORT_DESCRIPTOR` array. Directory placement
+and bounds remain owned by the RVA-graph backbone — both the import directory
+(index 1) and the IAT directory (index 12) are plain RVAs, so this validator
+defers entirely rather than double-counting. The bound-import directory
+(index 11) is a separate structure and is not decoded. Absence of an import
+directory is not a defect.*
+
+> **`OriginalFirstThunk == 0` is legal here.** Unlike the delay-load INT, a
+> zero `OriginalFirstThunk` is common: older linkers emit only `FirstThunk`,
+> which then holds INT-style thunks on disk. The parser falls back to it and
+> records `thunk_source: "iat_fallback"` **without** raising an anomaly. Only
+> when the descriptor is *also* old-style bound — so `FirstThunk` holds
+> resolved addresses rather than thunks — are names genuinely unrecoverable.
+
+| Reason Code | What Triggers It | Example Pattern | Scope |
+|------------|------------------|-----------------|--------|
+| **IMPORT_DIRECTORY_INVALID_HEADER** | Top-level decode failure; short-circuits every later import check | Descriptor array unreadable at the declared RVA | Per‑file |
+| **IMPORT_TABLE_TRUNCATED** | A parser truncation tag surfaced while walking the descriptor array or a thunk array | Descriptor array reaches the declared end with no zero terminator | Per‑file *(one issue per tag; `table` names the cause)* |
+| **IMPORT_DESCRIPTOR_INVALID** | A descriptor identifies a module but has no readable source of imported symbol names | Old-style bound with `OriginalFirstThunk = 0`; or both thunk RVAs zero | Per‑descriptor *(priority-resolved sub-reason)* |
+| **IMPORT_DLL_NAME_INVALID** | A descriptor's DLL name RVA is zero, unreadable, unterminated, empty, non-printable, or exceeds the filename limit | Name RVA = 0x0, or name = `"kernel32\x01dll"` | Per‑descriptor *(priority-resolved sub-reason)* |
+| **IMPORT_ENTRY_INVALID** | A per-import entry is malformed: a zero ordinal, or an `IMAGE_IMPORT_BY_NAME` that is unreadable, too short, unterminated, empty or non-printable | Thunk with the high bit set but ordinal = 0 | Per‑entry *(priority-resolved; emission capped, see below)* |
+
+## IMPORT SUB‑REASONS
+
+### IMPORT_DIRECTORY_INVALID_HEADER
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| top_level_decode | The parser could not complete top-level decoding; the `errors` key lists the contributing parser tags |
+
+### IMPORT_TABLE_TRUNCATED
+
+The `table` field (not `sub_reason`) identifies the truncation cause. Thunk
+tags are prefixed by the array actually read, so a consumer can tell whether
+the INT or the fallback IAT was short:
+
+| table value | Meaning |
+|-------------|---------|
+| import_descriptor_truncated | A descriptor's 20-byte structure came back short |
+| import_descriptor_read_failed | `pe.get_data` raised while reading a descriptor |
+| import_descriptor_unterminated | The declared directory size was reached with no zero descriptor |
+| import_descriptor_max_exceeded | Hit the hard descriptor limit (4096) without finding a terminator |
+| int_truncated / iat_fallback_truncated | A thunk read came back shorter than the pointer width |
+| int_read_failed / iat_fallback_read_failed | `pe.get_data` raised while reading a thunk |
+| int_unpack_failed / iat_fallback_unpack_failed | `struct.unpack` failed on a thunk (defensive; unreachable past the length guard) |
+| int_max_exceeded / iat_fallback_max_exceeded | Hit the imports-per-descriptor limit (16384) without a NULL thunk |
+
+### IMPORT_DESCRIPTOR_INVALID
+
+Priority‑resolved; the first matching tag wins. Mutually exclusive in
+practice — the parser returns immediately after recording either:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| names_unrecoverable_bound_no_int | The descriptor is old-style bound (`TimeDateStamp` neither 0 nor 0xFFFFFFFF) and `OriginalFirstThunk` is zero, so `FirstThunk` holds resolved addresses and no name table exists |
+| no_thunk_array | Both `OriginalFirstThunk` and `FirstThunk` are zero — the descriptor names no imports at all |
+
+Details carry `bound_state`, `original_first_thunk` and `first_thunk` so the
+reason a name source is unavailable is visible without re-reading the file.
+
+### IMPORT_DLL_NAME_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| dll_name_rva_zero | The descriptor's Name RVA was explicitly zero |
+| rva_zero | `_read_asciiz` was called with a zero RVA (defensive; the zero case is caught earlier) |
+| read_failed | `pe.get_data` raised when reading the name string |
+| empty_read | The read returned zero bytes |
+| unterminated | No NUL terminator within the maximum scan length (512 bytes) |
+| non_ascii | Decode produced Unicode replacement characters |
+| dll_name_empty | The string terminated immediately — a zero-length DLL name |
+| dll_name_not_printable | Contains bytes outside 0x20–0x7E |
+| dll_name_too_long | Exceeds 255 characters, the NTFS filename component limit |
+
+### IMPORT_ENTRY_INVALID
+
+Priority‑resolved; the first matching tag wins:
+
+| Sub‑reason | Meaning |
+|------------|---------|
+| ordinal_zero | High bit set on the thunk but the ordinal value is zero |
+| name_rva_zero | The thunk's `IMAGE_IMPORT_BY_NAME` RVA was zero |
+| name_read_failed | `pe.get_data` raised when reading the hint+name structure |
+| name_too_short | The buffer was fewer than 3 bytes (WORD hint plus at least one name byte) |
+| hint_unpack_failed | Could not unpack the WORD hint (defensive) |
+| name_unterminated | No NUL terminator within the maximum scan length (1024 bytes) |
+| name_non_ascii | Decode produced Unicode replacement characters |
+| name_empty | The symbol name terminated immediately — a zero-length import name |
+| name_not_printable | Contains bytes outside 0x20–0x7E. Length is not constrained: the 1024-byte read is the only bound, so mangled C++ symbols are accepted |
+
+Emission is capped at 32 issues **per descriptor**; `invalid_entry_count`
+always carries the true total for that descriptor. The cap is per-descriptor
+rather than per-file, so a heavily malformed first module does not silence
+later ones. Note the count is of *invalid* entries, not of the descriptor's
+whole import list.
 
 ---
 
@@ -538,7 +787,7 @@ Priority‑resolved:
 | Reason Code | What Triggers It | Example Pattern | Scope |
 |------------|------------------|-----------------|--------|
 | **RELOCATION_DIRECTORY_INVALID_HEADER** | Top-level decode failure: the directory placement could not be resolved or the first block header was unrecoverable | Directory at an RVA `pe.get_data` cannot resolve | Per‑file |
-| **RELOCATION_TABLE_TRUNCATED** | A block's declared `SizeOfBlock` extends past the directory's declared end, or the entry region could not be fully read | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
+| **RELOCATION_TABLE_TRUNCATED** | A block header, entry region, or the block walk itself could not be fully read within the declared directory | Block claims 0x200 bytes but only 0x40 remain before directory end | Per‑file |
 | **RELOCATION_BLOCK_MALFORMED** | A block is structurally invalid: `SizeOfBlock` below the 8-byte header minimum, not aligned to the 2-byte entry stride, or a non-advancing size that would stall the walk | `SizeOfBlock = 0`, or `SizeOfBlock = 7` | Per‑block *(priority-resolved sub-reason)* |
 | **RELOCATION_ENTRY_RVA_INVALID** | A non-ABSOLUTE entry's target (`page_rva + offset`) does not map to any section | Entry target = 0x9000 with no covering section | Per‑entry *(count always reported in details even when emission is capped)* |
 
@@ -563,7 +812,40 @@ Priority‑resolved; the first matching tag wins:
 ### RELOCATION_TABLE_TRUNCATED
 
 The `region` field (not `table`, and not `sub_reason`) names the truncated
-region.
+region:
+
+| region value | Meaning |
+|---|---|
+| relocation_block_header_truncated | The 8-byte block header did not fit the declared directory window, or came back short |
+| relocation_block_read_failed | `pe.get_data` raised while reading a block header |
+| relocation_entries_exceed_directory | A block's declared entry region extends past the directory's declared end; the readable portion is clamped and the remainder is not decoded |
+| relocation_entries_truncated | The entry array was clamped to the directory end, or came back short |
+| relocation_entries_read_failed | `pe.get_data` raised while reading the entry array |
+| relocation_block_max_exceeded | The walk hit the 65536-block hard limit |
+
+*Note `relocation_entries_exceed_directory` and `relocation_entries_truncated`
+are distinct facts and may both fire for the same block: the former means the
+declared size was clamped to the directory window; the latter means the
+physical read then came back shorter than even that clamped window.*
+
+### Entry-level: HIGHADJ pairing
+
+`IMAGE_REL_BASED_HIGHADJ` (type 4) occupies two WORD slots per the PE spec —
+the type+offset word, followed by a raw 16-bit adjustment value. The parser
+threads a pairing state across the entry walk (reset per block, never shared
+across blocks) rather than decoding every word independently:
+
+| Entries field | Meaning |
+|----------------|---------|
+| `adjustment` | Present only on a HIGHADJ entry whose pairing succeeded; holds the raw 16-bit value from the following WORD, verbatim, not decoded as type+offset |
+
+If a HIGHADJ entry is the last word in a block's entry region (no adjustment
+word follows), the entry is still recorded, `adjustment` is absent, and the
+block carries:
+
+| Sub‑reason (block-level `errors`) | Meaning |
+|------------------------------------|---------|
+| highadj_missing_adjustment | A HIGHADJ entry had no following word to pair with — the block ended, or was truncated, mid-pair |
 
 ---
 
@@ -601,10 +883,19 @@ Priority‑resolved; the first matching tag wins:
 | pdb_path_unterminated | The PDB path had no NUL terminator within the scan length |
 | pdb_path_non_ascii | The PDB path decoded but contains non-printable bytes |
 
+*On `pdb_path_unterminated`, pdb_path is still populated — with the region truncated at the 512-byte scan cap — rather than left None. Consumers must check errors before trusting the path.*
+
 ### DEBUG_TABLE_TRUNCATED
 
 The `region` field (not `table`, and not `sub_reason`) names the truncated
-region.
+region:
+
+| region value | Meaning |
+|--------------|---------|
+| debug_directory_size_not_entry_aligned | Declared directory size is not a whole multiple of the 28-byte entry stride; the partial trailing entry is not decoded |
+| debug_directory_entry_count_exceeds_max | Declared entry count exceeded the parser's hard limit (256) and was clamped |
+| debug_entry_read_failed | `pe.get_data` raised while reading an entry |
+| debug_entry_truncated | An entry read returned fewer than 28 bytes |
 
 ---
 
@@ -668,8 +959,6 @@ Priority‑resolved; the first matching tag wins:
 
 | Sub‑reason | Meaning |
 |------------|---------|
-| entry_truncated | The entry's fixed-size structure was short |
-| entry_read_failed | pe.get_data raised when reading the entry |
 | entry_unpack_failed | struct.unpack failed on the entry bytes |
 | begin_rva_zero | BeginAddress was zero |
 | end_rva_zero | EndAddress was zero (amd64) |

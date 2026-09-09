@@ -58,6 +58,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -152,10 +153,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_zero_rva_nonzero_size",
           "directory": "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG",
           "rva": 0,
-          "size": 148
+          "size": 148,
+          "reason": "data_directory_zero_rva_nonzero_size"
         }
       }
     ]

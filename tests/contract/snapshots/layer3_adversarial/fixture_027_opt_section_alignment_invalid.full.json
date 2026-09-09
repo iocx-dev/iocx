@@ -59,6 +59,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -160,19 +161,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_zero_or_negative",
-          "entry_point": 0
-        }
-      },
-      {
-        "value": "pe_structure_anomaly",
-        "start": 0,
-        "end": 0,
-        "category": "pe_heuristic",
-        "metadata": {
-          "reason": "entrypoint_in_headers",
           "entry_point": 0,
-          "size_of_headers": 1024
+          "reason": "entrypoint_zero_or_negative"
         }
       },
       {
@@ -181,10 +171,21 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
+          "entry_point": 0,
+          "size_of_headers": 1024,
+          "reason": "entrypoint_in_headers"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
           "entry_point": 0,
           "size_of_image": 16384,
-          "position": "within_size_of_image_but_no_section"
+          "position": "within_size_of_image_but_no_section",
+          "reason": "entrypoint_out_of_bounds"
         }
       },
       {
@@ -193,9 +194,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_invalid_section_alignment",
           "section_alignment": 384,
-          "file_alignment": 512
+          "file_alignment": 512,
+          "reason": "optional_header_invalid_section_alignment"
         }
       },
       {
@@ -204,9 +205,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_invalid_section_alignment",
           "section_alignment": 384,
-          "sub_reason": "not_power_of_two"
+          "sub_reason": "not_power_of_two",
+          "reason": "optional_header_invalid_section_alignment"
         }
       },
       {
@@ -215,9 +216,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_size_of_image_misaligned",
           "size_of_image": 16384,
-          "section_alignment": 384
+          "section_alignment": 384,
+          "reason": "optional_header_size_of_image_misaligned"
         }
       }
     ]

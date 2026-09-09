@@ -57,6 +57,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -144,10 +145,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_in_overlay",
           "entry_point": 4096,
           "entry_point_file_offset": 512,
-          "overlay_offset": 392
+          "overlay_offset": 392,
+          "reason": "entrypoint_in_overlay"
         }
       },
       {
@@ -156,13 +157,13 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_raw_mismatch",
           "directory": "IMAGE_DIRECTORY_ENTRY_EXCEPTION",
           "rva": 6144,
           "raw_offset": 2560,
           "section": ".text",
           "section_raw_start": 512,
-          "section_raw_end": 1024
+          "section_raw_end": 1024,
+          "reason": "data_directory_raw_mismatch"
         }
       },
       {
@@ -171,10 +172,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_in_overlay",
           "directory": "IMAGE_DIRECTORY_ENTRY_EXCEPTION",
           "rva": 6144,
-          "raw_offset": 2560
+          "raw_offset": 2560,
+          "reason": "data_directory_in_overlay"
         }
       },
       {
@@ -183,10 +184,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_directory_size_not_multiple",
           "size": 256,
           "entry_size": 12,
-          "remainder": 4
+          "remainder": 4,
+          "reason": "exception_directory_size_not_multiple"
         }
       },
       {
@@ -195,8 +196,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_table_truncated",
-          "table": "exception_table_ragged_tail"
+          "table": "exception_table_ragged_tail",
+          "reason": "exception_table_truncated"
         }
       },
       {
@@ -205,8 +206,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_table_truncated",
-          "table": "exception_entry_truncated"
+          "table": "exception_entry_truncated",
+          "reason": "exception_table_truncated"
         }
       }
     ]

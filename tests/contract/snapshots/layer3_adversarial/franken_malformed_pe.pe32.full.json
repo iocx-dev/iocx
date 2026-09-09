@@ -60,6 +60,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -187,10 +188,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "entrypoint_out_of_bounds",
           "entry_point": 12288,
           "size_of_image": 8192,
-          "position": "beyond_size_of_image"
+          "position": "beyond_size_of_image",
+          "reason": "entrypoint_out_of_bounds"
         }
       },
       {
@@ -199,11 +200,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_misaligned",
           "section": ".rdata",
           "raw_address": 768,
           "raw_size": 1536,
-          "file_alignment": 512
+          "file_alignment": 512,
+          "reason": "section_raw_misaligned"
         }
       },
       {
@@ -212,11 +213,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_misaligned",
           "section": ".data",
           "raw_address": 2384,
           "raw_size": 768,
-          "file_alignment": 512
+          "file_alignment": 512,
+          "reason": "section_raw_misaligned"
         }
       },
       {
@@ -225,9 +226,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_overlap",
           "section_a": ".text",
-          "section_b": ".rdata"
+          "section_b": ".rdata",
+          "reason": "section_raw_overlap"
         }
       },
       {
@@ -236,9 +237,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_raw_overlap",
           "section_a": ".data",
-          "section_b": ".rsrc"
+          "section_b": ".rsrc",
+          "reason": "section_raw_overlap"
         }
       },
       {
@@ -247,9 +248,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlap",
           "section_a": ".text",
-          "section_b": ".rdata"
+          "section_b": ".rdata",
+          "reason": "section_overlap"
         }
       },
       {
@@ -258,9 +259,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_inconsistent_size",
           "size_of_image": 8192,
-          "max_section_end": 11776
+          "max_section_end": 11776,
+          "reason": "optional_header_inconsistent_size"
         }
       },
       {
@@ -269,11 +270,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_IMPORT",
           "rva": 20480,
           "size": 512,
-          "size_of_image": 8192
+          "size_of_image": 8192,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -282,10 +283,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_zero_rva_nonzero_size",
           "directory": "IMAGE_DIRECTORY_ENTRY_RESOURCE",
           "rva": 0,
-          "size": 256
+          "size": 256,
+          "reason": "data_directory_zero_rva_nonzero_size"
         }
       },
       {
@@ -294,10 +295,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_directory_size_not_multiple",
           "size": 512,
           "entry_size": 12,
-          "remainder": 8
+          "remainder": 8,
+          "reason": "exception_directory_size_not_multiple"
         }
       },
       {
@@ -306,9 +307,19 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "exception_unsupported_machine",
           "arch": "unsupported",
-          "machine": 332
+          "machine": 332,
+          "reason": "exception_unsupported_machine"
+        }
+      },
+      {
+        "value": "pe_structure_anomaly",
+        "start": 0,
+        "end": 0,
+        "category": "pe_heuristic",
+        "metadata": {
+          "table": "import_descriptor_read_failed",
+          "reason": "import_table_truncated"
         }
       }
     ]

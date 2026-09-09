@@ -359,6 +359,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -691,8 +692,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "packer_section_name",
-          "section": "UPX0"
+          "section": "UPX0",
+          "reason": "packer_section_name"
         }
       },
       {
@@ -701,9 +702,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "anti_debug_api_import",
           "dll": "kernel32.dll",
-          "function": "CheckRemoteDebuggerPresent"
+          "function": "CheckRemoteDebuggerPresent",
+          "reason": "anti_debug_api_import"
         }
       },
       {
@@ -712,9 +713,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "timing_api_import",
           "dll": "kernel32.dll",
-          "function": "GetTickCount"
+          "function": "GetTickCount",
+          "reason": "timing_api_import"
         }
       },
       {
@@ -723,9 +724,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "timing_api_import",
           "dll": "kernel32.dll",
-          "function": "GetTickCount64"
+          "function": "GetTickCount64",
+          "reason": "timing_api_import"
         }
       },
       {
@@ -734,9 +735,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "anti_debug_api_import",
           "dll": "kernel32.dll",
-          "function": "IsDebuggerPresent"
+          "function": "IsDebuggerPresent",
+          "reason": "anti_debug_api_import"
         }
       },
       {
@@ -745,9 +746,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "anti_debug_api_import",
           "dll": "kernel32.dll",
-          "function": "OutputDebugStringA"
+          "function": "OutputDebugStringA",
+          "reason": "anti_debug_api_import"
         }
       },
       {
@@ -756,9 +757,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "timing_api_import",
           "dll": "kernel32.dll",
-          "function": "QueryPerformanceCounter"
+          "function": "QueryPerformanceCounter",
+          "reason": "timing_api_import"
         }
       },
       {
@@ -767,10 +768,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_overlaps_headers",
           "section": ".bss",
           "raw_address": 0,
-          "size_of_headers": 1536
+          "size_of_headers": 1536,
+          "reason": "section_overlaps_headers"
         }
       },
       {
@@ -779,7 +780,6 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "section_out_of_order_raw",
           "raw_addresses": [
             1536,
             8192,
@@ -802,7 +802,8 @@
             89600,
             95744,
             100864
-          ]
+          ],
+          "reason": "section_out_of_order_raw"
         }
       },
       {
@@ -811,9 +812,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_overlap",
           "directory_a": "IMAGE_DIRECTORY_ENTRY_IMPORT",
-          "directory_b": "IMAGE_DIRECTORY_ENTRY_IAT"
+          "directory_b": "IMAGE_DIRECTORY_ENTRY_IAT",
+          "reason": "data_directory_overlap"
         }
       },
       {
@@ -822,10 +823,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "callback_outside_tls_range",
           "callbacks": 5368754232,
           "start_address": 5368758272,
-          "end_address": 5368758280
+          "end_address": 5368758280,
+          "reason": "callback_outside_tls_range"
         }
       }
     ]

@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 
 from iocx.parsers.pe_version_info import (
-    build_version_info,
+    build_version_info_structure,
     _align4,
     _decode_string_file_info,
     _decode_var_file_info,
@@ -36,8 +36,11 @@ from iocx.parsers.pe_version_info import (
     _VS_FFI_STRUCT_VERSION,
     _VS_VERSION_INFO_KEY,
     RT_VERSION,
+    _MAX_CHILDREN,
+    _MAX_VERSION_BLOB
 )
 
+_PLACEMENT_TAG = "leaf_placement_implausible"
 
 # =================================================================
 # Byte-level builders for VS_VERSIONINFO test fixtures
@@ -52,6 +55,24 @@ def _pad4(buf: bytes) -> bytes:
     """Pad a buffer to a 4-byte boundary."""
     pad = (-len(buf)) & 3
     return buf + b"\x00" * pad
+
+
+def _envelope(w_length: int = 0) -> bytes:
+    """VS_VERSIONINFO header with no FFI. w_length 0 leaves
+    length_consistent False, so the walk covers the whole buffer."""
+    return _pad4(struct.pack("<HHH", w_length, 0, 0)
+                 + _utf16_sz("VS_VERSION_INFO"))
+
+
+def _child(key: str) -> bytes:
+    """A minimal well-formed child whose wLength covers header + key + pad."""
+    key_bytes = _utf16_sz(key)
+    length = ((6 + len(key_bytes)) + 3) & ~3
+    return _pad4(struct.pack("<HHH", length, 0, 0) + key_bytes)
+
+
+def _blob(child_key: str, count: int) -> bytes:
+    return _envelope() + _child(child_key) * count
 
 
 def _build_ffi(
@@ -126,17 +147,6 @@ def _build_var(key: str, translations: List[Tuple[int, int]]) -> bytes:
     header_and_key = struct.pack("<HHH", 0, len(payload), 0) + key_bytes
     header_and_key = _pad4(header_and_key)
     full = header_and_key + payload
-    full = _pad4(full)
-    return struct.pack("<H", len(full)) + full[2:]
-
-
-def build_var_file_info(vars: List[Tuple[str, List[Tuple[int, int]]]]) -> bytes:
-    """Build a VarFileInfo child containing the given Vars."""
-    key_bytes = _utf16_sz("VarFileInfo")
-    header_and_key = struct.pack("<HHH", 0, 0, 1) + key_bytes
-    header_and_key = _pad4(header_and_key)
-    body = b"".join(build_var(k, t) for k, t in vars)
-    full = header_and_key + body
     full = _pad4(full)
     return struct.pack("<H", len(full)) + full[2:]
 
@@ -824,18 +834,18 @@ class TestLocator:
 
 
 # =================================================================
-# build_version_info entry point tests
+# build_version_info_structure entry point tests
 # =================================================================
 
 class TestBuildVersionInfo:
     def test_returns_none_when_no_resource_directory_attr(self):
         # PE object lacking DIRECTORY_ENTRY_RESOURCE entirely
         pe = type("FakePE", (), {})()
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_returns_none_when_no_rt_version_leaf(self):
         pe = _FakePE(root_entries=[], raw_data_by_rva={})
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_full_roundtrip_with_valid_blob(self):
         ffi = _build_ffi()
@@ -852,7 +862,7 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["rva"] == 0x1000
         assert out["size"] == len(blob)
@@ -872,7 +882,7 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={}, raise_on_get_data=True)
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["decoded"] is False
         assert "read_failed" in out["errors"]
@@ -890,7 +900,7 @@ class TestBuildVersionInfo:
         ]
         # The locator filters out leaves without .data, so this should return None
         pe = _FakePE(root_entries, raw_data_by_rva={})
-        assert build_version_info(pe) is None
+        assert build_version_info_structure(pe) is None
 
     def test_deterministic_leaf_selection_with_multiple_leaves(self):
         blob_a = _build_vs_versioninfo(
@@ -919,10 +929,85 @@ class TestBuildVersionInfo:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob_b, 0x2000: blob_a})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         # Sort by language id: 0x0409 < 0x0809, so leaf_b should win
         assert out["rva"] == 0x1000
         assert out["string_file_info"][0]["tables"][0]["strings"]["ProductName"] == "FromLeafB"
+
+
+# =================================================================
+# Child Cap Walk
+# =================================================================
+
+class TestChildWalkCap:
+
+    def test_below_cap_all_children_walked(self):
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN - 1))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN - 1
+        assert "child_max_exceeded" not in out["errors"]
+
+    def test_exactly_at_cap_not_flagged(self):
+        """The cap is a ceiling on children WALKED, so exactly N is fine."""
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert "child_max_exceeded" not in out["errors"]
+
+    def test_one_over_cap_flagged(self):
+        out = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN + 1))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert "child_max_exceeded" in out["errors"]
+
+    def test_far_over_cap_bounded(self):
+        """
+        Regression guard: before the cap this produced one tag per child,
+        with no ceiling.
+        """
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["errors"].count("unknown_child") == _MAX_CHILDREN
+        assert len(out["errors"]) == _MAX_CHILDREN + 1
+
+    def test_cap_bounds_the_errors_list_size(self):
+        """The property that matters downstream: output size is bounded by
+        the cap, not by the input."""
+        small = _decode_vs_versioninfo(_blob("Y", _MAX_CHILDREN + 10))
+        large = _decode_vs_versioninfo(_blob("Y", 20000))
+        assert len(small["errors"]) == len(large["errors"])
+
+    def test_cap_counts_well_formed_children_too(self):
+        """
+        The cap is on the WALK, not on the error count - a blob of
+        thousands of valid StringFileInfo children is bounded as well.
+        """
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", _MAX_CHILDREN + 10))
+        assert len(out["string_file_info"]) == _MAX_CHILDREN
+        assert "child_max_exceeded" in out["errors"]
+
+    def test_normal_blob_unaffected(self):
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", 1))
+        assert out["errors"] == []
+        assert len(out["string_file_info"]) == 1
+
+    def test_cap_tag_appears_once(self):
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["errors"].count("child_max_exceeded") == 1
+
+    def test_cap_terminates_before_decoding_the_next_child(self):
+        """
+        The check precedes the header read, so the child that would have
+        been number N+1 is not partially decoded.
+        """
+        out = _decode_vs_versioninfo(_blob("StringFileInfo", _MAX_CHILDREN + 5))
+        assert len(out["string_file_info"]) == _MAX_CHILDREN
+
+    def test_decoded_flag_unaffected_by_the_cap(self):
+        """Hitting the cap is a truncation of the walk, not a decode
+        failure - the envelope itself parsed fine."""
+        out = _decode_vs_versioninfo(_blob("Y", 5000))
+        assert out["decoded"] is True
+        assert out["header_ok"] is True
+
+    def test_cap_constant_is_bounded_and_positive(self):
+        assert 0 < _MAX_CHILDREN <= 4096
 
 
 # =================================================================
@@ -999,7 +1084,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert self.REQUIRED_KEYS.issubset(out.keys())
 
     def test_string_file_info_is_list(self):
@@ -1012,7 +1097,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert isinstance(out["string_file_info"], list)
         assert isinstance(out["var_file_info"], list)
         assert isinstance(out["errors"], list)
@@ -1027,7 +1112,7 @@ class TestOutputContract:
             ),
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={0x1000: blob})
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out["errors"] == []
 
 
@@ -1073,7 +1158,7 @@ class TestDefensiveCodePaths:
         ]
         pe = _FakePE(root_entries, raw_data_by_rva={})
 
-        out = build_version_info(pe)
+        out = build_version_info_structure(pe)
         assert out is not None
         assert out["decoded"] is False
         assert out["rva"] is None
@@ -1355,3 +1440,78 @@ class TestDefensiveCodePaths:
         var = vfi_out["vars"][0]
         # Either the Var's parent or the translation array failed to populate
         assert "translation_unpack" in vfi_out["errors"] or var["translations"] == []
+
+def _version_pe(rva, size):
+    """Minimal pe exposing a single RT_VERSION leaf with the given placement."""
+    class _Struct:
+        OffsetToData = rva
+        Size = size
+
+    class _Leaf:
+        data = type("D", (), {"struct": _Struct()})()
+
+    class _LangDir:
+        entries = [_Leaf()]
+
+    class _NameEntry:
+        id = 1
+        directory = _LangDir()
+
+    class _NameDir:
+        entries = [_NameEntry()]
+
+    class _TypeEntry:
+        id = 16 # RT_VERSION
+        directory = _NameDir()
+
+    class _Root:
+        entries = [_TypeEntry()]
+
+    class _PE:
+        DIRECTORY_ENTRY_RESOURCE = _Root()
+
+    def get_data(self, rva, size):
+        raise AssertionError(
+            f"get_data called with size={size}; the guard must "
+            "short-circuit before any read"
+        )
+
+    return _PE()
+
+
+@pytest.mark.parametrize("rva, size, label", [
+    (-1, 0x40, "negative rva"),
+    (0x1000, 0, "zero size"),
+    (0x1000, -1, "negative size"),
+    (0x1000, _MAX_VERSION_BLOB + 1, "size over cap"),
+])
+def test_implausible_placement_is_tombstoned_without_reading(rva, size, label):
+    """
+    The guard exists to stop an attacker-controlled Size reaching
+    pe.get_data. A tombstoned dict - not None - keeps an untrustworthy
+    blob distinguishable from a binary with no RT_VERSION resource.
+    """
+    out = build_version_info_structure(_version_pe(rva, size))
+
+    assert out is not None, label
+    assert out["errors"] == [_PLACEMENT_TAG], label
+    assert out["decoded"] is False
+    assert out["header_ok"] is False
+    assert out["length_consistent"] is False
+    assert out["fixed_file_info"] is None
+    assert out["string_file_info"] == []
+    assert out["var_file_info"] == []
+    # Placement is reported verbatim so the fault is diagnosable
+    assert out["rva"] == rva
+    assert out["size"] == size
+
+
+    @pytest.mark.parametrize("size", [1, _MAX_VERSION_BLOB])
+    def test_boundary_sizes_are_not_rejected(size):
+        """The cap is inclusive; only size > _MAX_VERSION_BLOB is refused."""
+        pe = _version_pe(0x1000, size)
+        pe.get_data = lambda rva, size: b"\x00" * size # allow the read
+
+        out = build_version_info_structure(pe)
+        assert out["errors"] != [_PLACEMENT_TAG]
+

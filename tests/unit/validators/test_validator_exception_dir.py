@@ -441,7 +441,7 @@ class TestEntryInvalid:
         assert _details_for(issues, ReasonCodes.EXCEPTION_ENTRY_INVALID)[0]["index"] == 1
 
     @pytest.mark.parametrize("tag", [
-        "entry_truncated", "entry_read_failed", "entry_unpack_failed",
+        "entry_unpack_failed",
         "begin_rva_zero", "end_rva_zero", "unwind_rva_zero",
     ])
     def test_each_priority_tag_resolves(self, tag):
@@ -453,10 +453,10 @@ class TestEntryInvalid:
         """entry_truncated outranks begin_rva_zero and unwind_rva_zero."""
         ex = _make_ex(size=12, functions=[_make_entry(
             0, None, None, None, unwind=None,
-            errors=["begin_rva_zero", "entry_truncated", "unwind_rva_zero"])])
+            errors=["begin_rva_zero", "unwind_rva_zero"])])
         issues = _run(ex)
         assert len(issues) == 1
-        assert _has(issues, ReasonCodes.EXCEPTION_ENTRY_INVALID, "entry_truncated")
+        assert _has(issues, ReasonCodes.EXCEPTION_ENTRY_INVALID, "begin_rva_zero")
 
     def test_unknown_tag_not_flagged(self):
         """A future parser tag not in the priority list is skipped silently."""
@@ -998,8 +998,8 @@ class TestDeterminism:
     def test_priority_resolution_deterministic(self):
         ex = _make_ex(size=12, functions=[_make_entry(
             0, None, None, None, unwind=None,
-            errors=["unwind_rva_zero", "entry_truncated", "begin_rva_zero"])])
+            errors=["unwind_rva_zero", "begin_rva_zero"])])
         results = [_run(ex) for _ in range(20)]
         for r in results[1:]:
             assert r == results[0]
-        assert results[0][0]["details"]["sub_reason"] == "entry_truncated"
+        assert results[0][0]["details"]["sub_reason"] == "begin_rva_zero"

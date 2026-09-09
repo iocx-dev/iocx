@@ -26,6 +26,7 @@ from iocx.parsers.pe_exports import (
     _read_dword_array,
     _read_word_array,
     _EXPORT_DIRECTORY_SIZE,
+    _FORWARDER_RE
 )
 
 
@@ -778,6 +779,276 @@ class TestBuildExportStructure:
 
 
 # =================================================================
+# Builders for v0.7.6.2
+# =================================================================
+
+def _hdr(base=1, nf=0, nn=0, af=0, an=0, ano=0):
+    return struct.pack("<II HH IIIIIII", 0, 0, 0, 0, 0, base, nf, nn, af, an, ano)
+
+def _dw(v): return b"".join(struct.pack("<I", x) for x in v)
+def _wd(v): return b"".join(struct.pack("<H", x) for x in v)
+def _az(s): return s.encode("ascii") + b"\x00"
+
+
+class _DataDir:
+    def __init__(self, rva, size):
+        self.VirtualAddress = rva
+        self.Size = size
+
+class _OptHdr:
+    def __init__(self, d):
+        self.DATA_DIRECTORY = [d]
+
+class _FakePEForwader:
+    def __init__(self, rva, size, data):
+        self.OPTIONAL_HEADER = _OptHdr(_DataDir(rva, size))
+        self._data = data
+    def get_data(self, rva, size):
+        if rva not in self._data:
+            raise ValueError(f"no fixture data at rva {rva:#x}")
+        return self._data[rva][:size]
+
+
+def _pe_with_forwarder(forwarder_bytes: Optional[bytes]):
+    """One EAT entry pointing inside the export directory (a forwarder)."""
+    data = {0x1000: _hdr(nf=1, af=0x1100), 0x1100: _dw([0x1050])}
+    if forwarder_bytes is not None:
+        data[0x1050] = forwarder_bytes
+    return _FakePEForwader(0x1000, 200, data)
+
+
+def _pe_with_names(names_and_indices, num_funcs=2):
+    """Build an export table with the given (name, eat_index) pairs."""
+    n = len(names_and_indices)
+    data = {
+        0x1000: _hdr(nf=num_funcs, nn=n, af=0x1100, an=0x1200, ano=0x1300),
+        0x1100: _dw([0x2000 + i * 0x100 for i in range(num_funcs)]),
+        0x1200: _dw([0x1400 + i * 0x10 for i in range(n)]),
+        0x1300: _wd([idx for _, idx in names_and_indices]),
+    }
+    for i, (name, _) in enumerate(names_and_indices):
+        data[0x1400 + i * 0x10] = name if isinstance(name, bytes) else _az(name)
+    return _FakePEForwader(0x1000, 200, data)
+
+
+# =================================================================
+# (v0.7.6.2) FunctionEntry.errors — forwarder decode tags
+# =================================================================
+
+class TestForwarderErrors:
+    """
+    The forwarder read's error tag was previously discarded with `_`, so an
+    unreadable forwarder was indistinguishable from a malformed one at the
+    parser level. It is now captured in FunctionEntry.errors.
+    """
+
+    @pytest.mark.parametrize("blob,expected_tag", [
+        (None,          "read_failed"),      # get_data raises
+        (b"A" * 2000,   "unterminated"),     # no NUL within the scan cap
+        (b"",           "empty_read"),       # zero-byte read
+        (b"K\xff.F\x00", "non_ascii"),       # decodes with replacement
+    ])
+    def test_forwarder_decode_failures_are_tagged(self, blob, expected_tag):
+        entry = build_export_structure(
+            _pe_with_forwarder(blob))["functions"][0]
+        assert entry["errors"] == [expected_tag]
+        assert entry["is_forwarder"] is True
+
+    def test_valid_forwarder_has_no_errors(self):
+        entry = build_export_structure(
+            _pe_with_forwarder(_az("KERNEL32.LoadLibraryA")))["functions"][0]
+        assert entry["errors"] == []
+        assert entry["forwarder"] == "KERNEL32.LoadLibraryA"
+        assert entry["forwarder_valid"] is True
+
+    def test_non_ascii_forwarder_still_yields_a_string(self):
+        """
+        Unlike the other three failures, non_ascii returns a replacement-decoded
+        string rather than None. The validator therefore routes it to the
+        "format" sub-reason, not "unreadable" - pinning that distinction here
+        so a change to _read_asciiz's contract is caught.
+        """
+        entry = build_export_structure(
+            _pe_with_forwarder(b"K\xff.F\x00"))["functions"][0]
+        assert entry["errors"] == ["non_ascii"]
+        assert entry["forwarder"] is not None      # -> validator: "format"
+        assert entry["forwarder_valid"] is False
+
+    @pytest.mark.parametrize("blob", [None, b"A" * 2000, b""])
+    def test_unreadable_forwarder_yields_none(self, blob):
+        """The three failures that DO return None -> validator: "unreadable"."""
+        entry = build_export_structure(
+            _pe_with_forwarder(blob))["functions"][0]
+        assert entry["forwarder"] is None
+
+    def test_non_forwarder_entries_have_empty_errors(self):
+        """errors[] must be present and empty on ordinary entries."""
+        pe = _FakePEForwader(0x1000, 200, {
+            0x1000: _hdr(nf=2, af=0x1100),
+            0x1100: _dw([0x9000, 0]),           # normal RVA, then unused slot
+        })
+        for entry in build_export_structure(pe)["functions"]:
+            assert entry["errors"] == []
+            assert entry["is_forwarder"] is False
+
+
+# =================================================================
+# (v0.7.6.2) FunctionEntry.name_rva
+# =================================================================
+
+class TestFunctionNameRva:
+    """
+    name_rva was documented but hard-coded to None. It now carries the RVA
+    of the resolved name string, sourced from the name-pointer cross-reference.
+    """
+
+    def test_named_function_carries_name_rva(self):
+        pe = _pe_with_names([("Foo", 0)], num_funcs=1)
+        entry = build_export_structure(pe)["functions"][0]
+        assert entry["name"] == "Foo"
+        assert entry["name_rva"] == 0x1400
+
+    def test_unnamed_function_has_none(self):
+        pe = _FakePEForwader(0x1000, 200, {
+            0x1000: _hdr(nf=1, af=0x1100), 0x1100: _dw([0x2000])})
+        entry = build_export_structure(pe)["functions"][0]
+        assert entry["name"] is None
+        assert entry["name_rva"] is None
+
+    def test_name_rva_matches_the_name_pointer_entry(self):
+        """
+        The function's name_rva must equal the name_rva recorded on the
+        name-pointer entry that resolved it - they are the same string.
+        """
+        pe = _pe_with_names([("Alpha", 0), ("Beta", 1)], num_funcs=2)
+        out = build_export_structure(pe)
+        by_index = {np["ordinal_index"]: np["name_rva"]
+                    for np in out["name_pointers"]}
+        for fn in out["functions"]:
+            if fn["name"] is not None:
+                assert fn["name_rva"] == by_index[fn["index"]]
+
+    def test_name_rva_only_set_when_name_resolves(self):
+        """An unreadable name leaves both name and name_rva unset."""
+        pe = _FakePEForwader(0x1000, 200, {
+            0x1000: _hdr(nf=1, nn=1, af=0x1100, an=0x1200, ano=0x1300),
+            0x1100: _dw([0x2000]), 0x1200: _dw([0x1400]),
+            0x1300: _wd([0]),
+            0x1400: b"A" * 2000,                # unterminated
+        })
+        entry = build_export_structure(pe)["functions"][0]
+        assert entry["name"] is None
+        assert entry["name_rva"] is None
+
+
+# =================================================================
+# (v0.7.6.2) ordinal_index_duplicate
+# =================================================================
+
+class TestOrdinalIndexDuplicate:
+    """
+    Two name pointers resolving to the same EAT index silently lost one name
+    from the function view. The collision is now tagged on the entry that
+    overwrites.
+    """
+
+    def test_duplicate_is_tagged_on_the_colliding_entry(self):
+        pe = _pe_with_names([("First", 0), ("Second", 0)], num_funcs=2)
+        out = build_export_structure(pe)
+        assert out["name_pointers"][0]["errors"] == []
+        assert out["name_pointers"][1]["errors"] == ["ordinal_index_duplicate"]
+
+    def test_last_write_wins_in_the_function_view(self):
+        """
+        Documents the consequence: the FIRST name becomes unreachable through
+        the resolved-function list. This is what makes the tag worth emitting.
+        """
+        pe = _pe_with_names([("First", 0), ("Second", 0)], num_funcs=2)
+        out = build_export_structure(pe)
+        assert out["functions"][0]["name"] == "Second"
+        assert out["functions"][1]["name"] is None
+
+    def test_three_way_collision_tags_each_subsequent_entry(self):
+        pe = _pe_with_names([("A", 0), ("B", 0), ("C", 0)], num_funcs=2)
+        out = build_export_structure(pe)
+        errs = [np["errors"] for np in out["name_pointers"]]
+        assert errs == [[], ["ordinal_index_duplicate"],
+                        ["ordinal_index_duplicate"]]
+        assert out["functions"][0]["name"] == "C"
+
+    def test_distinct_indices_are_not_flagged(self):
+        pe = _pe_with_names([("Alpha", 0), ("Beta", 1)], num_funcs=2)
+        out = build_export_structure(pe)
+        assert all(np["errors"] == [] for np in out["name_pointers"])
+        assert [f["name"] for f in out["functions"]] == ["Alpha", "Beta"]
+
+    def test_invalid_name_does_not_collide_or_overwrite(self):
+        """
+        An entry whose name failed validation never reaches the collision
+        check (the elif chain short-circuits), so it neither raises
+        ordinal_index_duplicate nor displaces the valid name already recorded
+        against that index.
+        """
+        pe = _pe_with_names([("Good", 0), (b"Bad\x01\x00", 0)], num_funcs=2)
+        out = build_export_structure(pe)
+        assert out["name_pointers"][1]["errors"] == ["name_not_printable_ascii"]
+        assert "ordinal_index_duplicate" not in out["name_pointers"][1]["errors"]
+        assert out["functions"][0]["name"] == "Good"   # not overwritten
+
+    def test_out_of_range_index_does_not_collide(self):
+        """
+        An out-of-range ordinal index is caught by the earlier elif, so it can
+        never reach the duplicate branch even if two entries share the value.
+        """
+        pe = _pe_with_names([("A", 5), ("B", 5)], num_funcs=2)
+        out = build_export_structure(pe)
+        for np in out["name_pointers"]:
+            assert np["errors"] == ["ordinal_index_out_of_range"]
+
+
+# =================================================================
+# (v0.7.6.2) Forwarder regex
+# =================================================================
+
+class TestForwarderRegex:
+    """
+    The symbol branch excludes a leading '#' so an over-long ordinal cannot
+    fall through and be accepted as an ordinary symbol name. Tightening the
+    digit count alone was insufficient - '#' is a printable character, so
+    "Dll.#99999999999" matched the symbol alternative.
+    """
+
+    @pytest.mark.parametrize("s", [
+        "KERNEL32.LoadLibraryA",
+        "KERNEL32.#42",
+        "KERNEL32.#0",
+        "KERNEL32.#65535",          # max 16-bit ordinal
+        "A.B",
+        "api-ms-win-core.dll.Func",  # multiple dots
+    ])
+    def test_valid_forwarders(self, s):
+        assert _FORWARDER_RE.match(s) is not None
+
+    @pytest.mark.parametrize("s", [
+        "NoDotInThisString",
+        ".LeadingDot",               # empty DLL part
+        "Dll.",                      # empty symbol part
+        "KERNEL32.#123456",          # 6 digits - exceeds u16
+        "KERNEL32.#99999999999",     # the case the first fix missed
+    ])
+    def test_invalid_forwarders(self, s):
+        assert _FORWARDER_RE.match(s) is None
+
+    def test_over_long_ordinal_not_accepted_as_symbol_name(self):
+        """
+        Direct regression guard: '#' must not be a valid first character of
+        the symbol branch, or the ordinal digit cap is unenforceable.
+        """
+        assert _FORWARDER_RE.match("Dll.#999999") is None
+        assert _FORWARDER_RE.match("Dll.$999999") is not None  # other punct ok
+
+
+# =================================================================
 # Output contract
 # =================================================================
 
@@ -810,6 +1081,32 @@ class TestOutputContract:
         assert isinstance(result["name_pointers"], list)
         assert isinstance(result["truncations"], list)
         assert isinstance(result["errors"], list)
+
+
+class TestFunctionEntryContract:
+
+    def test_function_entry_key_set(self):
+        pe = _pe_with_names([("Foo", 0)], num_funcs=1)
+        entry = build_export_structure(pe)["functions"][0]
+        assert set(entry) == {
+            "index", "ordinal", "address_rva", "is_forwarder", "forwarder",
+            "forwarder_valid", "name", "name_rva", "errors",
+        }
+
+    def test_errors_key_present_on_every_entry(self):
+        pe = _FakePEForwader(0x1000, 200, {
+            0x1000: _hdr(nf=3, af=0x1100),
+            0x1100: _dw([0x2000, 0, 0x1050]),
+            0x1050: _az("K.F"),
+        })
+        for entry in build_export_structure(pe)["functions"]:
+            assert "errors" in entry
+            assert isinstance(entry["errors"], list)
+
+    def test_json_serialisable_with_new_fields(self):
+        import json
+        pe = _pe_with_names([("Foo", 0), ("Foo", 0)], num_funcs=2)
+        json.dumps(build_export_structure(pe))
 
 
 # =================================================================

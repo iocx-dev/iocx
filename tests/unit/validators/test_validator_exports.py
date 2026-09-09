@@ -677,6 +677,198 @@ class TestCombinedAnomalies:
 
 
 # =================================================================
+# (v0.7.6.2) The duplicate branch
+# =================================================================
+_METADATA = {"optional_header": {"size_of_image": 0x100000}}
+
+def _np(index: int,
+        errors: List[str],
+        name: Optional[str] = "Alpha",
+        ordinal_index: Optional[int] = 0,
+        name_rva: int = 0x1400,
+        name_valid: bool = True) -> Dict[str, Any]:
+    """One NamePointerEntry as the parser emits it."""
+    return {"index": index, "errors": errors, "name": name,
+            "ordinal_index": ordinal_index, "name_rva": name_rva,
+            "name_valid": name_valid}
+
+
+def _internal(name_pointers: List[Dict[str, Any]],
+              num_functions: int = 2,
+              functions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    return {"export_struct": {
+        "rva": 0x1000, "size": 200,
+        "header": {"NumberOfFunctions": num_functions,
+                   "NumberOfNames": len(name_pointers),
+                   "Base": 1, "AddressOfFunctions": 0x1100,
+                   "AddressOfNames": 0x1200, "AddressOfNameOrdinals": 0x1300},
+        "functions": functions or [],
+        "name_pointers": name_pointers,
+        "truncations": [], "errors": []}}
+
+
+def _ordinal_issues(issues):
+    return [i for i in issues
+            if i["issue"] == ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID]
+
+
+def _sub_reasons(issues):
+    return [i["details"].get("sub_reason") for i in _ordinal_issues(issues)]
+
+
+class TestOrdinalIndexDuplicate:
+
+    def test_duplicate_tag_is_emitted(self):
+        """
+        Regression guard: before this branch existed the tag reached the
+        validator and produced nothing at all - the collision was invisible
+        downstream.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        assert _sub_reasons(issues) == ["duplicate"]
+
+    def test_details_payload(self):
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0, name_rva=0x1408),
+        ]), _METADATA)
+        assert _ordinal_issues(issues)[0]["details"] == {
+            "index": 1,
+            "ordinal_index": 0,
+            "name": "Beta",
+            "sub_reason": "duplicate",
+        }
+
+    def test_details_carry_the_shadowed_name(self):
+        """
+        The name is what makes this finding actionable: it identifies the
+        export that became unreachable through the resolved-function list.
+        Without it a consumer knows only that *some* collision occurred.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "SecretExport", 0),
+        ]), _METADATA)
+        assert _ordinal_issues(issues)[0]["details"]["name"] == "SecretExport"
+
+    def test_no_num_functions_key(self):
+        """
+        Unlike out_of_range, the duplicate branch does not carry
+        num_functions - the count is irrelevant to a collision. Pinned so the
+        two payload shapes stay deliberately distinct.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        assert "num_functions" not in _ordinal_issues(issues)[0]["details"]
+
+    def test_each_colliding_entry_emits_once(self):
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+            _np(2, ["ordinal_index_duplicate"], "Gamma", 0),
+        ]), _METADATA)
+        assert _sub_reasons(issues) == ["duplicate", "duplicate"]
+        assert [i["details"]["index"] for i in _ordinal_issues(issues)] == [1, 2]
+
+    def test_clean_table_emits_nothing(self):
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, [], "Beta", 1),
+        ]), _METADATA)
+        assert _ordinal_issues(issues) == []
+
+
+# =================================================================
+# (v0.7.6.2) Precedence within the elif chain
+# =================================================================
+
+class TestOrdinalBranchPrecedence:
+    """
+    The three ordinal sub-reasons share one if/elif chain, so an entry
+    carrying several tags must still emit exactly one issue.
+    """
+
+    @pytest.mark.parametrize("errors,expected", [
+        (["ordinal_index_missing", "ordinal_index_duplicate"], "missing"),
+        (["ordinal_index_out_of_range", "ordinal_index_duplicate"], "out_of_range"),
+        (["ordinal_index_duplicate"], "duplicate"),
+        (["ordinal_index_missing", "ordinal_index_out_of_range",
+          "ordinal_index_duplicate"], "missing"),
+    ])
+    def test_first_branch_wins(self, errors, expected):
+        issues = validate_exports(
+            _internal([_np(0, errors, "Alpha", 0)]), _METADATA)
+        assert _sub_reasons(issues) == [expected]
+
+    def test_duplicate_never_double_emits_with_a_sibling(self):
+        """One issue per entry per pathology class, regardless of tag count."""
+        issues = validate_exports(_internal([
+            _np(0, ["ordinal_index_out_of_range", "ordinal_index_duplicate"],
+                "Alpha", 0),
+        ]), _METADATA)
+        assert len(_ordinal_issues(issues)) == 1
+
+
+# =================================================================
+# (v0.7.6.2) Interaction with other pathology classes
+# =================================================================
+
+class TestCrossClassInteraction:
+
+    def test_duplicate_co_fires_with_name_rva_class(self):
+        """
+        The RVA, encoding and ordinal checks are independent classes, so an
+        entry may legitimately raise one of each.
+        """
+        issues = validate_exports(_internal([
+            _np(0, ["read_failed", "ordinal_index_duplicate"],
+                None, 0, name_valid=False),
+        ]), _METADATA)
+        codes = {i["issue"] for i in issues}
+        assert ReasonCodes.EXPORT_NAME_RVA_INVALID in codes
+        assert ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID in codes
+
+    def test_duplicate_co_fires_with_encoding_class(self):
+        issues = validate_exports(_internal([
+            _np(0, ["name_not_printable_ascii", "ordinal_index_duplicate"],
+                "Bad\x01Name", 0, name_valid=False),
+        ]), _METADATA)
+        codes = {i["issue"] for i in issues}
+        assert ReasonCodes.EXPORT_NAME_NOT_ASCII in codes
+        assert ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID in codes
+
+    def test_ascending_names_do_not_trip_the_sortedness_check(self):
+        """
+        Control for the fixture convention: with ascending names the duplicate
+        issue is the ONLY finding, so the assertions above are single-anomaly.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        assert len(issues) == 1
+        assert issues[0]["issue"] == ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID
+
+    def test_descending_names_additionally_raise_unsorted(self):
+        """
+        Documents why the fixtures ascend: the sortedness check walks the same
+        table and is independent of the duplicate finding.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Zebra", 0),
+            _np(1, ["ordinal_index_duplicate"], "Alpha", 0),
+        ]), _METADATA)
+        codes = {i["issue"] for i in issues}
+        assert ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID in codes
+        assert ReasonCodes.EXPORT_NAME_POINTER_TABLE_UNSORTED in codes
+
+
+# =================================================================
 # Output contract
 # =================================================================
 
@@ -743,6 +935,35 @@ class TestOutputContract:
         assert issues
         assert "reason" not in issues[0]["details"]
 
+    def test_issue_shape(self):
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        for issue in issues:
+            assert set(issue) == {"issue", "details"}
+            assert isinstance(issue["details"], dict)
+
+    def test_no_reserved_reason_key(self):
+        """
+        "reason" is reserved by the heuristics emission layer; a details key of
+        that name would overwrite the parent code.
+        """
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        assert issues
+        assert all("reason" not in i["details"] for i in issues)
+
+    def test_json_serialisable(self):
+        import json
+        issues = validate_exports(_internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+        ]), _METADATA)
+        json.dumps(issues)
+
 
 # =================================================================
 # Determinism
@@ -787,3 +1008,15 @@ class TestDeterminism:
         # Confirm priority winner
         details = _details_for(results[0], ReasonCodes.EXPORT_NAME_RVA_INVALID)
         assert details[0]["sub_reason"] == "name_rva_missing"
+
+    def test_deterministic_dedupe(self):
+        import json
+        internal = _internal([
+            _np(0, [], "Alpha", 0),
+            _np(1, ["ordinal_index_duplicate"], "Beta", 0),
+            _np(2, ["ordinal_index_duplicate"], "Gamma", 0),
+        ])
+        first = json.dumps(validate_exports(internal, _METADATA), sort_keys=True)
+        for _ in range(20):
+            assert json.dumps(validate_exports(internal, _METADATA),
+                              sort_keys=True) == first

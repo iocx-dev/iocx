@@ -61,6 +61,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -192,10 +193,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "high_entropy_section",
           "section": ".text",
           "entropy": 7.980294617270556,
-          "raw_size": 8192
+          "raw_size": 8192,
+          "reason": "high_entropy_section"
         }
       },
       {
@@ -204,8 +205,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "packer_section_name",
-          "section": ".upx0"
+          "section": ".upx0",
+          "reason": "packer_section_name"
         }
       },
       {
@@ -214,8 +215,8 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "packer_section_name",
-          "section": ".upx1"
+          "section": ".upx1",
+          "reason": "packer_section_name"
         }
       },
       {
@@ -224,9 +225,9 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "optional_header_inconsistent_size",
           "size_of_image": 16384,
-          "max_section_end": 20480
+          "max_section_end": 20480,
+          "reason": "optional_header_inconsistent_size"
         }
       }
     ]

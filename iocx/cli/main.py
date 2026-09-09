@@ -7,18 +7,64 @@ import sys
 from ..engine import Engine, EngineConfig
 from importlib.metadata import version, PackageNotFoundError
 
+_ART = r"""  ___ ___   ___ __  __
+ |_ _/ _ \ / __|\ \/ /
+  | | (_) | (__  >  <
+ |___\___/ \___|/_/\_\
+"""
+
+def _dep_version(name: str) -> str:
+    """Best-effort dependency version; never raises."""
+    try:
+        from importlib.metadata import version
+        return version(name)
+    except Exception:
+        return "unknown"
+
+
+def _format_version(version: str, *, art: bool = True) -> str:
+    """
+    Build the --version text.
+
+    Dependency versions are included because they are a real variable in
+    the output: pefile materialises the resource tree the parsers walk,
+    so two runs disagreeing on a finding may differ only there.
+    """
+    lines = []
+
+    # ASCII art only when stdout is a terminal - it is noise in CI logs
+    # and in anything capturing the output.
+    if art and sys.stdout.isatty():
+        lines.append(_ART.rstrip("\n"))
+        lines.append("")
+
+    py = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+    lines.extend([
+        f"Deterministic PE static analysis\n",
+        f"iocx    {version}",
+        f"python  {py}",
+        f"pefile  {_dep_version('pefile')}",
+        "license MPL-2.0",
+        "",
+        "MalX Labs - https://github.com/iocx-dev/iocx",
+    ])
+
+    return "\n".join(lines)
+
 
 def get_version():
     try:
-        return version("iocx")
+        return _format_version(version("iocx"))
     except PackageNotFoundError:
         return "0.0.0"
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Static IOC extractor for binaries, logs, and text.",
+        description="An extensible, deterministic static‑analysis engine that extracts high‑signal IOCs from PE binaries and text, built for SOC automation and modern threat‑analysis pipelines.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        allow_abbrev=False
     )
 
     # ---------------------------
@@ -26,6 +72,7 @@ def main():
     # ---------------------------
     input_group = parser.add_argument_group("Input")
     output_group = parser.add_argument_group("Output")
+    pe_analysis_group = parser.add_argument_group("PE Analysis")
     engine_group = parser.add_argument_group("Engine Options")
     detector_group = parser.add_argument_group("Detector Options")
     misc_group = parser.add_argument_group("Misc")
@@ -56,15 +103,16 @@ def main():
     output_group.add_argument(
         "-e", "--enrich",
         action="store_true",
-        help="Write enrichment data to the JSON output."
+        help="Write enrichment data to the JSON output. Enrichment is context to extracted IOCs, surfaced via plugins with the enrichment capability."
     )
 
-    output_group.add_argument(
+    pe_analysis_group.add_argument(
         "-a", "--analyse", "--analyze",
         nargs="?",
         const="deep",
         choices=["basic", "deep", "full"],
-        help="Enable PE analysis (basic, deep, full; default: deep)."
+        metavar="LEVEL",
+        help="Enable PE analysis. LEVEL: basic (sections, entropy), deep (+ obfuscation heuristics), full (+ structural validation, full version-info). Default when -a is given without a value: deep."
     )
 
     # ---------------------------
@@ -74,6 +122,14 @@ def main():
         "--no-cache",
         action="store_true",
         help="Disable engine caching."
+    )
+
+    engine_group.add_argument(
+        "-m", "--min-length",
+        type=int,
+        default=4,
+        metavar="N",
+        help="Minimum printable string length for the string extractor (default: 4)."
     )
 
     # ---------------------------
@@ -88,21 +144,13 @@ def main():
     detector_group.add_argument(
         "--list-transformers",
         action="store_true",
-        help="List available transformer plugins."
+        help="List available transformer plugins and exit."
     )
 
     detector_group.add_argument(
         "--list-enrichers",
         action="store_true",
-        help="List available enricher plugins."
-    )
-
-    detector_group.add_argument(
-        "-m", "--min-length",
-        type=int,
-        default=4,
-        metavar="N",
-        help="Minimum printable string length for the string extractor (default: 4)."
+        help="List available enricher plugins and exit."
     )
 
     # ---------------------------
@@ -117,7 +165,7 @@ def main():
     misc_group.add_argument(
         "-d", "--dev",
         action="store_true",
-        help="Enable local plugins.",
+        help="Enable local plugins. Local plugins must be placed in the '.iocx/plugins' folder of your home directory.",
     )
 
     args = parser.parse_args()

@@ -58,6 +58,7 @@
     "signatures": [],
     "has_signature": false
   },
+  "version_info": null,
   "analysis": {
     "sections": [
       {
@@ -152,11 +153,11 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "data_directory_out_of_range",
           "directory": "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG",
           "rva": 4294967295,
           "size": 148,
-          "size_of_image": 16384
+          "size_of_image": 16384,
+          "reason": "data_directory_out_of_range"
         }
       },
       {
@@ -165,10 +166,10 @@
         "end": 0,
         "category": "pe_heuristic",
         "metadata": {
-          "reason": "load_config_truncated",
           "rva": 4294967295,
           "declared_size": 148,
-          "parsed_size": 0
+          "parsed_size": 0,
+          "reason": "load_config_truncated"
         }
       }
     ]

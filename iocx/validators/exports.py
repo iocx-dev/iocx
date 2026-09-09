@@ -33,10 +33,15 @@ from .decorators import depends_on
 # Deterministic priority orders for mapping parser error tags to a single
 # reason. The validator emits at most one issue per malformed entry per
 # pathology class; the first tag in priority order wins.
+#
+# The middle three tags come from _read_asciiz rather than the name-pointer
+# walk itself, so they are listed here otherwise they are silently dropped.
 _NAME_RVA_ERROR_PRIORITY = [
     "name_rva_missing",
     "name_rva_zero",
+    "rva_zero",         # _read_asciiz's own zero-RVA guard
     "read_failed",
+    "empty_read",       # get_data returned zero bytes
     "unterminated",
 ]
 
@@ -241,6 +246,18 @@ def _validate_name_pointers(exp: Dict[str, Any],
                          "num_functions": num_funcs,
                          "sub_reason": "out_of_range"},
             ))
+        elif "ordinal_index_duplicate" in entry_errors:
+            # Two name pointers resolve to the same EAT index. The function
+            # view keeps only the last, so an export name becomes unreachable
+            # through the resolved-function list while remaining present in
+            # the name pointer table.
+            issues.append(StructuralIssue(
+                issue=ReasonCodes.EXPORT_NAME_ORDINAL_INDEX_INVALID,
+                details={"index": index,
+                         "ordinal_index": entry.get("ordinal_index"),
+                         "name": entry.get("name"),
+                         "sub_reason": "duplicate"},
+                ))
 
 
 def _validate_name_pointer_ordering(exp: Dict[str, Any],
