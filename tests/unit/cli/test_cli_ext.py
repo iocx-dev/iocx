@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 import json
-import pytest
+import pytest, re
 
 
 def run_cli(*args, input=None):
@@ -54,8 +54,14 @@ def test_cli_list_detectors():
 def test_cli_version():
     result = run_cli("--version")
     assert result.returncode == 0
-    # Version should look like "0.1.0" or similar
-    assert result.stdout.strip()[0].isdigit()
+    # Find the line starting with "iocx"
+    match = re.search(r"^iocx\s+([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$", result.stdout, re.MULTILINE)
+    assert match, "iocx version line not found in banner"
+
+    version = match.group(1)
+
+    # Validate semantic version format
+    assert re.match(r"^\d+\.\d+\.\d+\.\d+$", version), "iocx version is not numeric semantic version"
 
 
 def test_cli_help():
