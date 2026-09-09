@@ -1,3 +1,96 @@
+# **v0.7.6.2 — Import Table Structural Validator, and VERSIONINFO projection**
+**Released: 2026‑09‑09**
+
+## Added
+- Import table structural validator: new `pe_imports` parser
+  (`iocx/parsers/pe_imports.py`) and `imports` validator
+  (`iocx/validators/imports.py`) emitting `IMPORT_DIRECTORY_INVALID_HEADER`,
+  `IMPORT_TABLE_TRUNCATED`, `IMPORT_DESCRIPTOR_INVALID`,
+  `IMPORT_DLL_NAME_INVALID`, `IMPORT_ENTRY_INVALID`.
+- Public `version_info` projection (`version_info_projection.py`),
+  present in every result at every analysis level; closed 8-key
+  shortlist by default (`CompanyName`, `FileDescription`, `FileVersion`,
+  `InternalName`, `LegalCopyright`, `OriginalFilename`, `ProductName`,
+  `ProductVersion`), open key set under `-a full`.
+- New reason codes: `RESOURCE_DIRECTORY_ENTRY_UNREADABLE`,
+  `RESOURCE_STRING_TABLE_UNREADABLE`.
+- Branded `--version` CLI output (ASCII art shown only on an interactive
+  terminal) including `python` and `pefile` dependency versions.
+- Static tag-contract CI check (`tests/contract/tag_contract.py`,
+  `test_tag_contract.py`) statically verifying every parser tombstone
+  tag has a validator consumer, closing a class of silent-drop bugs.
+- `HIGHADJ` relocation-entry pairing support: new `adjustment` field on
+  paired entries, `highadj_missing_adjustment` tombstone for an unpaired
+  trailing entry.
+- Bounds on resource-tree output (`_MAX_RESOURCE_STRINGS`,
+  `_MAX_RESOURCE_ENTRIES`, `_MAX_RESOURCE_DEPTH`) and on version-info
+  blob size (1 MB) / child count (256), so hostile input can no longer
+  scale parser output or recursion depth.
+- New VS_VERSIONINFO test fixture generator and
+  matching C/RC fixture pair for end-to-end version-info coverage.
+
+## Changed
+- `build_version_info` renamed to `build_version_info_structure`; now
+  called unconditionally in the engine pipeline instead of only under
+  `-a full`.
+- CLI: `-m/--min-length` moved from Detector Options to Engine Options;
+  `-a/--analyse` help text now documents what each analysis level
+  unlocks; `--list-transformers`/`--list-enrichers` help text made
+  consistent with `--list-detectors`.
+- Delay-import and export-forwarder validation split into distinct
+  empty / non-printable / too-long checks instead of a single boolean,
+  each with its own reason-code sub-reason.
+- `RELOCATION_TABLE_TRUNCATED` region values split into
+  `relocation_entries_exceed_directory` (declared size clamped to the
+  directory window) vs. `relocation_entries_truncated` (the clamped
+  read itself came back short) — previously conflated under one tag.
+- `_MAX_ENTRIES_PER_BLOCK` corrected to 8,192 (previously documented and
+  sized for 2,048) to account for `HIGHADJ` occupying two WORD slots
+  per relocation.
+- Machine-specific relocation type 9 renamed `MIPS_JMPADDR16` →
+  `MACHINE_SPECIFIC_9` for architecture-neutral naming.
+
+## Fixed
+- `NameError` on `_RELOC_TYPE_HIGHADJ`, reachable from decoding *any*
+  relocation entry (not only `HIGHADJ` ones), capable of aborting an
+  entire analysis on a single malformed entry.
+- `_parse_data_directories_raw` read PE32+ images at the PE32 (96-byte)
+  rather than the correct 112-byte `DataDirectory` offset, silently
+  misreading every data directory on a 64-bit image; now also tolerates
+  a missing/empty `__data__` and a truncated optional header without
+  raising.
+- Export forwarder-string decode errors were discarded rather than
+  surfaced on the entry; `name_rva` was hard-coded `None` instead of
+  being resolved via the name-pointer cross-reference; two name
+  pointers resolving to the same EAT index silently overwrote one
+  another (now tagged `ordinal_index_duplicate`).
+- Forwarder regex accepted over-long ordinals (e.g.
+  `Dll.#99999999999`) as ordinary symbol names.
+- `pe_resources.build_resource_structure` and `pe_parser._parse_resources`
+  could propagate an exception, or silently drop entries, on a malformed
+  subtree; both now tombstone the failure (`entry_decode_failed`,
+  `directory_entries_unavailable`, `string_table_walk_failed`,
+  `resources_unavailable`, `resources_map_read_failed`) and never raise.
+- Per-index parser tags (`*_unpack_failed_at_{index}`) that never
+  matched any validator priority list, because the embedded index made
+  every occurrence unique, deduplicated to a stable form.
+
+## Documentation
+- `docs/specs/reason-codes.md`: new **Import Anomalies** section, new
+  **Resource Directory Entry Unreadable** section, expanded TLS /
+  delay-import / export / relocation / debug sub-reason tables.
+- `docs/specs/structural-validation-deterministic-heuristics.md`: new
+  **§2.16 Imports Validator** section; documents the tag-contract check.
+
+## Testing
+- Test suite: **2,136 → 2,802 tests.** Major new coverage for the
+  import parser/validator, the version-info projection, resource-tree
+  robustness, relocation `HIGHADJ` handling, and the tag-contract
+  checker itself (including deliberate regression fixtures for eight
+  previously-found silent-drop bugs).
+
+---
+
 # **v0.7.6.1 — Exception Directory Validator, and a Silent Output Defect**
 **Released: 2026‑08‑27**
 

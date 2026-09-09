@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/iocx/"><img src="https://img.shields.io/pypi/v/iocx?logo=pypi&logoColor=white"></a>
-  <img src="https://img.shields.io/badge/tests-2428_passed-brightgreen">
+  <img src="https://img.shields.io/badge/tests-2802_passed-brightgreen">
   <img src="https://img.shields.io/badge/coverage-100%25-brightgreen">
   <img src="https://img.shields.io/badge/python-3.12-blue">
   <a href="https://github.com/iocx-dev/iocx/actions"><img src="https://img.shields.io/github/actions/workflow/status/iocx-dev/iocx/ci.yml?label=build"></a>
@@ -201,6 +201,17 @@ Fast path — no PE parsing.
 <details>
 <summary><strong>Show Version History</strong></summary>
 <br>
+
+### v0.7.6.2 — Import Table Validator
+
+- New deterministic **import table structural validator** (`IMPORT_*` reason codes).
+- `version_info` now parsed and surfaced at **every** analysis level (not just `-a full`), via a new bounded public projection.
+- Rebuilt CLI: branded `--version` output, clearer `--help` text, reorganised argument groups.
+- Fixed a relocation-parser crash reachable from any entry, a PE32+ data-directory offset bug, and several silent export/resource error drops.
+- New static CI check that prevents parser error tags from silently going unconsumed by validators.
+- Test suite: 2,136 → 2,802 tests.
+
+---
 
 ### v0.7.6.1 — Exception Directory Validator
 

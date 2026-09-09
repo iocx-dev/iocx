@@ -40,19 +40,23 @@ If you need predictable, automatable IOC extraction — IOCX is built for you.
 
 ---
 
+## Version highlights
+
+### v0.7.6.2 — Import Table Validator
+
+- New deterministic **import table structural validator** (`IMPORT_*` reason codes).
+- `version_info` now parsed and surfaced at **every** analysis level (not just `-a full`), via a new bounded public projection.
+- Rebuilt CLI: branded `--version` output, clearer `--help` text, reorganised argument groups.
+- Fixed a relocation-parser crash reachable from any entry, a PE32+ data-directory offset bug, and several silent export/resource error drops.
+- New static CI check that prevents parser error tags from silently going unconsumed by validators.
+- Test suite: 2,136 → 2,802 tests. Coverage: 100%.
+
 ### v0.7.6.1 — Exception Directory Validator
 
 - Adds deep semantic validation of the PE exception (`.pdata`) directory; 14 new reason codes; 15 validators total.
 - Fixes a defect that had been suppressing structural findings across the engine.
 - **Output-visible:** findings previously suppressed or mislabelled will now appear.
 - Tests: 1620 → 2136. Coverage: 100%.
-
-## Version highlights (v0.7.6)
-
-- Added new PE structural validators for relocations and debug directories
-- WIN_CERTIFICATE and tls validators now have pefile-independent struct parsers
-- Never crashes on malformed input - byte-level parsing with structured error tombstones
-- 1620 tests at 100% coverage - deterministic output, snapshot-stable
 
 ---
 
